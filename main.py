@@ -7,6 +7,7 @@ app = create_app()
 def home():
     if request.method == 'POST':
         archivo = request.form['archivo_java']
+        
     return render_template('home.html')
 
 if __name__ ==  '__main__':
