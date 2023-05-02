@@ -3,6 +3,8 @@ from flask import render_template, request
 
 app = create_app()
 
+
+
 @app.route('/',methods = ['GET','POST'])
 def home():
     if request.method == 'POST':
@@ -12,6 +14,3 @@ def home():
 
 if __name__ ==  '__main__':
     app.run(debug=True)
-
-
-
