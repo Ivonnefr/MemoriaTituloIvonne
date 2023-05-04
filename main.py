@@ -1,4 +1,3 @@
-from website import create_app
 from flask import render_template, request
 import subprocess
 from flask import Flask, render_template
