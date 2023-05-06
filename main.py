@@ -10,15 +10,23 @@ from wtforms.validators import InputRequired
 #inicializar la aplicacion
 app = Flask(__name__)
 
-@app.route('/')
+@app.route('/'  , methods=['GET',"POST"])
 def index():    
     #solo se indica el nombre porque flask sabe donde están los html
     return render_template('index.html')
 
 
 
+@app.route('/contacto', methods=['GET',"POST"])
+def contacto():
+    return render_template('contacto.html')
+
+def pagina_no_encontrada(error):
+    return render_template('404.html'), 404
+    #return redirect(url_for('index')) te devuelve a esa página
 
 if __name__ == '__main__':
+    app.register_error_handler(404, pagina_no_encontrada)
     app.run(debug=True, port=5000)
 
 
