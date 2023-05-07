@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+    <!-- EPlantilla principal de las vistas -->
 
 <head>
     <meta charset="UTF-8">
@@ -12,6 +13,7 @@
 <body>
     {% block body %}{% endblock %}
     <script src = "{{ url_for('static', filename='js/layout.js') }}"></script>
+    {%block content%}{%endblock%}
 </body>
 
 </html>

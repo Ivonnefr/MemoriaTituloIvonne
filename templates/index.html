@@ -3,5 +3,15 @@
 {% block title %}Home{% endblock %}
 
 {% block body %}
-<h1>poto</h1>
+<h1>Hooome</h1>
+
+
+{% endblock %}
+
+{%block content %}
+
+<body>
+    <a href = "{{url_for('login')}}">Login Page</a>
+    <a href = "{{url_for('register')}}">Register Page</a>
+</body>
 {% endblock %}

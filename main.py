@@ -1,25 +1,50 @@
-from flask import render_template, request
 import subprocess
-from flask import Flask, render_template
+from flask import Flask, render_template, request, url_for, redirect
 from flask_wtf import FlaskForm
-from wtforms import FileField, SubmitField
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+from wtforms import FileField, SubmitField, PasswordField,StringField
+
 from werkzeug.utils import secure_filename
 import os
-from wtforms.validators import InputRequired
+from wtforms.validators import InputRequired, Length, ValidationError
 
 #inicializar la aplicacion
 app = Flask(__name__)
 
+app.config['SECRET_KEY']= 'mysecretkey'
+
+# class RegisterForm(FlaskForm):
+#     username = StringField(validators=[InputRequired(), Length(min=4, max=15)], render_kw={"placeholder": "Username"})
+#     password = PasswordField(validators=[InputRequired(), Length(min=8, max=80)], render_kw={"placeholder": "Password"})
+#     submit = SubmitField("Register")
+#     def validate_username(self, username):
+#         existing_user_username = User.query.filter_by(username=username.data).first()
+#         if existing_user_username:
+#             raise ValidationError("That username already exists. Please choose a different one.")
+    
+
+#Ruta inicio
 @app.route('/'  , methods=['GET',"POST"])
 def index():    
     #solo se indica el nombre porque flask sabe donde están los html
     return render_template('index.html')
 
 
+#Ruta login
+@app.route('/login', methods=['GET',"POST"])
+def login():
+    return render_template('login.html')
 
-@app.route('/contacto', methods=['GET',"POST"])
-def contacto():
-    return render_template('contacto.html')
+#Ruta registro
+@app.route('/register', methods=['GET',"POST"])
+def register():
+        return render_template('register.html')
+
+
+@app.route("/<usr>")
+def user(usr):
+    return "<h1>{usr}</h1>"
 
 def pagina_no_encontrada(error):
     return render_template('404.html'), 404
