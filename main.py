@@ -11,8 +11,12 @@ from wtforms.validators import InputRequired, Length, ValidationError
 
 #inicializar la aplicacion
 app = Flask(__name__)
-
 app.config['SECRET_KEY']= 'mysecretkey'
+
+
+class UploadFileForm(FlaskForm):
+    file = FileField("File", validators=[InputRequired()])
+    submit = SubmitField("Upload File")
 
 # class RegisterForm(FlaskForm):
 #     username = StringField(validators=[InputRequired(), Length(min=4, max=15)], render_kw={"placeholder": "Username"})
@@ -40,6 +44,21 @@ def login():
 @app.route('/register', methods=['GET',"POST"])
 def register():
         return render_template('register.html')
+
+@app.route('/uploadfile', methods=['GET',"POST"])
+def uploadfile():
+    form = UploadFileForm()
+    return render_template('uploadfile.html', form=form)
+
+@app.route('/upload_file', methods=['GET',"POST"])
+def upload_file():  
+     form = UploadFileForm()
+    if form.validate_on_submit():
+        file = form.file.data # First grab the file
+        file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
+        return "File has been uploaded."
+    return render_template('index.html', form=form)
+
 
 
 @app.route("/<usr>")
