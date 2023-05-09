@@ -40,6 +40,7 @@ def index():
 #Ruta login
 @app.route('/login', methods=['GET',"POST"])
 def login():
+    #compilar_java('uploads/Test.java')
     return render_template('login.html')
 
 #Ruta registro
@@ -53,12 +54,14 @@ def upload_file():
     form = UploadFileForm()
     if form.validate_on_submit():
         file = form.file.data # Obtengo los datos del archivo
+        
         if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
             file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename)))
             #Cuando se sube un archivo se compila y luego se quitan los packages
             #Revisar que el archivo compile exitosamente
-            compilar_java('uploads/'+file.filename)
             quitar_packages('uploads/'+file.filename)
+            
+            compilar_java('uploads/')
             #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
         else:
             #Hacer esto en la misma página y no como return
@@ -71,6 +74,9 @@ def upload_file():
 
 #Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
 @app.route('/upload_file/pregunta', methods=["POST"])
+def pregunta():
+
+    return render_template('pregunta.html')
 
 #Funcion para ejecutar el script 404
 def pagina_no_encontrada(error):
