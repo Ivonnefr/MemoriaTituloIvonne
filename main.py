@@ -6,27 +6,29 @@ from flask_sqlalchemy import SQLAlchemy
 from wtforms import FileField, SubmitField, PasswordField,StringField
 
 from werkzeug.utils import secure_filename
-import os
+import os, re
 from wtforms.validators import InputRequired, Length, ValidationError
+from funciones_archivo.compilar import compilar_java
 
 #inicializar la aplicacion
 app = Flask(__name__)
 app.config['SECRET_KEY']= 'mysecretkey'
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
 
 class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
 
-# class RegisterForm(FlaskForm):
-#     username = StringField(validators=[InputRequired(), Length(min=4, max=15)], render_kw={"placeholder": "Username"})
-#     password = PasswordField(validators=[InputRequired(), Length(min=8, max=80)], render_kw={"placeholder": "Password"})
-#     submit = SubmitField("Register")
-#     def validate_username(self, username):
-#         existing_user_username = User.query.filter_by(username=username.data).first()
-#         if existing_user_username:
-#             raise ValidationError("That username already exists. Please choose a different one.")
-    
+# recibe un archivo java y quita los packages utilizando RegEx
+def quitar_packages(archivo_java):
+    with open(archivo_java, 'r') as archivo:
+        txt = archivo.read()
+        x = re.sub("^package .*$", "", txt, flags=re.MULTILINE)
+    with open(archivo_java, 'w') as archivo:
+        archivo.write(x)
+    # with open(nuevo_archivo, 'w') as nuevo:
+    #     nuevo.write(x)
 
 #Ruta inicio
 @app.route('/'  , methods=['GET',"POST"])
@@ -45,42 +47,41 @@ def login():
 def register():
         return render_template('register.html')
 
-@app.route('/uploadfile', methods=['GET',"POST"])
-def uploadfile():
-    form = UploadFileForm()
-    return render_template('uploadfile.html', form=form)
-
+#Ruta para subir archivo java
 @app.route('/upload_file', methods=['GET',"POST"])
 def upload_file():  
-     form = UploadFileForm()
+    form = UploadFileForm()
     if form.validate_on_submit():
-        file = form.file.data # First grab the file
-        file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
-        return "File has been uploaded."
-    return render_template('index.html', form=form)
+        file = form.file.data # Obtengo los datos del archivo
+        if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
+            file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename)))
+            #Cuando se sube un archivo se compila y luego se quitan los packages
+            #Revisar que el archivo compile exitosamente
+            compilar_java('uploads/'+file.filename)
+            quitar_packages('uploads/'+file.filename)
+            #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
+        else:
+            #Hacer esto en la misma página y no como return
+            return "Tipo de archivo invalido, enviar solo archivos .java ."
 
+        # file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
+        # return "File has been uploaded."
+    
+    return render_template('upload_file.html', form=form)
 
+#Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
+@app.route('/upload_file/pregunta', methods=["POST"])
 
-@app.route("/<usr>")
-def user(usr):
-    return "<h1>{usr}</h1>"
-
+#Funcion para ejecutar el script 404
 def pagina_no_encontrada(error):
     return render_template('404.html'), 404
-    #return redirect(url_for('index')) te devuelve a esa página
+    #return redirect(url_for('index')) #te devuelve a esa página
 
+#Ruta para ejecutar el script
 if __name__ == '__main__':
     app.register_error_handler(404, pagina_no_encontrada)
     app.run(debug=True, port=5000)
 
-
-# app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'supersecretkey'
-# app.config['UPLOAD_FOLDER'] = 'static/files'
-
-# class UploadFileForm(FlaskForm):
-#     file = FileField("File", validators=[InputRequired()])
-#     submit = SubmitField("Upload File")
 
 # @app.route('/', methods=['GET',"POST"])
 # @app.route('/home', methods=['GET',"POST"])
@@ -92,17 +93,10 @@ if __name__ == '__main__':
 #         return "File has been uploaded."
 #     return render_template('home.html', form=form)
 
-# if __name__ == '__main__':
-#     app.run(debug=True)
-
-# @app.route('/upload_file', methods=['GET',"POST"])
-# def upload_file():
-#     if request.method == 'POST':
-#         file = request.files['file']
-#         file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename)))
-#         return "File has been uploaded."
-#     return render_template('website/templates/upload_file.html')
-
+# #Ruta login
+# @app.route("/<usr>")
+# def user(usr):
+#     return "<h1>{usr}</h1>"
 
 
 # #lsof -i:PUERTO //para revisar todos los procesos que estan usando el puerto

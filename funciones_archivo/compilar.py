@@ -16,8 +16,8 @@ def compilar_java(archivo):
         #print(resultado.stderr.decode())
 
         # Si el proceso se completó correctamente, imprimimos un mensaje de éxito
-        print("El archivo se compiló exitosamente")
+        return("El archivo se compiló exitosamente")
 
     except subprocess.CalledProcessError as error:
         # Si se produce un error durante la ejecución del proceso, lo manejamos aquí
-        print(f"Ocurrió un error durante la compilación: {error}")
+        return(f"Ocurrió un error durante la compilación: {error}")

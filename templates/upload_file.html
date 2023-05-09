@@ -9,14 +9,15 @@
 
 {%block content%}
 
-<body>
-    <h1>Flask File Uploads Tutorial</h1>
+<body>  
 
     <form method='POST' enctype='multipart/form-data'>
         {{form.hidden_tag()}}
         {{form.file()}}
         {{form.submit()}}
     </form>
+
+    <a href = "{{url_for('login')}}">Atrás</a>
 </body>
-</html>
+
 {%endblock%}
