@@ -14,7 +14,7 @@ public class ExpendedorSimple {
 //asasdasd
     public Sprite comprarBebida(int pago) throws NoHayBebidaException, PagoInsuficienteException{
         if (sprites.isEmpty()) throw new NoHayBebidaException();
-        if (pago < precio) throw new PagoInsuficienteException();
+        if (pago > precio) throw new PagoInsuficienteException();
             return sprites.remove(sprites.size()-1);
     }
 }
