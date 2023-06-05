@@ -6,10 +6,13 @@ def agregar_package(archivo_java):
     # Leer el contenido del archivo existente
     with open(archivo_java, 'r') as archivo:
         lineas = archivo.readlines()
+    #Si el archivo ya incluye la linea "package org.example" no se hace nada
+    if lineas[0] == "package org.example;\n":
+        return
+    else:
+        lineas.insert(0, "package org.example;\n")
+        # Escribir el contenido actualizado en el archivo
+        with open(archivo_java, 'w') as archivo:
+            archivo.writelines(lineas)
 
-    # Insertar la nueva línea en la posición correcta
-    lineas.insert(0, "package org.example\n")
 
-    # Escribir el contenido actualizado en el archivo
-    with open(archivo_java, 'w') as archivo:
-        archivo.writelines(lineas)

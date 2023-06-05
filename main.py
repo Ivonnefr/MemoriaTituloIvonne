@@ -12,6 +12,8 @@ from funciones_archivo.compilar_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
 from funciones_archivo.quitar_packages import eliminar_packages
 from funciones_archivo.copy_maven_folder import *
+from funciones_archivo.agregar_archivo_java import agregar_archivo_java
+from funciones_archivo.agregar_package import agregar_package
 # #inicializar la aplicacion
 # app = Flask(__name__)
 # app.config['SECRET_KEY']= 'mysecretkey'
@@ -91,9 +93,10 @@ archivo= "/home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/uploads/ExpendedorS
 
 matricula=121234
 num_ejercicio=102
-
-copiar_carpeta_maven(matricula,num_ejercicio)
-ruta = "/home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/maven_folder"
+#agregar_archivo_java(matricula,num_ejercicio,archivo)
+agregar_package(archivo)
+agregar_archivo_java(matricula,num_ejercicio,archivo)
+ejecutar_test_unitario(matricula,num_ejercicio)
 
 #run_unit_test(ruta)
 #str(matricula)
