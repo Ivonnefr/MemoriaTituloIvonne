@@ -15,6 +15,7 @@ from funciones_archivo.copy_maven_folder import *
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
+from basedatos.modelos import *
 # #inicializar la aplicacion
 app = Flask(__name__)
 app.config['SECRET_KEY']= 'mysecretkey'
@@ -24,9 +25,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
-
-
 
 
 # class UploadFileForm(FlaskForm):
