@@ -1,13 +1,12 @@
 import subprocess
-# from flask import Flask, render_template, request, url_for, redirect
-# from flask_wtf import FlaskForm
-# from flask_login import UserMixin
-# from flask_sqlalchemy import SQLAlchemy
-# from wtforms import FileField, SubmitField, PasswordField,StringField
-
-# from werkzeug.utils import secure_filename
+from flask import Flask, render_template, request, url_for, redirect
+from flask_wtf import FlaskForm
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+from wtforms import FileField, SubmitField, PasswordField,StringField
+from werkzeug.utils import secure_filename
 import os, re
-# from wtforms.validators import InputRequired, Length, ValidationError
+from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
 from funciones_archivo.delete_packages import eliminar_packages
@@ -15,16 +14,15 @@ from funciones_archivo.copy_maven_folder import *
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
-from basedatos.modelos import *
-# #inicializar la aplicacion
-app = Flask(__name__)
-app.config['SECRET_KEY']= 'mysecretkey'
-app.config['UPLOAD_FOLDER'] = 'uploads'
 
+#inicializar la aplicacion
+app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# app.config['SECRET_KEY']= 'mysecretkey'
+# app.config['UPLOAD_FOLDER'] = 'uploads'
 
-db = SQLAlchemy(app)
+db= SQLAlchemy(app)
 
 
 # class UploadFileForm(FlaskForm):
@@ -101,11 +99,11 @@ archivo= "/home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/uploads/ExpendedorS
 matricula=121234
 num_ejercicio=102
 #agregar_archivo_java(matricula,num_ejercicio,archivo)
-# agregar_package(archivo)
-# agregar_archivo_java(matricula,num_ejercicio,archivo)
-ejecutar_test_unitario(matricula,num_ejercicio)
+#agregar_package(archivo)
+#agregar_archivo_java(matricula,num_ejercicio,archivo)
+# ejecutar_test_unitario(matricula,num_ejercicio)
 
-procesar_surefire_reports()
+# procesar_surefire_reports()
 
 #run_unit_test(ruta)
 #str(matricula)
