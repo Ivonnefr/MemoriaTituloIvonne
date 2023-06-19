@@ -28,7 +28,7 @@ class Grupo(db.Model):
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
-    fecha = db.Column(db.Date(50), nullable=False)
+    fecha = db.Column(db.Date(), nullable=False)
     
     def __init__(self, nombre, fecha):
         self.nombre = nombre
@@ -97,7 +97,7 @@ class Ejercicio_realizado(db.Model):
     id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), nullable=False)
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
     path = db.Column(db.String(200), nullable=False)
-    fecha = db.Column(db.Date(50), nullable=False)
+    fecha = db.Column(db.Date(), nullable=False)
     
     def __init__(self, id_ejercicio, id_estudiante, path, fecha):
         self.id_ejercicio = id_ejercicio
@@ -109,7 +109,7 @@ class Comprobacion_ejercicio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
     test = db.Column(db.Integer, db.ForeignKey('test.id'), nullable=False)
-    fecha = db.Column(db.Date(50), nullable=False)
+    fecha = db.Column(db.Date(), nullable=False)
     resultado = db.Column(db.String(50), nullable=False)
     
     def __init__(self, ejercicio_realizado, test, fecha, resultado):

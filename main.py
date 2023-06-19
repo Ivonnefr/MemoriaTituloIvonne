@@ -24,6 +24,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db= SQLAlchemy(app)
 
+from basedatos import modelos
 # class UploadFileForm(FlaskForm):
 #     file = FileField("File", validators=[InputRequired()])
 #     submit = SubmitField("Upload File")
