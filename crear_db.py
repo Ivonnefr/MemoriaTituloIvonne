@@ -1,4 +1,5 @@
-from main import db
+from main import app, db
 
-db.create_all()
-db.session.commit()
+with app.app_context():
+    db.create_all()
+    db.session.commit()

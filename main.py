@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, url_for, redirect
 from flask_wtf import FlaskForm
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from wtforms import FileField, SubmitField, PasswordField,StringField}
+from wtforms import FileField, SubmitField, PasswordField,StringField
 from werkzeug.utils import secure_filename
 import os, re
 from wtforms.validators import InputRequired, Length, ValidationError
@@ -23,7 +23,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # app.config['UPLOAD_FOLDER'] = 'uploads'
 
 db= SQLAlchemy(app)
-
 
 # class UploadFileForm(FlaskForm):
 #     file = FileField("File", validators=[InputRequired()])
