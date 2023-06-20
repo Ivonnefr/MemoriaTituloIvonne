@@ -25,76 +25,76 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db= SQLAlchemy(app)
 
 from basedatos import modelos
-# class UploadFileForm(FlaskForm):
-#     file = FileField("File", validators=[InputRequired()])
-#     submit = SubmitField("Upload File")
+class UploadFileForm(FlaskForm):
+    file = FileField("File", validators=[InputRequired()])
+    submit = SubmitField("Upload File")
 
 
-# #Ruta inicio
-# @app.route('/'  , methods=['GET',"POST"])
-# def index():    
-#     #solo se indica el nombre porque flask sabe donde están los html
-#     return render_template('index.html')
+#Ruta inicio
+@app.route('/'  , methods=['GET',"POST"])
+def index():    
+    #solo se indica el nombre porque flask sabe donde están los html
+    return render_template('index.html')
 
 
-# #Ruta login
-# @app.route('/login', methods=['GET',"POST"])
-# def login():
-#     #compilar_java('uploads/Test.java')
-#     return render_template('login.html')
+#Ruta login
+@app.route('/login', methods=['GET',"POST"])
+def login():
+    #compilar_java('uploads/Test.java')
+    return render_template('login.html')
 
-# #Ruta registro
-# @app.route('/register', methodss=['GET',"POST"])
-# def register():
-#         return render_template('register.html')
+#Ruta registro
+@app.route('/register', methods=['GET',"POST"])
+def register():
+        return render_template('register.html')
 
-# #Ruta para subir archivo java
-# @app.route('/upload_file', methods=['GET',"POST"])
-# def upload_file():  
-#     form = UploadFileForm()
-#     if form.validate_on_submit():
-#         file = form.file.data # Obtengo los datos del archivo
+#Ruta para subir archivo java
+@app.route('/upload_file', methods=['GET',"POST"])
+def upload_file():  
+    form = UploadFileForm()
+    if form.validate_on_submit():
+        file = form.file.data # Obtengo los datos del archivo
         
-#         if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
-#             filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
-#             file.save(filepath)
-#             print(filepath)
-#             #Cuando se sube un archivo se compila y luego se quitan los packages
-#             #Revisar que el archivo compile exitosamente
-#             quitar_packages(filepath)
+        if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
+            filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
+            file.save(filepath)
+            print(filepath)
+            #Cuando se sube un archivo se compila y luego se quitan los packages
+            #Revisar que el archivo compile exitosamente
+            eliminar_packages(filepath)
             
-#             compilar_java(filepath)
-#             #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
-#         else:
-#             #Hacer esto en la misma página y no como return
-#             return "Tipo de archivo invalido, enviar solo archivos .java ."
+            compilar_archivo_java(filepath)
+            #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
+        else:
+            #Hacer esto en la misma página y no como return
+            return "Tipo de archivo invalido, enviar solo archivos .java ."
 
-#         # file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
-#         # return "File has been uploaded."
+        # file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
+        # return "File has been uploaded."
     
-#     return render_template('upload_file.html', form=form)
+    return render_template('upload_file.html', form=form)
 
-# #Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
-# @app.route('/upload_file/pregunta', methods=["POST"])
-# def pregunta():
+#Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
+@app.route('/upload_file/pregunta', methods=["POST"])
+def pregunta():
 
-#     return render_template('pregunta.html')
+    return render_template('pregunta.html')
 
-# #Funcion para ejecutar el script 404
-# def pagina_no_encontrada(error):
-#     return render_template('404.html'), 404
-#     #return redirect(url_for('index')) #te devuelve a esa página
+#Funcion para ejecutar el script 404
+def pagina_no_encontrada(error):
+    return render_template('404.html'), 404
+    #return redirect(url_for('index')) #te devuelve a esa página
 
-# #Ruta para ejecutar el script
-# if __name__ == '__main__':
-#     app.register_error_handler(404, pagina_no_encontrada)
-#     app.run(debug=True, port=5000)
+#Ruta para ejecutar el script
+if __name__ == '__main__':
+    app.register_error_handler(404, pagina_no_encontrada)
+    app.run(debug=True, port=5000)
 
 archivo= "/home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/uploads/ExpendedorSimple.java"
 
-#compilar_archivo_java(archivo)
-#eliminar_packages(archivo)
-#ejecutar_test_unitario(archivo)
+compilar_archivo_java(archivo)
+eliminar_packages(archivo)
+ejecutar_test_unitario(archivo)
 
 matricula=121234
 num_ejercicio=102
