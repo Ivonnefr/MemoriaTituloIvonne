@@ -14,7 +14,6 @@ from funciones_archivo.copy_maven_folder import *
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
-
 #inicializar la aplicacion
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -29,6 +28,8 @@ class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
 
+from populateDB import populate_database
+populate_database(app, db)
 
 #Ruta inicio
 @app.route('/'  , methods=['GET',"POST"])
@@ -90,22 +91,5 @@ if __name__ == '__main__':
     app.register_error_handler(404, pagina_no_encontrada)
     app.run(debug=True, port=5000)
 
-archivo= "/home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/uploads/ExpendedorSimple.java"
-
-compilar_archivo_java(archivo)
-eliminar_packages(archivo)
-ejecutar_test_unitario(archivo)
-
-matricula=121234
-num_ejercicio=102
-#agregar_archivo_java(matricula,num_ejercicio,archivo)
-#agregar_package(archivo)
-#agregar_archivo_java(matricula,num_ejercicio,archivo)
-# ejecutar_test_unitario(matricula,num_ejercicio)
-
-# procesar_surefire_reports()
-
-#run_unit_test(ruta)
-#str(matricula)
 # #lsof -i:PUERTO //para revisar todos los procesos que estan usando el puerto
 # #kill -9 PID //para matar el proceso que esta usando el puerto
