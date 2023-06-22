@@ -28,8 +28,6 @@ class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
 
-from populateDB import populate_database
-populate_database(app, db)
 
 #Ruta inicio
 @app.route('/'  , methods=['GET',"POST"])
