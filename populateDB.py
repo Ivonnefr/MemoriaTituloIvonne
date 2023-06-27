@@ -4,7 +4,7 @@ from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, T
 with app.app_context():
     # Crea objetos y agrega registros a la base de datos
     # Crea un supervisor
-    supervisor = Supervisor(nombre='John', apellido_paterno='Doe', apellido_materno='Smith', correo='john.doe@example.com', password='password123')
+    supervisor = Supervisor(nombre='Shrek', apellido_paterno='Del', apellido_materno='Pantano', correo='shrek@example.com', password='burro123')
     db.session.add(supervisor)
     db.session.commit()
 
@@ -20,12 +20,12 @@ with app.app_context():
     db.session.commit()
 
     # Crea un estudiante
-    estudiante = Estudiante(matricula='123456', nombre='Jane', apellido_paterno='Doe', apellido_materno='Smith', correo='jane.doe@example.com', password='password456')
+    estudiante = Estudiante(matricula='123456', nombre='Burro', apellido_paterno='Perez', apellido_materno='Gil', correo='burro@example.com', password='burrito123')
     db.session.add(estudiante)
     db.session.commit()
 
     # Crea un ejercicio
-    ejercicio = Ejercicio(nombre='Ejercicio 1', path_ejercicio='path/ejercicio1.py', enunciado='Enunciado del ejercicio 1', id_serie=serie.id)
+    ejercicio = Ejercicio(nombre='Ejercicio 4', path_ejercicio='path/ejercicio1.py', enunciado='Enunciado del ejercicio 1', id_serie=serie.id)
     db.session.add(ejercicio)
     db.session.commit()
 
