@@ -1,8 +1,8 @@
 import subprocess
-from flask import Flask, render_template, request, url_for, redirect
+from flask import Flask, render_template, request, url_for, redirect, jsonify, session, flash
 from flask_wtf import FlaskForm
 from flask_login import UserMixin
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy 
 from wtforms import FileField, SubmitField, PasswordField,StringField
 from werkzeug.utils import secure_filename
 import os, re
@@ -14,20 +14,18 @@ from funciones_archivo.copy_maven_folder import *
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
+from flask_jwt_extended import JWTManager, create_access_token
+from werkzeug.security import check_password_hash, generate_password_hash
+from DBManager import db, init_app
+from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Comprobacion_ejercicio
+
 #inicializar la aplicacion
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# app.config['SECRET_KEY']= 'mysecretkey'
-# app.config['UPLOAD_FOLDER'] = 'uploads'
-
-db= SQLAlchemy(app)
-
-from basedatos import modelos
+init_app(app)
+jwt=JWTManager(app)
 class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
-
 
 #Ruta inicio
 @app.route('/'  , methods=['GET',"POST"])
@@ -35,17 +33,54 @@ def index():
     #solo se indica el nombre porque flask sabe donde están los html
     return render_template('index.html')
 
-
-#Ruta login
-@app.route('/login', methods=['GET',"POST"])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    #compilar_java('uploads/Test.java')
+    if request.method == 'POST':
+        correo = request.form.get('username')
+        password = request.form.get('password')
+
+        if not correo or not password:
+            flash('El correo electrónico y la contraseña son requeridos.')
+            return redirect(url_for('login'))
+
+        user = Estudiante.query.filter_by(correo=correo).first()
+
+        if not user or not check_password_hash(user.password, password):
+            flash('Por favor revise sus datos de acceso e intente de nuevo.')
+            return redirect(url_for('login'))
+        
+        # Crea el token de acceso
+        access_token = create_access_token(identity=user.id)
+        # Guarda el usuario en la sesión
+        session['logged_in'] = True
+        # Enviar el token en la respuesta
+        return jsonify(access_token=access_token), 200
+
     return render_template('login.html')
 
-#Ruta registro
-@app.route('/register', methods=['GET',"POST"])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
-        return render_template('register.html')
+    if request.method == 'POST':
+        correo = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not correo or not password:
+            flash('El correo electrónico y la contraseña son requeridos.')
+            return redirect(url_for('register'))
+
+        # Crea un nuevo usuario con la contraseña encriptada
+        new_user = Estudiante(correo=correo, password=generate_password_hash(password))
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash('Registro exitoso, ahora puede iniciar sesión.')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+#Ruta para ver el listado de ejercicios, verificando que el usuario este logeado
+@app.route('/ejercicios', methods=['GET',"POST"])
+
+
 
 #Ruta para subir archivo java
 @app.route('/upload_file', methods=['GET',"POST"])
@@ -78,6 +113,12 @@ def upload_file():
 def pregunta():
 
     return render_template('pregunta.html')
+
+#Ruta para la vista del profesor
+@app.route('/profesor', methods=["GET","POST"])
+def profesor():
+    return render_template('profesor.html')
+
 
 #Funcion para ejecutar el script 404
 def pagina_no_encontrada(error):
