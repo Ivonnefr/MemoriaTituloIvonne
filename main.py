@@ -91,3 +91,4 @@ if __name__ == '__main__':
 
 # #lsof -i:PUERTO //para revisar todos los procesos que estan usando el puerto
 # #kill -9 PID //para matar el proceso que esta usando el puerto
+#source /home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/venv/bin/activate
