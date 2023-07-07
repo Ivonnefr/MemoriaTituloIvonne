@@ -1,6 +1,7 @@
 
 from flask_sqlalchemy import SQLAlchemy
-from main import db
+from DBManager import db
+
 
 class Supervisor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
