@@ -9,25 +9,40 @@
   <title>{% block title %}{% endblock %}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  
 </head>
 
 <body>
-  <nav class="navbar has-shadow is-dark" id>
-    <!--logo/brand-->
-    <figure class="image is-128x128">
-      <img src="/static/images/graduated.png" alt="sitelogo">
-    </figure>
-    <div class="navbar-menu" id="nav-links">
-      <div class="navbar-end">
-        <a class="navbar-item">Cuenta</a>
-        <a class="navbar-item">Ejercicios</a>
+  <nav class="navbar has-shadow is-dark">
+    <div class="container">
+      <!--logo/brand-->
+      <div class="navbar-brand">
+        <figure class="image is-128x128">
+          <img src="{{ url_for('static', filename='images/graduated.png') }}" alt="sitelogo">
+        </figure>
+        <a role="button" class="navbar-burger" data-target="navbarMenu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </a>
       </div>
+      
+      {% block navbar %}
+      <div class="navbar-menu" id="navbarMenu">
+        <div class="navbar-start">
+          <a href="#" class="navbar-item">Cuenta</a>
+          <a href="#" class="navbar-item">Ejercicios</a>
+        </div>
+      </div>
+      {% endblock %}
     </div>
-
-    
   </nav>
+
   {% block body %}{% endblock %}
+
   <script src="{{ url_for('static', filename='js/layout.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
   {% block content %}{% endblock %}
 </body>
 

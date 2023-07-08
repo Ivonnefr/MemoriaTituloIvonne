@@ -1,23 +1,85 @@
 {% extends './layout.html' %}
 
-{% block title %}Register Page{% endblock %}
+{% block title %}Registration Page{% endblock %}
 
 {% block body %}
-<h1>Register</h1>
+<section class="hero is-fullheight">
+  <div class="hero-body">
+    <div class="container has-text-centered">
+      <div class="columns is-4 is-variable is-desktop">
+        <div class="column is-half has-text-left">
+          <h1 class="title has-text-black">Registration</h1>
+          <h2 class="subtitle has-text-black">Please fill out the registration form.</h2>
+          <div class="box">
+            <form action="#" method="post">
+              <div class="field">
+                <label class="label">Matricula</label>
+                <div class="control has-icons-left">
+                  <input class="input" type="text" placeholder="Ej: 12345" name="matricula">
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-user"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Nombre</label>
+                <div class="control has-icons-left">
+                  <input class="input" type="text" placeholder="Nombre" name="nombre">
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-user"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Apellido Paterno</label>
+                <div class="control has-icons-left">
+                  <input class="input" type="text" placeholder="Apellido Paterno" name="apellido_paterno">
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-user"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Apellido Materno</label>
+                <div class="control has-icons-left">
+                  <input class="input" type="text" placeholder="Apellido Materno" name="apellido_materno">
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-user"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Correo</label>
+                <div class="control has-icons-left">
+                  <input class="input" type="email" placeholder="example@example.com" name="correo">
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-envelope"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Password</label>
+                <div class="control has-icons-left">
+                  <input class="input" type="password" placeholder="********" name="password">
+                  <span class="icon is-small is-left">
+                    <i class="fas fa-lock"></i>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <button class="button is-success is-fullwidth">
+                  Register
+                </button>
+              </div>
+            </form>
+          </div>
+          <p class="has-text-black"> 
+            <a href="{{ url_for('index') }}">Back</a> | 
+            <a href="{{ url_for('upload_file') }}">Upload Page</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}
-
-{%block content%}
-
-<form action = "#" method = "post" > 
-    <p>Name:</p>
-    <p> <input type ="text" value = "nm"/> </p>
-    <p> <input type ="text" value = "nm"/> </p>
-    <p> <input type ="submit" value = "submit"/> </p>
-</form>
-
-<body>
-    <a href = "{{url_for('index')}}">Atrás</a>
-    
-</body>
-
-{%endblock%}
