@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Vista Docente
+{% endblock %}
+
+{% block body %}
+
+<div class="container">
+    <div class="section">
+        <h1 class="title">Listado de ejercicios</h1>
+        <div class="columns">
+            <div class="column">
+                <!-- Aquí el listado de todos los ejercicios y series -->
+                <section class="section">
+                    <div class="container is-centered is-justify-content-center">
+                        {% for serie in series %}
+                        <h2 class="subtitle">
+                            <span style="font-size: larger;">{{ serie.nombre }}</span>
+                        </h2>
+                        <ol>
+                            {% for ejercicio in ejercicios_por_serie[serie.id] %}
+                            <li>
+                                <a href="{{ ejercicio.url }}" class="exercise-link">{{ ejercicio.nombre }}</a>
+                            </li>
+                            {% endfor %}
+                        </ol>
+
+                        {% if not loop.last %}
+                        <br> <!-- Agrega un salto de línea -->
+                        {% endif %}
+
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+            <!-- Los botones -->
+            <div class="column is-flex-direction-column is-align-items-flex-end">
+                <a href="{{ url_for('agregar_serie') }}" class="button is-primary mb-3" style="flex-grow: 1; width: 100%;">Agregar serie</a>
+                <a href="{{ url_for('agregar_ejercicio') }}" class="button is-link" style="flex-grow: 1; width: 100%;">Agregar ejercicio</a>
+                <a href="{{ url_for('editar_serie') }}" class="button is-primary mb-3" style="flex-grow: 1; width: 100%;">Editar serie</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

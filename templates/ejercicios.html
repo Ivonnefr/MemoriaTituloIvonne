@@ -1,0 +1,31 @@
+{% extends 'layout.html' %}
+
+{% block title %}Listado de Ejercicios{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="ejercicio.css">
+{% endblock %}
+{% block body %}
+<section class="section">
+  <div class="container">
+    <h1 class="title">Listado de Ejercicios</h1>
+    {% for serie in series %}
+      <h2 class="subtitle">
+        <span style="font-size: larger;">Serie {{ serie.id }}</span>
+      </h2>
+      <ol>
+        {% for ejercicio in ejercicios_por_serie[serie.id] %}
+          <li>
+            <a href="{{ ejercicio.url }}" class="exercise-link">{{ ejercicio.nombre }}</a>
+          </li>
+        {% endfor %}
+      </ol>
+      
+      {% if not loop.last %}
+        <br> <!-- Agrega un salto de línea -->
+      {% endif %}
+      
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

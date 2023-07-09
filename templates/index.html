@@ -1,17 +1,14 @@
 {% extends './layout.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Plataforma{% endblock %}
 
 {% block body %}
-<h1>Hooome</h1>
-
-
+<h1 class="title has-text-centered">Plataforma</h1>
 {% endblock %}
 
-{%block content %}
-
-<body>
-    <a href = "{{url_for('login')}}">Login Page</a>
-    <a href = "{{url_for('register')}}">Register Page</a>
-</body>
+{% block content %}
+<div class="buttons is-centered is-flex is-justify-content-center">
+  <a class="button is-primary is-large" href="/login">Login</a>
+  <a class="button is-link is-large" href="/register">Register</a>
+</div>
 {% endblock %}

@@ -1,0 +1,21 @@
+body {
+  background-color: #FFCDD2; /* Rojo claro */
+}
+
+.navbar,
+.navbar-menu {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background-color: #FFCDD2; /* Rojo claro */
+}
+
+.navbar {
+  box-shadow: none;
+}
+
+.navbar {
+  border-bottom: none;
+}

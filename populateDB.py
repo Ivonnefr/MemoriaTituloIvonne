@@ -16,7 +16,7 @@ with app.app_context():
 
     # Crea una serie
     fecha = date.fromisoformat('2023-06-21')
-    serie = Serie(nombre='Serie 1', fecha=fecha)
+    serie = Serie(nombre='Serie 2', fecha=fecha)
     db.session.add(serie)
     db.session.commit()
 
@@ -26,7 +26,7 @@ with app.app_context():
     db.session.commit()
 
     # Crea un ejercicio
-    ejercicio = Ejercicio(nombre='Ejercicio 5', path_ejercicio='path/ejercicio1.py', enunciado='Enunciado del ejercicio 1', id_serie=serie.id)
+    ejercicio = Ejercicio(nombre='Ejercicio 2', path_ejercicio='path/ejercicio1.py', enunciado='Enunciado del ejercicio 1', id_serie=serie.id)
     db.session.add(ejercicio)
     db.session.commit()
 
