@@ -222,8 +222,11 @@ def pagina_no_encontrada(error):
 #Ruta para ejecutar el script
 if __name__ == '__main__':
     app.register_error_handler(404, pagina_no_encontrada)
-    app.run(debug=True, port=5000)
+    app.run(host='0.0.0.0',debug=True, port=5000)
 
 # #lsof -i:PUERTO //para revisar todos los procesos que estan usando el puerto
 # #kill -9 PID //para matar el proceso que esta usando el puerto
 #source /home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/venv/bin/activate
+
+
+#serie activa por grupos, asignar la serie a un grupo de estudiantes
