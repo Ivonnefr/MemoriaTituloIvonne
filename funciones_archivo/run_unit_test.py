@@ -1,6 +1,7 @@
 import subprocess,os
 def ejecutar_test_unitario(matricula,ejercicio):
     ruta_base = "/home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/ejercicios_alumnos"
+    #ruta_base = "../ejercicios_alumnos"
     ruta_alumno = os.path.join(ruta_base, str(matricula), str(ejercicio))
     print('compilando...')
     # Comando para ejecutar pruebas unitarias con maven

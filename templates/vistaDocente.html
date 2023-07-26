@@ -37,12 +37,20 @@ Vista Docente
             <!-- Los botones -->
             <div class="column is-flex-direction-column is-align-items-flex-end">
                 <a href="{{ url_for('agregar_serie') }}" class="button is-primary mb-3" style="flex-grow: 1; width: 100%;">Agregar serie</a>
-                <a href="{{ url_for('agregar_ejercicio') }}" class="button is-link" style="flex-grow: 1; width: 100%;">Agregar ejercicio</a>
+                <a href="{{ url_for('agregar_ejercicio') }}" class="button button is-info mb-3  " style="flex-grow: 1; width: 100%;">Agregar ejercicio</a>
                 <a href="{{ url_for('editar_serie') }}" class="button is-primary mb-3" style="flex-grow: 1; width: 100%;">Editar serie</a>
+                
+                <div class="section">
+                    <h2 class="title">Series activas de la semana</h2>
+                    <!-- Aquí puedes agregar contenido adicional relacionado con las secciones activas de la semana -->
+                </div>
+
+
             </div>
         </div>
     </div>
 </div>
 
-
 {% endblock %}
+
+

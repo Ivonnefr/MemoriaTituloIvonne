@@ -30,7 +30,8 @@ class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
     fecha = db.Column(db.Date(), nullable=False)
-    
+   #activa = db.Column(db.Boolean(), nullable=False)
+
     def __init__(self, nombre, fecha):
         self.nombre = nombre
         self.fecha = fecha
@@ -56,7 +57,7 @@ class Ejercicio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
     path_ejercicio = db.Column(db.String(200), nullable=False)
-    enunciado = db.Column(db.String(200), nullable=False)
+    enunciado = db.Column(db.String(), nullable=False)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
     
     def __init__(self, nombre, path_ejercicio, enunciado, id_serie):

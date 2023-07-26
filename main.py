@@ -140,18 +140,36 @@ def agregar_serie():
     return render_template('agregarSerie.html')
 
 
-
-#Ruta para agregar un ejercicio a una serie que ya existe
+# Ruta para agregar un nuevo ejercicio
 @app.route('/vistaDocente/agregarEjercicio', methods=['GET', 'POST'])
 def agregar_ejercicio():
-    #Recibe un formulario con los datos del ejercicio.
+    if request.method == 'POST':
+        # Obtener los datos del formulario y guardar en la base de datos
+        nombre = request.form['nombre']
+        path_ejercicio = request.form['path_ejercicio']
+        enunciado = request.form['enunciado']
+        id_serie = int(request.form['id_serie'])  # Convertir el id de serie a entero
+    
+        nuevo_ejercicio = Ejercicio(nombre=nombre, path_ejercicio=path_ejercicio, enunciado=enunciado, id_serie=id_serie)
 
-    return render_template('agregarEjercicio.html')
+        db.session.add(nuevo_ejercicio)
+        db.session.commit()
+
+        # Devolver una respuesta JSON indicando que la operación fue exitosa
+        return jsonify({'message': 'Ejercicio guardado exitosamente'})
+
+    else:
+        # Renderizar la plantilla con la lista de series disponibles
+        series_disponibles = Serie.query.all()
+        return render_template('agregarEjercicio.html', series=series_disponibles)
 
 # Ruta para editar una serie
 @app.route('/vistaDocente/editarSerie', methods=['GET', 'POST'])
 def editar_serie():
     return render_template('editarSerie.html')
+
+
+
 
 @app.route('/ejercicios', methods=['GET', 'POST'])
 def listar_ejercicios():
@@ -230,3 +248,5 @@ if __name__ == '__main__':
 
 
 #serie activa por grupos, asignar la serie a un grupo de estudiantes
+
+
