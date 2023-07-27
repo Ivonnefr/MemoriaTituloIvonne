@@ -30,11 +30,13 @@ class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
     fecha = db.Column(db.Date(), nullable=False)
-   #activa = db.Column(db.Boolean(), nullable=False)
+    activa = db.Column(db.Boolean(), nullable=False)
 
     def __init__(self, nombre, fecha):
         self.nombre = nombre
         self.fecha = fecha
+        self.activa = False
+
 
 class Estudiante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
