@@ -12,7 +12,7 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
 from funciones_archivo.delete_packages import eliminar_packages
-from funciones_archivo.copy_maven_folder import *
+from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, agregarCarpetaMavenPropuesta
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
@@ -20,7 +20,7 @@ from flask_jwt_extended import JWTManager, create_access_token
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Comprobacion_ejercicio
-
+from pathlib import Path
 #inicializar la aplicacion
 app = Flask(__name__)
 init_app(app)
@@ -98,14 +98,33 @@ def rutaDocente():
     for ejercicio in ejercicios:
         ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
     
-    #Si se presiona el boton de agregar serie, se muestra un formulario para agregar una serie.
-    #Si se presiona el boton de agregar ejercicio, se muestra un formulario para agregar un ejercicio.
-    
-    #Si se presiona el boton de editar serie, se muestra un formulario para editar una serie.
-    #Si se presiona el boton de editar ejercicio, se muestra un formulario para editar un ejercicio.
-    #Si se presiona el boton de eliminar serie, se muestra un formulario para eliminar una serie.
-    #Si se presiona el boton de eliminar ejercicio, se muestra un formulario para eliminar un ejercicio.
+
     return render_template('vistaDocente.html',series=series, ejercicios_por_serie=ejercicios_por_serie)
+
+# Ruta para cambiar el estado de una serie
+@app.route('/cambiar_estado_serie', methods=['POST'])
+def cambiar_estado_serie():
+    data = request.get_json()  # Recibe la data de la petición
+    serie_id = data['id']
+    new_status = data['activa']
+
+    serie = db.session.get(Serie, serie_id)  # Obtiene la serie desde la base de datos
+
+    if serie is None:
+        return jsonify({"error": "No se encontró la serie"}), 404
+
+    serie.activa = new_status
+    db.session.commit()  # Guarda los cambios en la base de datos
+
+    return jsonify({"message": "Estado actualizado con éxito"}), 200
+
+@app.route('/series_activas', methods=['GET'])
+def series_activas():
+    series = Serie.query.filter_by(activa=True).all()
+    series_activas = [serie.nombre for serie in series]
+    return jsonify(series_activas), 200
+
+
 
 #Ruta para agregar una serie
 @app.route('/vistaDocente/agregarSerie', methods=['GET', 'POST'])
@@ -126,7 +145,7 @@ def agregar_serie():
         serie_existente = Serie.query.filter_by(nombre=nombreSerie).first()
         if serie_existente:
             flash('El nombre de la serie ya existe.')
-            return redirect(url_for('vistaDocente.agregar_serie'))  # Cambiar esto
+            return redirect(url_for('vistaDocente.agregar_serie'))
 
         # Crear una nueva instancia de la Serie
         nueva_serie = Serie(nombre=nombreSerie, fecha=fecha)
@@ -134,6 +153,10 @@ def agregar_serie():
         # Guardar la nueva serie en la base de datos
         db.session.add(nueva_serie)
         db.session.commit()
+
+        # Crear una nueva carpeta con el nombre `id_serie` en la carpeta `ejerciciosPropuestos`
+        nueva_carpeta = Path('ejerciciosPropuestos') / str(nueva_serie.id)
+        nueva_carpeta.mkdir(parents=True, exist_ok=True)
 
         # Redireccionar a '/vistaDocente' después de agregar la serie exitosamente
         return redirect(url_for('rutaDocente'))
@@ -155,6 +178,16 @@ def agregar_ejercicio():
         db.session.add(nuevo_ejercicio)
         db.session.commit()
 
+        # Obtener el ID del ejercicio recién creado
+        id_ejercicio = nuevo_ejercicio.id
+
+        # Creamos la carpeta con el id del ejercicio en la serie correspondiente llamando a la funcion agregarCarpetaMavenPropuesta
+        ruta_ejercicio=agregarCarpetaMavenPropuesta(id_serie, id_ejercicio)
+
+        # Actualizamos en la base de datos el path del ejercicio
+        nuevo_ejercicio.path_ejercicio = ruta_ejercicio
+        db.session.commit()
+
         # Devolver una respuesta JSON indicando que la operación fue exitosa
         return jsonify({'message': 'Ejercicio guardado exitosamente'})
 
@@ -162,6 +195,8 @@ def agregar_ejercicio():
         # Renderizar la plantilla con la lista de series disponibles
         series_disponibles = Serie.query.all()
         return render_template('agregarEjercicio.html', series=series_disponibles)
+
+
 
 # Ruta para editar una serie
 @app.route('/vistaDocente/editarSerie', methods=['GET', 'POST'])
@@ -173,21 +208,22 @@ def editar_serie():
 
 @app.route('/ejercicios', methods=['GET', 'POST'])
 def listar_ejercicios():
-    # Obtiene todas las series
-    series = Serie.query.all()
-    
+    # Obtiene todas las series que son activas
+    seriesActivas = Serie.query.filter_by(activa=True).all()
+
     # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-    ejercicios_por_serie = {serie.id: [] for serie in series}
-    
+    ejercicios_por_serie = {serie.id: [] for serie in seriesActivas}
+
     # Obtiene todos los ejercicios
     ejercicios = Ejercicio.query.all()
-    
+
     # Agrega los ejercicios a las listas correspondientes en el diccionario
     for ejercicio in ejercicios:
-        ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-    
+        if ejercicio.id_serie in ejercicios_por_serie:
+            ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
+
     # Devuelve la plantilla con el diccionario de ejercicios por serie
-    return render_template('ejercicios.html', series=series, ejercicios_por_serie=ejercicios_por_serie)
+    return render_template('ejercicios.html', series=seriesActivas, ejercicios_por_serie=ejercicios_por_serie)
 
 
 
@@ -250,3 +286,5 @@ if __name__ == '__main__':
 #serie activa por grupos, asignar la serie a un grupo de estudiantes
 
 
+#Ruta donde debe quedar el archivo del alumno plantillaMaven/src/main/java/org/example/
+# Ruta donde debe quedar el archivo de los test del profesor plantillaMaven/src/test/java/org/example/
