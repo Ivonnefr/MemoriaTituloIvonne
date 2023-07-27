@@ -1,5 +1,5 @@
 import os, shutil
-from funciones_archivo.copy_maven_folder import copiar_carpeta_maven
+from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante
 def agregar_archivo_java(matricula, numero_ejercicio, archivo_java):
     #Funcion que agrega el archivo_java subido por el alumno a la carpeta con los ejercicios del alumno.
     #Recibe la matricula del alumno, el numero del ejercicio y la ruta del archivo .java
@@ -16,8 +16,8 @@ def agregar_archivo_java(matricula, numero_ejercicio, archivo_java):
         print(f"El archivo {archivo_java} se ha copiado correctamente en {ruta_alumno}")
     except FileExistsError:
         print("El archivo ya existe, se va a volver a copiar")
-        #Si el archivo existe, se elimina la carpeta, llamando a la funcion copiar_carpeta_maven y se agrega el archivo_java
-        copiar_carpeta_maven(matricula, numero_ejercicio)
+        #Si el archivo existe, se elimina la carpeta, llamando a la funcion agregarCarpetaMavenEstudiante y se agrega el archivo_java
+        agregarCarpetaMavenEstudiante(matricula, numero_ejercicio)
         shutil.copy(archivo_java, ruta_alumno)
     except Exception as e: print(e)
 
