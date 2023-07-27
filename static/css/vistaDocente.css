@@ -1,0 +1,6 @@
+/* Estilo para el color personalizado $purple */
+.custom-purple-button {
+    background-color: hsl(271, 100%, 71%);
+    color: white; /* Ajustar el color del texto */
+  }
+  

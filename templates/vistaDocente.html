@@ -4,6 +4,13 @@
 Vista Docente
 {% endblock %}
 
+
+{%block head%}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/vistaDocente.css') }}">
+{%endblock%}
+
+
+
 {% block body %}
 
 <div class="container">
@@ -17,19 +24,23 @@ Vista Docente
                         {% for serie in series %}
                         <h2 class="subtitle">
                             <span style="font-size: larger;">{{ serie.nombre }}</span>
+                            {% if serie.activa %}
+                                <button class="button is-success cambiarEstado" data-id="{{ serie.id }}">Activa</button>
+                            {% else %}
+                                <button class="button is-danger cambiarEstado" data-id="{{ serie.id }}">Inactiva</button>
+                            {% endif %}
                         </h2>
                         <ol>
                             {% for ejercicio in ejercicios_por_serie[serie.id] %}
-                            <li>
+                              <li>
                                 <a href="{{ ejercicio.url }}" class="exercise-link">{{ ejercicio.nombre }}</a>
-                            </li>
+                              </li>
                             {% endfor %}
-                        </ol>
-
-                        {% if not loop.last %}
-                        <br> <!-- Agrega un salto de línea -->
-                        {% endif %}
-
+                          </ol>
+                          
+                          {% if not loop.last %}
+                            <br> <!-- Agrega un salto de línea -->
+                          {% endif %}
                         {% endfor %}
                     </div>
                 </section>
@@ -37,20 +48,68 @@ Vista Docente
             <!-- Los botones -->
             <div class="column is-flex-direction-column is-align-items-flex-end">
                 <a href="{{ url_for('agregar_serie') }}" class="button is-primary mb-3" style="flex-grow: 1; width: 100%;">Agregar serie</a>
-                <a href="{{ url_for('agregar_ejercicio') }}" class="button button is-info mb-3  " style="flex-grow: 1; width: 100%;">Agregar ejercicio</a>
+                <a href="{{ url_for('agregar_ejercicio') }}" class="button is-info mb-3" style="flex-grow: 1; width: 100%;">Agregar ejercicio</a>
                 <a href="{{ url_for('editar_serie') }}" class="button is-primary mb-3" style="flex-grow: 1; width: 100%;">Editar serie</a>
-                
-                <div class="section">
-                    <h2 class="title">Series activas de la semana</h2>
-                    <!-- Aquí puedes agregar contenido adicional relacionado con las secciones activas de la semana -->
+                <br>
+                <h1 class="title">Series activas</h1>
+                <br>
+                <div id="series-activas">
+                    
+                    {% for serie in series %}
+                        {% if serie.activa %}
+                            <h2 class="subtitle">
+                                <span style="font-size: larger;">{{ serie.nombre }}</span>
+                            </h2>
+                        {% endif %}
+                    {% endfor %}
                 </div>
+                
 
 
             </div>
         </div>
     </div>
 </div>
-
+<script>
+    window.addEventListener('DOMContentLoaded', (event) => {
+        document.querySelectorAll('.cambiarEstado').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                const serieId = event.target.dataset.id;
+                const isActive = event.target.classList.contains('is-success');
+                fetch('/cambiar_estado_serie', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: serieId, activa: !isActive })
+                }).then(response => {
+                    if (response.ok) {
+                        // Actualiza el botón
+                        if (isActive) {
+                            event.target.classList.remove('is-success');
+                            event.target.classList.add('is-danger');
+                            event.target.innerText = 'Inactiva';
+                        } else {
+                            event.target.classList.remove('is-danger');
+                            event.target.classList.add('is-success');
+                            event.target.innerText = 'Activa';
+                        }
+                        // Actualiza la lista de series activas
+                        fetch('/series_activas').then(response => response.json()).then(series_activas => {
+                            const seriesActivasDiv = document.getElementById('series-activas');
+                            seriesActivasDiv.innerHTML = '';  // Limpia el contenido actual
+                            for (let serie of series_activas) {
+                                const h2 = document.createElement('h2');
+                                h2.className = 'subtitle';
+                                h2.innerHTML = `<span style="font-size: larger;">${serie}</span>`;
+                                seriesActivasDiv.appendChild(h2);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    });
+    </script>
+    
 {% endblock %}
-
-
