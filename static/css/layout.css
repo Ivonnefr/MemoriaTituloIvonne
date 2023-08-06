@@ -1,21 +1,11 @@
-body {
-  background-color: #FFCDD2; /* Rojo claro */
-}
-
-.navbar,
-.navbar-menu {
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  background-color: #FFCDD2; /* Rojo claro */
-}
-
 .navbar {
-  box-shadow: none;
-}
-
-.navbar {
-  border-bottom: none;
-}
+    transition: 0.5s;  /* Añade una transición suave al cambiar el tamaño */
+    font-size: 1.5em;
+    padding: 20px 0;
+  }
+  
+  .navbar-shrink {
+    font-size: 1.2em;
+    padding: 10px 0;
+  }
+  

@@ -24,10 +24,10 @@ def agregarCarpetaMavenEstudiante(matricula, numero_ejercicio):
 # Funcion para agregar la carpeta maven al ejercicio propuesto
 def agregarCarpetaMavenPropuesta(numeroSerie, numeroEjercicio):
     # Usamos la carpeta plantilla como base para crear la carpeta maven del ejercicio
-    rutaMaven = "plantillaMaven"
+    rutaMaven = "plantillaMaven/"
 
     # La ruta base es el path relativo de ejerciciosPropuestos
-    rutaBase = "ejerciciosPropuestos"
+    rutaBase = "ejerciciosPropuestos/"
 
     # Buscamos la serie a la que pertenece el numeroEjercicio, para ubicar la carpeta del ejercicio
     rutaSerie = os.path.join(rutaBase, str(numeroSerie))
