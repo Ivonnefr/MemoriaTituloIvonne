@@ -1,0 +1,31 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+Inicio
+{% endblock %}
+
+{% block content %}
+<h1>Bienvenido a la Plataforma Nombre</h1>
+<p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
+
+<div class="row justify-content-center">
+  <div class="col-4">
+    <h2>Iniciar sesión</h2>
+    <!-- Asegúrate de especificar el método POST y la acción /login para el formulario -->
+    <form method="POST" action="/login">
+      <div class="form-group">
+        <label for="username">Correo electrónico</label>
+        <!-- Los campos input deben tener un atributo "name" que coincida con los parámetros que esperas en tu función de login -->
+        <input type="email" class="form-control" id="username" name="username" placeholder="Ingresa tu correo">
+      </div>
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" class="form-control" id="password" name="password" placeholder="Ingresa tu contraseña">
+      </div>
+      <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+    </form>
+  </div>
+</div>
+
+<p>Si no tienes cuenta, comunícate con tu profesor.</p>
+{% endblock %}

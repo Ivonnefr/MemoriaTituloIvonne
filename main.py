@@ -1,7 +1,7 @@
 import datetime
 import subprocess
 from click import DateTime
-from flask import Flask, render_template, request, url_for, redirect, jsonify, session, flash
+from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
 from flask_wtf import FlaskForm 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy 
@@ -16,7 +16,7 @@ from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, a
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required, set_access_cookies
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Comprobacion_ejercicio
@@ -24,82 +24,222 @@ from pathlib import Path
 #inicializar la aplicacion
 app = Flask(__name__)
 init_app(app)
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_COOKIE_SECURE'] = True
+app.config['JWT_COOKIE_CSRF_PROTECT'] = True
+app.config['JWT_SECRET_KEY'] = 'otra_clave_secreta'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=10)
 jwt=JWTManager(app)
+
 class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
 
+
 #Ruta inicio
-@app.route('/'  , methods=['GET',"POST"])
-def index():    
-    #solo se indica el nombre porque flask sabe donde están los html
-    return render_template('index.html')
+@app.route('/', methods=['GET'])
+def home():
+    # Renderiza el formulario de inicio de sesión cuando el usuario solicita la página
+    return render_template('inicio.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['POST'])
 def login():
-    if request.method == 'POST':
-        correo = request.form.get('username')
-        password = request.form.get('password')
+    correo = request.form.get('username')
+    password = request.form.get('password')
 
-        if not correo or not password:
-            flash('El correo electrónico y la contraseña son requeridos.')
-            return redirect(url_for('login'))
+    if not correo or not password:
+        return jsonify(message='El correo electrónico y la contraseña son requeridos.'), 400
 
-        user = Estudiante.query.filter_by(correo=correo).first()
+    # Buscar al usuario en la base de datos
+    estudiante = Estudiante.query.filter_by(correo=correo).first()
+    supervisor = Supervisor.query.filter_by(correo=correo).first()
 
-        if not user or not check_password_hash(user.password, password):
-            flash('Por favor revise sus datos de acceso e intente de nuevo.')
-            return redirect(url_for('login'))
-        
-        # Crea el token de acceso
-        access_token = create_access_token(identity=user.id)
-        # Guarda el usuario en la sesión
-        session['logged_in'] = True
-        # Enviar el token en la respuesta
-        return jsonify(access_token=access_token), 200
+    # Verificar las credenciales del usuario según su rol
+    if estudiante and check_password_hash(estudiante.password, password):
+        # Autenticación exitosa para un estudiante: crea el token de acceso con el rol 'estudiante'
+        #access_token = create_access_token(identity=estudiante.id, additional_claims={'role': 'estudiante'})
+        access_token = create_access_token(identity={'id': estudiante.id, 'role': 'estudiante'})
+        # Almacena el token en una cookie segura y luego redirige al usuario a su perfil
+        resp = make_response(redirect(url_for('dashEstudiante', estudiante_id=estudiante.id)))
+        set_access_cookies(resp, access_token)
+        return resp
 
-    return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        correo = request.form.get('username')
-        password = request.form.get('password')
-        
-        if not correo or not password:
-            flash('El correo electrónico y la contraseña son requeridos.')
-            return redirect(url_for('register'))
+    elif supervisor and check_password_hash(supervisor.password, password):
+        # Autenticación exitosa para un supervisor: crea el token de acceso con el rol 'supervisor'
+        access_token = create_access_token(identity={'id': supervisor.id, 'role': 'supervisor'})
+        # Almacena el token en una cookie segura y luego redirige al usuario a su perfil
+        resp = make_response(redirect(url_for('ver_supervisor', supervisor_id=supervisor.id)))
+        set_access_cookies(resp, access_token)
+        return resp
 
-        # Crea un nuevo usuario con la contraseña encriptada
-        new_user = Estudiante(correo=correo, password=generate_password_hash(password))
-        db.session.add(new_user)
-        db.session.commit()
 
-        flash('Registro exitoso, ahora puede iniciar sesión.')
-        return redirect(url_for('login'))
+    else:
+        return jsonify(message='Por favor revise sus datos de acceso e intente de nuevo.'), 401
 
+@app.route('/registerSupervisor', methods=['GET'])
+def register_page():
     return render_template('register.html')
 
+@app.route('/registersupervisor', methods=['POST'])
+def register():
+    # Obtén los datos del formulario
+    nombre = request.form.get('nombre')
+    apellido_paterno = request.form.get('apellido_paterno')
+    apellido_materno = request.form.get('apellido_materno')
+    correo = request.form.get('correo')
+    password = request.form.get('password')
 
-#Ruta para el docente:
-@app.route('/vistaDocente', methods=['GET', 'POST'])
-def rutaDocente():
-    #Muestra el listado de todos los ejercicios y series, botones para agregar ejercicio y serie.
-    # Obtiene todas las series
-    series = Serie.query.all()
-    
-    # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-    ejercicios_por_serie = {serie.id: [] for serie in series}
-    
-    # Obtiene todos los ejercicios
-    ejercicios = Ejercicio.query.all()
-    
-    # Agrega los ejercicios a las listas correspondientes en el diccionario
-    for ejercicio in ejercicios:
-        ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-    
+    if not nombre or not apellido_paterno or not apellido_materno or not correo or not password:
+        return jsonify(message='Todos los campos son requeridos.'), 400
 
-    return render_template('vistaDocente.html',series=series, ejercicios_por_serie=ejercicios_por_serie)
+    # Verifica si ya existe un supervisor con ese correo
+    supervisor = Supervisor.query.filter_by(correo=correo).first()
+    if supervisor:
+        return jsonify(message='Ya existe un supervisor con ese correo.'), 400
+
+    # Crea el nuevo supervisor
+    new_supervisor = Supervisor(
+        nombre=nombre,
+        apellido_paterno=apellido_paterno,
+        apellido_materno=apellido_materno,
+        correo=correo,
+        password=generate_password_hash(password)  # Almacena la contraseña de forma segura
+    )
+
+    # Añade el nuevo supervisor a la base de datos
+    db.session.add(new_supervisor)
+    db.session.commit()
+
+    return jsonify(message='Supervisor registrado exitosamente.'), 201
+
+
+@app.route('/registerEstudiante', methods=['GET'])
+def estudianteRegisterPage():
+    return render_template('registerEstudiante.html')
+
+@app.route('/registerEstudiante', methods=['POST'])
+def registerEstudiante():
+    matricula=request.form.get('matricula')
+    nombre=request.form.get('nombre')
+    apellido_paterno=request.form.get('apellido_paterno')
+    apellido_materno=request.form.get('apellido_materno')
+    correo=request.form.get('correo')
+    password=request.form.get('password')
+
+    if not nombre or not apellido_paterno or not apellido_materno or not correo or not password or not matricula:
+        return jsonify(message='Todos los campos son requeridos.'), 400
+        # Verifica si ya existe un estudiante con ese correo
+        
+    estudiante = Estudiante.query.filter_by(correo=correo).first()
+    if estudiante:
+        return jsonify(message='Ya existe un estudiante con ese correo.'), 400
+
+    # Crea el nuevo esstudiante
+    new_estudiante = Estudiante(
+        matricula=matricula,
+        nombre=nombre,
+        apellido_paterno=apellido_paterno,
+        apellido_materno=apellido_materno,
+        correo=correo,
+        password=generate_password_hash(password)  # Almacena la contraseña de forma segura
+    )
+
+    # Añade el nuevo supervisor a la base de datos
+    db.session.add(new_estudiante)
+    db.session.commit()
+
+    return jsonify(message='Estudiante registrado exitosamente.'), 201
+
+@app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
+@jwt_required()  # Proteger esta ruta con el decorador jwt_required
+def ver_supervisor(supervisor_id):
+
+    # Verificar el rol del usuario
+    current_user_role = get_jwt_identity().get('role')
+
+    # Obtener el id del usuario autenticado desde el token
+    current_user_id = get_jwt_identity()
+
+    # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
+    if current_user_role == 'supervisor' and current_user_id == supervisor_id:
+        # Muestra el listado de todos los ejercicios y series, botones para agregar ejercicio y serie.
+        
+        # Obtiene todas las series
+        series = Serie.query.all()
+        
+        # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
+        ejercicios_por_serie = {serie.id: [] for serie in series}
+        
+        # Obtiene todos los ejercicios
+        ejercicios = Ejercicio.query.all()
+        
+        # Agrega los ejercicios a las listas correspondientes en el diccionario
+        for ejercicio in ejercicios:
+            ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
+
+        return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie)
+
+    else:
+        error_message = 'Acceso no autorizado a este supervisor.'
+        return render_template('404.html', error_message=error_message)
+
+
+@app.route('/supervisores/<int:supervisor_id>', methods=['POST'])
+@jwt_required()  # Proteger esta ruta con el decorador jwt_required
+def procesar_supervisor(supervisor_id):
+    # Verificar el rol del usuario
+    current_user_role = get_jwt_identity().get('role')
+
+    # Obtener el id del usuario autenticado desde el token
+    current_user_id = get_jwt_identity()
+
+    # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
+    if current_user_role == 'supervisor' and current_user_id == supervisor_id:
+        # Acá proceso la informacion obtenida del post
+        return render_template("vistaDocente.html")
+
+    else:
+        # Si el acceso no está autorizado, mostrar un mensaje de error en la plantilla
+        error_message = 'Acceso no autorizado a este supervisor.'
+        return render_template('404.html', error_message=error_message)
+    
+@app.route('/vistaEstudiante/<int:estudiante_id>', methods=['GET'])
+@jwt_required()  # Proteger esta ruta con el decorador jwt_required
+def dashEstudiante(estudiante_id):
+    # Verificar el rol del usuario
+    current_user_role = get_jwt_identity().get('role')
+    # Obtener el id del usuario autenticado desde el token
+    current_user_id = get_jwt_identity()
+    # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
+    if current_user_role == 'estudiante' and current_user_id == estudiante_id:
+        return render_template('vistaEstudiante.html')
+    else:
+        error_message= 'Acceso no autorizado a este estudiante.'
+        return render_template('404.html', error_message=error_message)
+@app.route('/vistaEstudiante/<int:estudiante_id>', methods=['POST'])
+@jwt_required()  # Proteger esta ruta con el decorador jwt_required
+def procesar_estudiante(estudiante_id):
+    # Verificar el rol del usuario
+    current_user_role = get_jwt_identity().get('role')
+
+    # Obtener el id del usuario autenticado desde el token
+    current_user_id = get_jwt_identity()
+
+    # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
+    if current_user_role == 'estudiante' and current_user_id == estudiante_id:
+        # Aquí puedes procesar los datos enviados en la solicitud POST
+        data = request.form.get('data')  # Supongamos que los datos se envían con el campo 'data'
+        # Realizar las operaciones necesarias con los datos recibidos...
+
+        # Devolver una respuesta o redireccionar a otra página después de procesar los datos
+        return jsonify(message='Datos recibidos y procesados exitosamente.')
+
+    else:
+        # Si el acceso no está autorizado, mostrar un mensaje de error en la plantilla
+        error_message = 'Acceso no autorizado a este supervisor.'
+        return render_template('404.html', error_message=error_message)
+
 
 # Ruta para cambiar el estado de una serie
 @app.route('/cambiar_estado_serie', methods=['POST'])
@@ -117,6 +257,7 @@ def cambiar_estado_serie():
     db.session.commit()  # Guarda los cambios en la base de datos
 
     return jsonify({"message": "Estado actualizado con éxito"}), 200
+
 
 @app.route('/series_activas', methods=['GET'])
 def series_activas():
@@ -223,44 +364,44 @@ def listar_ejercicios():
             ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
 
     # Devuelve la plantilla con el diccionario de ejercicios por serie
-    return render_template('ejercicios.html', series=seriesActivas, ejercicios_por_serie=ejercicios_por_serie)
+    return render_template('listadoEjercicios.html', series=seriesActivas, ejercicios_por_serie=ejercicios_por_serie)
 
 
 
-#Ruta para subir archivo java
-@app.route('/upload_file', methods=['GET',"POST"])
-def upload_file():  
-    form = UploadFileForm()
-    if form.validate_on_submit():
-        file = form.file.data # Obtengo los datos del archivo
+# #Ruta para subir archivo java
+# @app.route('/upload_file', methods=['GET',"POST"])
+# def upload_file():  
+#     form = UploadFileForm()
+#     if form.validate_on_submit():
+#         file = form.file.data # Obtengo los datos del archivo
         
-        if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
-            filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
-            file.save(filepath)
-            print(filepath)
-            #Cuando se sube un archivo se compila y luego se quitan los packages
-            #Revisar que el archivo compile exitosamente
-            eliminar_packages(filepath)
+#         if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
+#             filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
+#             file.save(filepath)
+#             print(filepath)
+#             #Cuando se sube un archivo se compila y luego se quitan los packages
+#             #Revisar que el archivo compile exitosamente
+#             eliminar_packages(filepath)
             
-            compilar_archivo_java(filepath)
-            #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
-        else:
-            #Hacer esto en la misma página y no como return
-            return "Tipo de archivo invalido, enviar solo archivos .java ."
+#             compilar_archivo_java(filepath)
+#             #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
+#         else:
+#             #Hacer esto en la misma página y no como return
+#             return "Tipo de archivo invalido, enviar solo archivos .java ."
 
-        # file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
-        # return "File has been uploaded."
+#         # file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
+#         # return "File has been uploaded."
     
-    return render_template('upload_file.html', form=form)
+#     return render_template('upload_file.html', form=form)
 
 
 
 
-#Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
-@app.route('/upload_file/pregunta', methods=["POST"])
-def pregunta():
+# #Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
+# @app.route('/upload_file/pregunta', methods=["POST"])
+# def pregunta():
 
-    return render_template('pregunta.html')
+#     return render_template('pregunta.html')
 
 
 

@@ -5,18 +5,19 @@ from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, T
 with app.app_context():
     # Crea objetos y agrega registros a la base de datos
     # Crea un supervisor
-    supervisor = Supervisor(nombre='jessy', apellido_paterno='Far', apellido_materno='Quad', correo='farquadquad@example.com', password='espejitoespejito')
+    supervisor = Supervisor(nombre='ivonne', apellido_paterno='flores', apellido_materno='Roa', correo='ivonne@mail.com', password='123')
     db.session.add(supervisor)
     db.session.commit()
 
     # Crea un grupo
-    grupo = Grupo(nombre='Grupo 2')
+    grupo = Grupo(nombre='Grupo 1')
     db.session.add(grupo)
     db.session.commit()
 
     # Crea una serie
     fecha = date.fromisoformat('2023-06-21')
-    serie = Serie(nombre='Serie 2', fecha=fecha)
+    serie = Serie(nombre='Serie 1', fecha=fecha)
+    activa = False
     db.session.add(serie)
     db.session.commit()
 

@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}Vista Docente{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-6">
+      <h2>Series</h2>
+      <ul>
+        {% for serie in series %}
+          <li>{{ serie.nombre }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <h2>Ejercicios por Serie</h2>
+      {% for serie_id, ejercicios in ejercicios_por_serie.items() %}
+        <h3>{{ series[serie_id - 1].nombre }}</h3>
+        <ul>
+          {% for ejercicio in ejercicios %}
+            <li>{{ ejercicio.nombre }}</li>
+          {% endfor %}
+        </ul>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}
