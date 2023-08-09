@@ -152,14 +152,14 @@ def registerEstudiante():
     return jsonify(message='Estudiante registrado exitosamente.'), 201
 
 @app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
-@jwt_required()  # Proteger esta ruta con el decorador jwt_required
+@jwt_required()  # Protege esta ruta con el decorador jwt_required
 def ver_supervisor(supervisor_id):
 
     # Verificar el rol del usuario
     current_user_role = get_jwt_identity().get('role')
 
     # Obtener el id del usuario autenticado desde el token
-    current_user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity().get('id')
 
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'supervisor' and current_user_id == supervisor_id:
@@ -192,7 +192,8 @@ def procesar_supervisor(supervisor_id):
     current_user_role = get_jwt_identity().get('role')
 
     # Obtener el id del usuario autenticado desde el token
-    current_user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity().get('id')
+
 
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'supervisor' and current_user_id == supervisor_id:
@@ -210,7 +211,8 @@ def dashEstudiante(estudiante_id):
     # Verificar el rol del usuario
     current_user_role = get_jwt_identity().get('role')
     # Obtener el id del usuario autenticado desde el token
-    current_user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity().get('id')
+
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'estudiante' and current_user_id == estudiante_id:
         return render_template('vistaEstudiante.html')
@@ -224,7 +226,8 @@ def procesar_estudiante(estudiante_id):
     current_user_role = get_jwt_identity().get('role')
 
     # Obtener el id del usuario autenticado desde el token
-    current_user_id = get_jwt_identity()
+    current_user_id = get_jwt_identity().get('id')
+
 
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'estudiante' and current_user_id == estudiante_id:
