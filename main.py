@@ -2,10 +2,12 @@ import datetime
 import subprocess
 from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
-from flask_wtf import FlaskForm 
+from flask_wtf import FlaskForm,CSRFProtect
 from flask_login import UserMixin
-from flask_sqlalchemy import SQLAlchemy 
-from wtforms import FileField, SubmitField, PasswordField,StringField
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required, set_access_cookies
+from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators
 from werkzeug.utils import secure_filename
 import os, re
 from wtforms.validators import InputRequired, Length, ValidationError
@@ -16,36 +18,59 @@ from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, a
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
-from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required, set_access_cookies
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Comprobacion_ejercicio
 from pathlib import Path
+
+import markdown
 #inicializar la aplicacion
 app = Flask(__name__)
 init_app(app)
+app.config['SECRET_KEY'] = 'secret-key-goes-here'
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_COOKIE_SECURE'] = True
 app.config['JWT_COOKIE_CSRF_PROTECT'] = True
-app.config['JWT_SECRET_KEY'] = 'otra_clave_secreta'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=10)
+app.config['WTF_CSRF_SECRET_KEY']= 'secret'
+app.config['WTF_CSRF_CHECK_DEFAULT']= False
 jwt=JWTManager(app)
+UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
+ALLOWED_EXTENSIONS = {'md'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+csrf = CSRFProtect()
+csrf.init_app(app)
 
+# Formularios de Flask-WTF
 class UploadFileForm(FlaskForm):
     file = FileField("File", validators=[InputRequired()])
     submit = SubmitField("Upload File")
 
 
+class SerieForm(FlaskForm):
+    nombre = StringField('Nombre')
+    fecha = DateField('Fecha')
+    activa = BooleanField('Activa')
+    csrf=False
+
+
+class LoginForm(FlaskForm):
+    correo = StringField('Correo', [validators.DataRequired()])
+    password = PasswordField('Contraseña', [validators.DataRequired()])
+
 #Ruta inicio
 @app.route('/', methods=['GET'])
 def home():
-    # Renderiza el formulario de inicio de sesión cuando el usuario solicita la página
-    return render_template('inicio.html')
+    form = LoginForm()  # Crear una instancia del formulario
+    return render_template('inicio.html', form=form)
 
 @app.route('/login', methods=['POST'])
 def login():
-    correo = request.form.get('username')
-    password = request.form.get('password')
+    form = LoginForm()
+    
+    if form.validate_on_submit():
+        correo = form.correo.data
+        password = form.password.data
 
     if not correo or not password:
         return jsonify(message='El correo electrónico y la contraseña son requeridos.'), 400
@@ -152,6 +177,7 @@ def registerEstudiante():
     return jsonify(message='Estudiante registrado exitosamente.'), 201
 
 @app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
+@csrf.exempt
 @jwt_required()  # Protege esta ruta con el decorador jwt_required
 def ver_supervisor(supervisor_id):
 
@@ -163,10 +189,9 @@ def ver_supervisor(supervisor_id):
 
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'supervisor' and current_user_id == supervisor_id:
-        # Muestra el listado de todos los ejercicios y series, botones para agregar ejercicio y serie.
         
-        # Obtiene todas las series
-        series = Serie.query.all()
+        # Obtiene solo las series activas
+        series = Serie.query.filter_by(activa=True).all()
         
         # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
         ejercicios_por_serie = {serie.id: [] for serie in series}
@@ -176,9 +201,11 @@ def ver_supervisor(supervisor_id):
         
         # Agrega los ejercicios a las listas correspondientes en el diccionario
         for ejercicio in ejercicios:
-            ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
+            if ejercicio.id_serie in ejercicios_por_serie:  # Asegúrate de que el ejercicio pertenezca a una serie activa
+                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
 
-        return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie)
+        form = SerieForm()
+        return render_template("vistaDocente.html", form=form, series=series, ejercicios_por_serie=ejercicios_por_serie, supervisor_id=supervisor_id)
 
     else:
         error_message = 'Acceso no autorizado a este supervisor.'
@@ -186,7 +213,9 @@ def ver_supervisor(supervisor_id):
 
 
 @app.route('/supervisores/<int:supervisor_id>', methods=['POST'])
+@csrf.exempt
 @jwt_required()  # Proteger esta ruta con el decorador jwt_required
+
 def procesar_supervisor(supervisor_id):
     # Verificar el rol del usuario
     current_user_role = get_jwt_identity().get('role')
@@ -194,16 +223,33 @@ def procesar_supervisor(supervisor_id):
     # Obtener el id del usuario autenticado desde el token
     current_user_id = get_jwt_identity().get('id')
 
-
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'supervisor' and current_user_id == supervisor_id:
-        # Acá proceso la informacion obtenida del post
-        return render_template("vistaDocente.html")
+        
+        form = SerieForm()
+        if form.validate_on_submit():
+            nombre = form.nombre.data
+            fecha = form.fecha.data
+            activa = form.activa.data
+            print(request.form)
+            # Crear el nuevo objeto Serie
+            nueva_serie = Serie(nombre=nombre, fecha=fecha, activa=activa)
 
+            # Agregar y guardar la nueva Serie en la base de datos
+            db.session.add(nueva_serie)
+            db.session.commit()
+ 
+            # Redirigir a la vista original o mostrar un mensaje de éxito (depende de tu diseño)
+            print(request.form.get('csrf_token'))
+            return redirect(url_for('ver_supervisor', supervisor_id=get_jwt_identity(id)))
+        else:
+            print(form.errors)
     else:
         # Si el acceso no está autorizado, mostrar un mensaje de error en la plantilla
+        
         error_message = 'Acceso no autorizado a este supervisor.'
         return render_template('404.html', error_message=error_message)
+
     
 @app.route('/vistaEstudiante/<int:estudiante_id>', methods=['GET'])
 @jwt_required()  # Proteger esta ruta con el decorador jwt_required
@@ -215,6 +261,13 @@ def dashEstudiante(estudiante_id):
 
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
     if current_user_role == 'estudiante' and current_user_id == estudiante_id:
+        series = Serie.query.filter_by(activa=True).all()
+        ejercicios_por_serie={serie.id: [] for serie in series }
+        ejercicios = Ejercicio.query.all()
+        for ejercicio in ejercicios:
+            if ejercicio.id_serie in ejercicios_por_serie:
+                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
+
         return render_template('vistaEstudiante.html')
     else:
         error_message= 'Acceso no autorizado a este estudiante.'
@@ -369,6 +422,13 @@ def listar_ejercicios():
     # Devuelve la plantilla con el diccionario de ejercicios por serie
     return render_template('listadoEjercicios.html', series=seriesActivas, ejercicios_por_serie=ejercicios_por_serie)
 
+# @app.route('/ejercicio/<int:id>', methods=['GET', 'POST'])
+# def show_ejercicio(id):
+#     ejercicio = Ejercicio.query.get_or_404(id)
+#     with open(ejercicio.path_ejercicio, 'r') as file:
+#         content = file.read()
+#         enunciado_html = markdown.markdown(content)
+#     return render_template('ejercicio.html', enunciado=enunciado_html)
 
 
 # #Ruta para subir archivo java
@@ -413,8 +473,6 @@ def listar_ejercicios():
 def pagina_no_encontrada(error):
     return render_template('404.html'), 404
     #return redirect(url_for('index')) #te devuelve a esa página
-
-
 
 
 #Ruta para ejecutar el script
