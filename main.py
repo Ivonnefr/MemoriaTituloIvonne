@@ -40,6 +40,9 @@ ALLOWED_EXTENSIONS = {'md'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 csrf = CSRFProtect()
 csrf.init_app(app)
+# Se define que tipo de arhivos se pueden recibir
+def allowed_file(filename, allowed_extensions):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 # Formularios de Flask-WTF
 class UploadFileForm(FlaskForm):
@@ -393,14 +396,32 @@ def agregar_ejercicio():
         series_disponibles = Serie.query.all()
         return render_template('agregarEjercicio.html', series=series_disponibles)
 
+# Ruta para mostrar las series que el alumno tiene asignadas
+@app.route('/serie/<int:serie_id>')
+def mostrar_serie(serie_id):
+    serie = Serie.query.get(serie_id)
+    
+    # Verificar si la serie existe en la base de datos.
+    if serie is None:
+        return "Serie no encontrada", 404
+
+    # Verificar si la serie está activa.
+    if not serie.activa:
+        return "Serie no activa", 403
+
+    return render_template('mostrar_serie.html', serie=serie)
 
 
-# Ruta para editar una serie
-@app.route('/vistaDocente/editarSerie', methods=['GET', 'POST'])
-def editar_serie():
-    return render_template('editarSerie.html')
-
-
+#ruta para que el alumno vea los ejercicios que tiene asignados
+@app.route('/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>')
+def mostrar_ejercicio_serie(serie_id, ejercicio_id):
+    ejercicio = Ejercicio.query.filter_by(id=ejercicio_id, id_serie=serie_id).first()
+    
+    # Verificar si el ejercicio existe en la base de datos.
+    if ejercicio is None:
+        return "Ejercicio no encontrado en esta serie", 404
+    
+    return render_template('mostrar_ejercicio.html', ejercicio=ejercicio)
 
 
 @app.route('/ejercicios', methods=['GET', 'POST'])

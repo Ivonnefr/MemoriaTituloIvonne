@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+<!-- Vista para que el estudiante vea sus ejercicios -->
+{% block title %}Serie #{{ serie.id }}{% endblock %}
+
+{% block content %}
+    <h2>{{ serie.nombre }}</h2>
+
+    {% if serie.ejercicios|length > 0 %}
+        <h4>Ejercicios:</h4>
+        <ul>
+            {% for ejercicio in serie.ejercicios %}
+                <li>{{ ejercicio.nombre }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Actualmente esta serie no tiene ejercicios asignados.</p>
+    {% endif %}
+{% endblock %}

@@ -121,6 +121,3 @@ class Comprobacion_ejercicio(db.Model):
         self.test = test
         self.fecha = fecha
         self.resultado = resultado
-
-
-

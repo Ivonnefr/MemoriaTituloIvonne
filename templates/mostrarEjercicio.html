@@ -1,0 +1,29 @@
+{% extends "layout.html" %} 
+<!-- Vista para que el estudiante vea un ejercicio en particular -->
+{% block title %}Ejercicios{% endblock %}
+
+{% block content %}
+    <h2>Lista de Ejercicios</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Path Ejercicio</th>
+                <th>Enunciado</th>
+                <th>ID Serie</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ejercicio in ejercicios %}
+                <tr>
+                    <td>{{ ejercicio.id }}</td>
+                    <td>{{ ejercicio.nombre }}</td>
+                    <td>{{ ejercicio.path_ejercicio }}</td>
+                    <td>{{ ejercicio.enunciado }}</td>
+                    <td>{{ ejercicio.id_serie }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
