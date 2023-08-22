@@ -2,10 +2,9 @@ import datetime
 import subprocess
 from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
-from flask_wtf import FlaskForm,CSRFProtect
+from flask_wtf import FlaskForm
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf.csrf import CSRFProtect
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required, set_access_cookies
 from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators
 from werkzeug.utils import secure_filename
@@ -30,51 +29,47 @@ init_app(app)
 app.config['SECRET_KEY'] = 'secret-key-goes-here'
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_COOKIE_SECURE'] = True
-app.config['JWT_COOKIE_CSRF_PROTECT'] = True
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=10)
-app.config['WTF_CSRF_SECRET_KEY']= 'secret'
-app.config['WTF_CSRF_CHECK_DEFAULT']= False
+app.config['WTF_CSRF_ENABLED'] = False
 jwt=JWTManager(app)
 UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
 ALLOWED_EXTENSIONS = {'md'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-csrf = CSRFProtect()
-csrf.init_app(app)
 # Se define que tipo de arhivos se pueden recibir
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
 # Formularios de Flask-WTF
-class UploadFileForm(FlaskForm):
-    file = FileField("File", validators=[InputRequired()])
-    submit = SubmitField("Upload File")
+# class UploadFileForm(FlaskForm):
+#     file = FileField("File", validators=[InputRequired()])
+#     submit = SubmitField("Upload File")
 
 
-class SerieForm(FlaskForm):
-    nombre = StringField('Nombre')
-    fecha = DateField('Fecha')
-    activa = BooleanField('Activa')
-    csrf=False
+# class SerieForm(FlaskForm):
+#     nombre = StringField('Nombre')
+#     fecha = DateField('Fecha')
+#     activa = BooleanField('Activa')
+#     csrf=False
 
 
-class LoginForm(FlaskForm):
-    correo = StringField('Correo', [validators.DataRequired()])
-    password = PasswordField('Contraseña', [validators.DataRequired()])
+# class LoginForm(FlaskForm):
+#     correo = StringField('Correo', [validators.DataRequired()])
+#     password = PasswordField('Contraseña', [validators.DataRequired()])
 
 #Ruta inicio
 @app.route('/', methods=['GET'])
 def home():
-    form = LoginForm()  # Crear una instancia del formulario
-    return render_template('inicio.html', form=form)
+
+    return render_template('inicio.html')
+
+from flask import request, jsonify, make_response, redirect, url_for
 
 @app.route('/login', methods=['POST'])
 def login():
-    form = LoginForm()
-    
-    if form.validate_on_submit():
-        correo = form.correo.data
-        password = form.password.data
+    # Obtener correo y password directamente del formulario
+    correo = request.form.get('correo')
+    password = request.form.get('password')
 
+    # Verificar que ambos campos estén presentes
     if not correo or not password:
         return jsonify(message='El correo electrónico y la contraseña son requeridos.'), 400
 
@@ -84,23 +79,16 @@ def login():
 
     # Verificar las credenciales del usuario según su rol
     if estudiante and check_password_hash(estudiante.password, password):
-        # Autenticación exitosa para un estudiante: crea el token de acceso con el rol 'estudiante'
-        #access_token = create_access_token(identity=estudiante.id, additional_claims={'role': 'estudiante'})
         access_token = create_access_token(identity={'id': estudiante.id, 'role': 'estudiante'})
-        # Almacena el token en una cookie segura y luego redirige al usuario a su perfil
         resp = make_response(redirect(url_for('dashEstudiante', estudiante_id=estudiante.id)))
         set_access_cookies(resp, access_token)
         return resp
 
-
     elif supervisor and check_password_hash(supervisor.password, password):
-        # Autenticación exitosa para un supervisor: crea el token de acceso con el rol 'supervisor'
         access_token = create_access_token(identity={'id': supervisor.id, 'role': 'supervisor'})
-        # Almacena el token en una cookie segura y luego redirige al usuario a su perfil
         resp = make_response(redirect(url_for('ver_supervisor', supervisor_id=supervisor.id)))
         set_access_cookies(resp, access_token)
         return resp
-
 
     else:
         return jsonify(message='Por favor revise sus datos de acceso e intente de nuevo.'), 401
@@ -180,80 +168,65 @@ def registerEstudiante():
     return jsonify(message='Estudiante registrado exitosamente.'), 201
 
 @app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
-@csrf.exempt
-@jwt_required()  # Protege esta ruta con el decorador jwt_required
+@jwt_required()
 def ver_supervisor(supervisor_id):
-
-    # Verificar el rol del usuario
+    # Verificar el rol del usuario y obtener ID
     current_user_role = get_jwt_identity().get('role')
-
-    # Obtener el id del usuario autenticado desde el token
     current_user_id = get_jwt_identity().get('id')
 
     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
-    if current_user_role == 'supervisor' and current_user_id == supervisor_id:
-        
-        # Obtiene solo las series activas
-        series = Serie.query.filter_by(activa=True).all()
-        
-        # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-        ejercicios_por_serie = {serie.id: [] for serie in series}
-        
-        # Obtiene todos los ejercicios
-        ejercicios = Ejercicio.query.all()
-        
-        # Agrega los ejercicios a las listas correspondientes en el diccionario
-        for ejercicio in ejercicios:
-            if ejercicio.id_serie in ejercicios_por_serie:  # Asegúrate de que el ejercicio pertenezca a una serie activa
-                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-
-        form = SerieForm()
-        return render_template("vistaDocente.html", form=form, series=series, ejercicios_por_serie=ejercicios_por_serie, supervisor_id=supervisor_id)
-
-    else:
+    if not (current_user_role == 'supervisor' and current_user_id == supervisor_id):
         error_message = 'Acceso no autorizado a este supervisor.'
         return render_template('404.html', error_message=error_message)
 
-
-@app.route('/supervisores/<int:supervisor_id>', methods=['POST'])
-@csrf.exempt
-@jwt_required()  # Proteger esta ruta con el decorador jwt_required
-
-def procesar_supervisor(supervisor_id):
-    # Verificar el rol del usuario
-    current_user_role = get_jwt_identity().get('role')
-
-    # Obtener el id del usuario autenticado desde el token
-    current_user_id = get_jwt_identity().get('id')
-
-    # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
-    if current_user_role == 'supervisor' and current_user_id == supervisor_id:
+    # Obtiene solo las series activas
+    series = Serie.query.all()
         
-        form = SerieForm()
-        if form.validate_on_submit():
-            nombre = form.nombre.data
-            fecha = form.fecha.data
-            activa = form.activa.data
-            print(request.form)
-            # Crear el nuevo objeto Serie
-            nueva_serie = Serie(nombre=nombre, fecha=fecha, activa=activa)
-
-            # Agregar y guardar la nueva Serie en la base de datos
-            db.session.add(nueva_serie)
-            db.session.commit()
- 
-            # Redirigir a la vista original o mostrar un mensaje de éxito (depende de tu diseño)
-            print(request.form.get('csrf_token'))
-            return redirect(url_for('ver_supervisor', supervisor_id=get_jwt_identity(id)))
-        else:
-            print(form.errors)
-    else:
-        # Si el acceso no está autorizado, mostrar un mensaje de error en la plantilla
+    # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
+    ejercicios_por_serie = {serie.id: [] for serie in series}
         
-        error_message = 'Acceso no autorizado a este supervisor.'
-        return render_template('404.html', error_message=error_message)
+    # Obtiene todos los ejercicios
+    ejercicios = Ejercicio.query.all()
+        
+    # Agrega los ejercicios a las listas correspondientes en el diccionario
+    for ejercicio in ejercicios:
+        if ejercicio.id_serie in ejercicios_por_serie:
+            ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
 
+    return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie, supervisor_id=supervisor_id)
+
+
+@app.route('/supervisores/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
+@jwt_required()
+def agregarSerie(supervisor_id):
+    # Si es un POST, entonces procesa el formulario
+    if request.method == 'POST':
+        # Recibe del formulario los datos de la serie
+        nombre = request.form.get('nombre')
+        fecha = request.form.get('fecha')
+        activa = request.form.get('activa')
+
+        # Validación simple para comprobar si los campos no están vacíos
+        if not (nombre and fecha and activa):
+            flash('Por favor, complete todos los campos.', 'danger')
+            return redirect(url_for('agregarSerie', supervisor_id=supervisor_id))
+
+        # Crea el nuevo objeto Serie
+        nueva_serie = Serie(nombre=nombre, fecha=fecha, activa=activa)
+        
+        # Agregar y guardar la nueva Serie en la base de datos
+        db.session.add(nueva_serie)
+        db.session.commit()
+
+        flash('Serie agregada con éxito.', 'success')
+        # Redirigir a la vista original o mostrar un mensaje de éxito (depende de tu diseño)
+        return redirect(url_for('ver_supervisor', supervisor_id=supervisor_id))
     
+    # Si es un GET, muestra el formulario
+    return render_template('agregarSerie.html', supervisor_id=supervisor_id)
+
+
+
 @app.route('/vistaEstudiante/<int:estudiante_id>', methods=['GET'])
 @jwt_required()  # Proteger esta ruta con el decorador jwt_required
 def dashEstudiante(estudiante_id):
@@ -500,6 +473,7 @@ def pagina_no_encontrada(error):
 if __name__ == '__main__':
     app.register_error_handler(404, pagina_no_encontrada)
     app.run(host='0.0.0.0',debug=True, port=3000)
+    debug=True
 
 # #lsof -i:PUERTO //para revisar todos los procesos que estan usando el puerto
 # #kill -9 PID //para matar el proceso que esta usando el puerto
