@@ -1,9 +1,60 @@
-{% extends 'layout.html' %}
+{% extends "layout.html" %}
 
-{% block title %}
-DASHBOARD ESTUDIANTE
-{% endblock %}
+{% block title %}DashBoard Estudiante{% endblock %}
 
 {% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-3">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+<div class="row" >
+    <div class="col-md-12">
+        <h1>Dashboard Estudiante</h1>
+        <h2>Estudiante: {{ estudiante.nombre }} {{ estudiante.apellido }}</h2>
+        <h2>Supervisor: {{ supervisor.nombre }} {{ supervisor.apellido }}</h2>
+    </div>
+</div>
 
+<div class="row">
+    <div class="col-md-12">
+      <h2>Series y sus Ejercicios</h2>
+      <ul>
+        {% for serie in series %}
+          <li>
+            {{ serie.nombre }} ({{ serie.fecha }})
+            
+            <!-- Botón para cambiar el estado de la serie -->
+            <form method="post" action="{{ url_for('toggle_serie', supervisor_id=supervisor_id, serie_id=serie.id) }}" style="display: inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              {% if serie.activa %}
+                  <button type="submit" class="btn btn-success btn-sm">Activa</button>
+              {% else %}
+                  <button type="submit" class="btn btn-danger btn-sm">Inactiva</button>
+              {% endif %}
+          </form>
+          
+            
+            <ul>
+              {% for ejercicio in ejercicios_por_serie[serie.id] %}
+                <li>
+                  {{ ejercicio.nombre }}: {{ ejercicio.enunciado }}
+                  <br>Path: {{ ejercicio.path_ejercicio }}
+                </li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+</div>
 {% endblock %}

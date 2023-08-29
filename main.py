@@ -98,56 +98,26 @@ def dashDocente(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard.', 'danger')
         return redirect(url_for('login'))
     
+    # Si el método es get: muestra el dashboard del Supervisor
+    if request.method == 'GET':
+        # Obtiene todas las series
+        series = Serie.query.all()
+            
+        # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
+        ejercicios_por_serie = {serie.id: [] for serie in series}
+
+        # Obtiene todos los ejercicios
+        ejercicios = Ejercicio.query.all()
+            
+        # Agrega los ejercicios a las listas correspondientes en el diccionario
+        for ejercicio in ejercicios:
+            if ejercicio.id_serie in ejercicios_por_serie:
+                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
+
+        return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie)
+
     # Aquí va el resto de la lógica para mostrar el dashboard del Supervisor, por ejemplo:
     return render_template('vistaDocente.html')
-
-# @app.route('/vistaEstudiante/<int:estudiante_id>', methods=['GET'])
-# @jwt_required()  # Proteger esta ruta con el decorador jwt_required
-# def dashEstudiante(estudiante_id):
-#     # Verificar el rol del usuario
-#     current_user_role = get_jwt_identity().get('role')
-#     # Obtener el id del usuario autenticado desde el token
-#     current_user_id = get_jwt_identity().get('id')
-
-#     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
-#     if current_user_role == 'estudiante' and current_user_id == estudiante_id:
-#         series = Serie.query.filter_by(activa=True).all()
-#         ejercicios_por_serie={serie.id: [] for serie in series }
-#         ejercicios = Ejercicio.query.all()
-#         for ejercicio in ejercicios:
-#             if ejercicio.id_serie in ejercicios_por_serie:
-#                 ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-
-#         return render_template('vistaEstudiante.html')
-#     else:
-#         error_message= 'Acceso no autorizado a este estudiante.'
-#         return render_template('404.html', error_message=error_message)
-
-# @app.route('/vistaEstudiante/<int:estudiante_id>', methods=['POST'])
-# @jwt_required()  # Proteger esta ruta con el decorador jwt_required
-# def procesar_estudiante(estudiante_id):
-#     # Verificar el rol del usuario
-#     current_user_role = get_jwt_identity().get('role')
-
-#     # Obtener el id del usuario autenticado desde el token
-#     current_user_id = get_jwt_identity().get('id')
-
-
-#     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
-#     if current_user_role == 'estudiante' and current_user_id == estudiante_id:
-#         # Aquí puedes procesar los datos enviados en la solicitud POST
-#         data = request.form.get('data')  # Supongamos que los datos se envían con el campo 'data'
-#         # Realizar las operaciones necesarias con los datos recibidos...
-
-#         # Devolver una respuesta o redireccionar a otra página después de procesar los datos
-#         return jsonify(message='Datos recibidos y procesados exitosamente.')
-
-#     else:
-#         # Si el acceso no está autorizado, mostrar un mensaje de error en la plantilla
-#         error_message = 'Acceso no autorizado a este supervisor.'
-#         return render_template('404.html', error_message=error_message)
-
-
 
 @app.route('/registerSupervisor', methods=['GET'])
 def register_page():
@@ -223,18 +193,8 @@ def registerEstudiante():
 
     return jsonify(message='Estudiante registrado exitosamente.'), 201
 
-
-
 # @app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
 # def ver_supervisor(supervisor_id):
-#     # Verificar el rol del usuario y obtener ID
-#     current_user_role = get_jwt_identity().get('role')
-#     current_user_id = get_jwt_identity().get('id')
-
-#     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
-#     if not (current_user_role == 'supervisor' and current_user_id == supervisor_id):
-#         error_message = 'Acceso no autorizado a este supervisor.'
-#         return render_template('404.html', error_message=error_message)
 
 #     # Obtiene solo las series activas
 #     series = Serie.query.all()
