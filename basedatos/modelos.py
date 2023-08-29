@@ -17,7 +17,20 @@ class Supervisor(db.Model):
         self.apellido_materno = apellido_materno
         self.correo = correo
         self.password = password
-    
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
     
 class Grupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -54,7 +67,21 @@ class Estudiante(db.Model):
         self.apellido_materno = apellido_materno
         self.correo = correo
         self.password = password
+    @property
+    def is_authenticated(self):
+        return True
 
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
+    
 class Ejercicio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)

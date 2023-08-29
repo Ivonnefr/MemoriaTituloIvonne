@@ -8,15 +8,28 @@ Inicio
 <h1>Bienvenido a la Plataforma Nombre</h1>
 <p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
 
+<!-- Mostrar mensajes flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Resto del código de tu formulario ... -->
+
 <div class="row justify-content-center">
   <div class="col-4">
     <h2>Iniciar sesión</h2>
     <!-- Asegúrate de especificar el método POST y la acción /login para el formulario -->
-    <form method="POST" action="/login">
+    <form method="POST" action="{{ url_for('login') }}">
       <div class="form-group">
         <label for="username">Correo electrónico</label>
         <!-- Los campos input deben tener un atributo "name" que coincida con los parámetros que esperas en tu función de login -->
-        <input type="email" class="form-control" id="username" name="username" placeholder="Ingresa tu correo">
+        <input type="email" class="form-control" id="correo" name="correo" placeholder="Ingresa tu correo">
       </div>
       <div class="form-group">
         <label for="password">Contraseña</label>
