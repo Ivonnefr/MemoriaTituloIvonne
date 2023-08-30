@@ -60,15 +60,15 @@ def procesar_archivo_csv(filename):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user = Estudiante.query.get(int(user_id))
-    if user:
-        return user
-    
-    user = Supervisor.query.get(int(user_id))
-    if user:
-        return user
+    if user_id.startswith("e"):
+        user = db.session.get(Estudiante, int(user_id[1:]))
+    elif user_id.startswith("s"):
+        user = db.session.get(Supervisor, int(user_id[1:]))
+    else:
+        return None
 
-    return None
+    return user
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -76,18 +76,27 @@ def login():
         correo = request.form['correo']
         password = request.form['password']
         
-        user = Estudiante.query.filter_by(correo=correo).first() or Supervisor.query.filter_by(correo=correo).first()
+        # Primero verifica si las credenciales son de un estudiante o un supervisor.
+        estudiante = Estudiante.query.filter_by(correo=correo).first()
+        supervisor = Supervisor.query.filter_by(correo=correo).first()
 
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            if isinstance(user, Estudiante):
-                return redirect(url_for('dashEstudiante', estudiante_id=user.id))
-            else:
-                flash('Has iniciado sesión exitosamente', 'success')
-                return redirect(url_for('dashDocente', supervisor_id=user.id))
+        # Si es estudiante y las credenciales son correctas.
+        if estudiante and check_password_hash(estudiante.password, password):
+            login_user(estudiante)
+            flash('Has iniciado sesión exitosamente', 'success')
+            return redirect(url_for('dashEstudiante', estudiante_id=estudiante.id))
+        
+        # Si es supervisor y las credenciales son correctas.
+        elif supervisor and check_password_hash(supervisor.password, password):
+            login_user(supervisor)
+            flash('Has iniciado sesión exitosamente', 'success')
+            return redirect(url_for('dashDocente', supervisor_id=supervisor.id))
+        
+        # Si las credenciales no coinciden con ningún usuario.
         flash('Credenciales inválidas', 'danger')
     
     return render_template('inicio.html')
+
 
 @app.route('/logout')
 def logout():
@@ -148,8 +157,6 @@ def dashDocente(supervisor_id):
 @app.route('/registerSupervisor', methods=['GET'])
 def register_page():
     return render_template('register.html')
-
-from flask import flash, redirect, url_for, render_template
 
 @app.route('/registersupervisor', methods=['POST'])
 def register():
