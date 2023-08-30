@@ -28,7 +28,8 @@ class Supervisor(db.Model):
         return False
 
     def get_id(self):
-        return str(self.id)
+        return f"s{self.id}"
+
     
 class Grupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -40,13 +41,14 @@ class Grupo(db.Model):
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
-    fecha = db.Column(db.Date(), nullable=False)
+    fecha = db.Column(db.Date(), nullable=True)
+    #fecha_termino= db.Column(db.Date(), nullable=True)
     activa = db.Column(db.Boolean(), nullable=False)
 
-    def __init__(self, nombre, fecha):
+    def __init__(self, nombre, fecha, activa):
         self.nombre = nombre
         self.fecha = fecha
-        self.activa = False
+        self.activa = activa
 
 
 class Estudiante(db.Model):
@@ -78,7 +80,8 @@ class Estudiante(db.Model):
         return False
 
     def get_id(self):
-        return str(self.id)
+        return f"e{self.id}"
+
     
 class Ejercicio(db.Model):
     id = db.Column(db.Integer, primary_key=True)

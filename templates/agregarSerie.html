@@ -1,11 +1,32 @@
 {% extends 'layout.html' %}
 
 {% block title %}
-Inicio
+Agregar Serie
 {% endblock %}
 
 {% block content %}
-<h1>Agregar nueva serie</h1>
+<div class="container mt-5">
+    <h1>Agregar nueva serie</h1>
+    
+    <form method="post" action="{{ url_for('agregarSerie', supervisor_id=supervisor_id) }}">
+        <div class="form-group">
+            <label for="nombreSerie">Nombre de la serie</label>
+            <input type="text" class="form-control" id="nombreSerie" name="nombreSerie" placeholder="Ingresa el nombre de la serie" required>
+        </div>
 
+        <div class="form-group">
+            <label for="fecha">Fecha</label>
+            <input type="date" class="form-control" id="fecha" name="fecha" required>
+        </div>
 
+        <div class="form-group">
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="activa" name="activa" value="true">
+                <label class="custom-control-label" for="activa">Activa</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Agregar Serie</button>
+    </form>
+</div>
 {% endblock %}

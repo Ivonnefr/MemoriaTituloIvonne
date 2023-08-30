@@ -21,29 +21,22 @@ def agregarCarpetaMavenEstudiante(matricula, numero_ejercicio):
 #Se crea por primera vez la copia de la carpeta
 
 
-# Funcion para agregar la carpeta maven al ejercicio propuesto
-def agregarCarpetaMavenPropuesta(numeroSerie, numeroEjercicio):
-    # Usamos la carpeta plantilla como base para crear la carpeta maven del ejercicio
-    rutaMaven = "plantillaMaven/"
-
-    # La ruta base es el path relativo de ejerciciosPropuestos
+def crear_carpeta_ejercicio(id_serie, id_ejercicio):
+    # Crea una carpeta para un ejercicio dentro de su serie correspondiente
     rutaBase = "ejerciciosPropuestos/"
+    rutaSerie = os.path.join(rutaBase, str(id_serie))
+    rutaEjercicio = os.path.join(rutaSerie, str(id_ejercicio))
 
-    # Buscamos la serie a la que pertenece el numeroEjercicio, para ubicar la carpeta del ejercicio
-    rutaSerie = os.path.join(rutaBase, str(numeroSerie))
-
-    # Creamos la carpeta con el numero del ejercicio dentro de la ruta de la serie
-    rutaEjercicio = os.path.join(rutaSerie, str(numeroEjercicio))
-
-    # Verificamos si la carpeta del ejercicio ya existe, si no existe, la creamos
     if not os.path.exists(rutaEjercicio):
         os.makedirs(rutaEjercicio)
-
-    # Copiamos el contenido de la carpeta maven en la carpeta del ejercicio
-    contenido_ruta_maven = os.listdir(rutaMaven)
-    for archivo in contenido_ruta_maven:
-        ruta_archivo_origen = os.path.join(rutaMaven, archivo)
-        ruta_archivo_destino = os.path.join(rutaEjercicio, archivo)
-        shutil.copy(ruta_archivo_origen, ruta_archivo_destino)
-
     return rutaEjercicio
+
+
+def crear_carpeta_serie(id_serie):
+    # Crea una carpeta para una serie específica
+    rutaBase = "ejerciciosPropuestos/"
+    rutaSerie = os.path.join(rutaBase, str(id_serie))
+
+    if not os.path.exists(rutaSerie):
+        os.makedirs(rutaSerie)
+    return rutaSerie

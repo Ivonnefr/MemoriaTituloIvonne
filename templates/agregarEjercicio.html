@@ -3,9 +3,30 @@
 {% block title %}Agregar Ejercicio{% endblock %}
 
 {% block content %}
-<form action="{{ url_for('agregar_ejercicio') }}" method="post" enctype="multipart/form-data">
-    Nombre del ejercicio: <input type="text" name="nombre"><br>
-    Archivo Markdown: <input type="file" name="markdown_file"><br>
-    <input type="submit" value="Subir">
-</form>
+<div class="container mt-5">
+    <h1>Agregar nuevo ejercicio</h1>
+    
+    <form method="post" action="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="nombreEjercicio">Nombre del Ejercicio: </label>
+            <input type="text" class="form-control" id="nombreEjercicio" name="nombreEjercicio" placeholder="Ingresa el nombre del ejercicio" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="enunciadoFile">Cargar enunciado (.md): </label>
+            <input type="file" class="form-control-file" id="enunciadoFile" name="enunciadoFile" accept=".md" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="id_serie">Seleccionar Serie: </label>
+            <select class="form-control" id="id_serie" name="id_serie" required>
+                {% for serie in series %}
+                <option value="{{ serie.id }}">{{ serie.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Agregar Ejercicio</button>
+    </form>
+</div>
 {% endblock %}

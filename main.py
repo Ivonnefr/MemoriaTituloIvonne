@@ -10,7 +10,7 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
 from funciones_archivo.delete_packages import eliminar_packages
-from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, agregarCarpetaMavenPropuesta
+from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, agregarCarpetaMavenPropuesta, crear_carpeta_serie
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
@@ -31,8 +31,14 @@ login_manager.login_view = 'login'  # Nombre de la vista para iniciar sesión
 
 UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
 ALLOWED_EXTENSIONS = {'md','xml'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Encuentra la ruta del directorio del archivo actual
+current_directory = os.path.dirname(os.path.abspath(__file__))
+
+# Define la ruta UPLOAD_FOLDER en relación a ese directorio
+UPLOAD_FOLDER = os.path.join(current_directory, "uploads")
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Se define que tipo de arhivos se pueden recibir
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
@@ -69,6 +75,19 @@ def load_user(user_id):
 
     return user
 
+# Verifica que el usuario logueado es un Supervisor
+def verify_supervisor(supervisor_id):
+    
+    if not isinstance(current_user, Supervisor):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return False
+
+    # Asegura que el Supervisor está tratando de acceder a su propio dashboard
+    if current_user.id != supervisor_id:
+        flash('No tienes permiso para acceder a este dashboard.', 'danger')
+        return False
+
+    return True
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -97,7 +116,6 @@ def login():
     
     return render_template('inicio.html')
 
-
 @app.route('/logout')
 def logout():
     logout_user()  # Cierra la sesión del usuario actual.
@@ -106,53 +124,6 @@ def logout():
 @app.route('/', methods=['GET', 'POST'])
 def home():
     return render_template('inicio.html')
-
-@app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET, POST'])
-@login_required
-def dashEstudiante(estudiante_id):
-    # Aquí primero aseguramos que el usuario logueado está tratando de acceder a su propio dashboard
-    if not isinstance(current_user, Estudiante):
-        flash('No tienes permiso para acceder a este dashboard. Debes ser un Estudiante.', 'danger')
-        return redirect(url_for('login'))
-    
-    if current_user.id != estudiante_id:
-        flash('No tienes permiso para acceder a este dashboard.', 'danger')
-        return redirect(url_for('login'))
-    return render_template('vistaEstudiante.html')
-
-@app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
-@login_required
-def dashDocente(supervisor_id):
-    # Aquí nos aseguramos que el usuario logueado es un Supervisor
-    if not isinstance(current_user, Supervisor):
-        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
-        return redirect(url_for('login'))
-
-    # Luego, aseguramos que el Supervisor está tratando de acceder a su propio dashboard
-    if current_user.id != supervisor_id:
-        flash('No tienes permiso para acceder a este dashboard.', 'danger')
-        return redirect(url_for('login'))
-    
-    # Si el método es get: muestra el dashboard del Supervisor
-    if request.method == 'GET':
-        # Obtiene todas las series
-        series = Serie.query.all()
-            
-        # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-        ejercicios_por_serie = {serie.id: [] for serie in series}
-
-        # Obtiene todos los ejercicios
-        ejercicios = Ejercicio.query.all()
-            
-        # Agrega los ejercicios a las listas correspondientes en el diccionario
-        for ejercicio in ejercicios:
-            if ejercicio.id_serie in ejercicios_por_serie:
-                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-
-        return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie)
-
-    # Aquí va el resto de la lógica para mostrar el dashboard del Supervisor, por ejemplo:
-    return render_template('vistaDocente.html')
 
 @app.route('/registerSupervisor', methods=['GET'])
 def register_page():
@@ -191,7 +162,7 @@ def register():
     flash('Supervisor registrado exitosamente.', 'success')
     return redirect(url_for('home'))  # Asumiendo que 'home' es la función que maneja tu página de inicio.
 
-@app.route('/registerEstudiantes/<int:supervisor_id>', methods=['GET', 'POST'])
+@app.route('/dashDocente/<int:supervisor_id>/registerEstudiantes/', methods=['GET', 'POST'])
 @login_required
 def registerEstudiantesPage(supervisor_id):
     #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
@@ -219,7 +190,6 @@ def registerEstudiantesPage(supervisor_id):
             return redirect(url_for('home'))
 
     return render_template('registerEstudiantes.html')
-
 
 @app.route('/registerEstudiante', methods=['GET'])
 def estudianteRegisterPage():
@@ -258,171 +228,129 @@ def registerEstudiante():
     flash('Estudiante registrado exitosamente.', 'success')
     return redirect(url_for('home'))
 
-# @app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
-# def ver_supervisor(supervisor_id):
-
-#     # Obtiene solo las series activas
-#     series = Serie.query.all()
-        
-#     # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-#     ejercicios_por_serie = {serie.id: [] for serie in series}
-        
-#     # Obtiene todos los ejercicios
-#     ejercicios = Ejercicio.query.all()
-        
-#     # Agrega los ejercicios a las listas correspondientes en el diccionario
-#     for ejercicio in ejercicios:
-#         if ejercicio.id_serie in ejercicios_por_serie:
-#             ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-
-#     return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie, supervisor_id=supervisor_id)
-
-# @app.route('/supervisores/<int:supervisor_id>/series/<int:serie_id>/toggle', methods=['POST'])
-# @jwt_required()
-# def toggle_serie(supervisor_id, serie_id):
-#     # Verificar el rol del usuario y obtener ID
-#     current_user_role = get_jwt_identity().get('role')
-#     current_user_id = get_jwt_identity().get('id')
-
-#     # Verificar si el usuario autenticado es un supervisor y coincide con el id en la ruta
-#     if not (current_user_role == 'supervisor' and current_user_id == supervisor_id):
-#         return jsonify(message="Acceso no autorizado"), 403
-
-#     # Luego de verificar que es un supervisor, procede con el cambio de estado de la serie
-#     serie = Serie.query.get_or_404(serie_id)
-#     serie.activa = not serie.activa
-#     db.session.commit()
-
-#     flash(f"La serie '{serie.nombre}' ha sido {'activada' if serie.activa else 'desactivada'} con éxito.", 'success')
-#     return redirect(url_for('ver_supervisor', supervisor_id=supervisor_id))
-
-
-# @app.route('/supervisores/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
-# @jwt_required()
-# def agregarSerie(supervisor_id):
-#     # Si es un POST, entonces procesa el formulario
-#     if request.method == 'POST':
-#         # Recibe del formulario los datos de la serie
-#         nombre = request.form.get('nombre')
-#         fecha = request.form.get('fecha')
-#         activa = request.form.get('activa')
-
-#         # Validación simple para comprobar si los campos no están vacíos
-#         if not (nombre and fecha and activa):
-#             flash('Por favor, complete todos los campos.', 'danger')
-#             return redirect(url_for('agregarSerie', supervisor_id=supervisor_id))
-
-#         # Crea el nuevo objeto Serie
-#         nueva_serie = Serie(nombre=nombre, fecha=fecha, activa=activa)
-        
-#         # Agregar y guardar la nueva Serie en la base de datos
-#         db.session.add(nueva_serie)
-#         db.session.commit()
-
-#         flash('Serie agregada con éxito.', 'success')
-#         # Redirigir a la vista original o mostrar un mensaje de éxito (depende de tu diseño)
-#         return redirect(url_for('ver_supervisor', supervisor_id=supervisor_id))
+@app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET, POST'])
+@login_required
+def dashEstudiante(estudiante_id):
+    # Aquí primero aseguramos que el usuario logueado está tratando de acceder a su propio dashboard
+    if not isinstance(current_user, Estudiante):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Estudiante.', 'danger')
+        return redirect(url_for('login'))
     
-#     # Si es un GET, muestra el formulario
-#     return render_template('agregarSerie.html', supervisor_id=supervisor_id)
+    if current_user.id != estudiante_id:
+        flash('No tienes permiso para acceder a este dashboard.', 'danger')
+        return redirect(url_for('login'))
+    return render_template('vistaEstudiante.html')
 
+@app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
+@login_required
+def dashDocente(supervisor_id):
+    # Usa la función de verificación
+    if not verify_supervisor(supervisor_id):
+        return redirect(url_for('login'))
+    
+    # Si el método es get: muestra el dashboard del Supervisor
+    if request.method == 'GET':
+        # Obtiene todas las series
+        series = Serie.query.all()
 
+        # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
+        ejercicios_por_serie = {serie.id: [] for serie in series}
 
-# Ruta para cambiar el estado de una serie
-@app.route('/cambiar_estado_serie', methods=['POST'])
-def cambiar_estado_serie():
-    data = request.get_json()  # Recibe la data de la petición
-    serie_id = data['id']
-    new_status = data['activa']
+        # Obtiene todos los ejercicios
+        ejercicios = Ejercicio.query.all()
+            
+        # Agrega los ejercicios a las listas correspondientes en el diccionario
+        for ejercicio in ejercicios:
+            if ejercicio.id_serie in ejercicios_por_serie:
+                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
 
-    serie = db.session.get(Serie, serie_id)  # Obtiene la serie desde la base de datos
+        return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie)
 
-    if serie is None:
-        return jsonify({"error": "No se encontró la serie"}), 404
+    # Aquí va el resto de la lógica para mostrar el dashboard del Supervisor, por ejemplo:
+    return render_template('vistaDocente.html')
 
-    serie.activa = new_status
-    db.session.commit()  # Guarda los cambios en la base de datos
+@app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
+@login_required
+def agregarSerie(supervisor_id):
+    if not verify_supervisor(supervisor_id):
+        return redirect(url_for('login'))
 
-    return jsonify({"message": "Estado actualizado con éxito"}), 200
-
-
-@app.route('/series_activas', methods=['GET'])
-def series_activas():
-    series = Serie.query.filter_by(activa=True).all()
-    series_activas = [serie.nombre for serie in series]
-    return jsonify(series_activas), 200
-
-
-
-#Ruta para agregar una serie
-@app.route('/vistaDocente/agregarSerie', methods=['GET', 'POST'])
-def agregar_serie():
-    # Muestra un formulario para agregar una serie
+    # Ahora se toman los datos del formulario
     if request.method == 'POST':
-        nombreSerie = request.form.get('nombre')
-        fecha_str = request.form.get('fecha')
-        # Convertir la fecha a un objeto date
-        fecha = datetime.date.fromisoformat(fecha_str)
+        nombreSerie= request.form.get('nombreSerie')
+        fecha = request.form.get('fecha')
+        
+        # Convertir el valor de 'activa' a booleano
+        activa_value = True if request.form.get('activa') == "true" else False
 
-        # Validar los datos ingresados
-        if not nombreSerie or not fecha:
-            flash('El nombre de la serie y la fecha de creacion son requeridos.')
-            return redirect(url_for('vistaDocente.agregar_serie'))
-
-        # Verificar si el nombre de la serie ya existe en la base de datos
-        serie_existente = Serie.query.filter_by(nombre=nombreSerie).first()
-        if serie_existente:
-            flash('El nombre de la serie ya existe.')
-            return redirect(url_for('vistaDocente.agregar_serie'))
-
-        # Crear una nueva instancia de la Serie
-        nueva_serie = Serie(nombre=nombreSerie, fecha=fecha)
-
-        # Guardar la nueva serie en la base de datos
+        # Validación simple para comprobar si los campos no están vacíos
+        if not (nombreSerie and fecha):
+            flash('Por favor, complete todos los campos.', 'danger')
+            return redirect(url_for('agregarSerie', supervisor_id=supervisor_id))
+        
+        # Crea el nuevo objeto Serie en la base de datos
+        nueva_serie = Serie(nombre=nombreSerie, fecha=datetime.date.fromisoformat(fecha), activa=activa_value)
         db.session.add(nueva_serie)
-        db.session.commit()
+        
+        try:
+            # Crea las carpetas correspondientes
+            crear_carpeta_serie(nueva_serie.id)
+            
+            # Si todo está bien, confirmamos la transacción
+            db.session.commit()
 
-        # Crear una nueva carpeta con el nombre `id_serie` en la carpeta `ejerciciosPropuestos`
-        nueva_carpeta = Path('ejerciciosPropuestos') / str(nueva_serie.id)
-        nueva_carpeta.mkdir(parents=True, exist_ok=True)
+            flash('Serie agregada con éxito', 'success')
+            return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
-        # Redireccionar a '/vistaDocente' después de agregar la serie exitosamente
-        return redirect(url_for('rutaDocente'))
-    return render_template('agregarSerie.html')
+        except Exception as e:
+            db.session.rollback()  # Deshace la transacción si hay un error
+            flash(f'Error al agregar la serie: {str(e)}', 'danger')
 
+    return render_template('agregarSerie.html', supervisor_id=supervisor_id)
 
-# Ruta para agregar un nuevo ejercicio
-@app.route('/vistaDocente/agregarEjercicio', methods=['GET', 'POST'])
-def agregar_ejercicio():
+@app.route('/dashDocente/<int:supervisor_id>/agregarEjercicio', methods = ['GET', 'POST'])
+def agregarEjercicio(supervisor_id):
+    if not verify_supervisor(supervisor_id):
+        return redirect(url_for('login'))
+
+    series = Serie.query.all()
+
     if request.method == 'POST':
-        # Obtener los datos del formulario y guardar en la base de datos
-        nombre = request.form['nombre']
-        path_ejercicio = request.form['path_ejercicio']
-        enunciado = request.form['enunciado']
-        id_serie = int(request.form['id_serie'])  # Convertir el id de serie a entero
-    
-        nuevo_ejercicio = Ejercicio(nombre=nombre, path_ejercicio=path_ejercicio, enunciado=enunciado, id_serie=id_serie)
+        nombreEjercicio = request.form.get('nombreEjercicio')
+        id_serie = request.form.get('id_serie')
+        enunciadoFile = request.files.get('enunciadoFile')
 
-        db.session.add(nuevo_ejercicio)
-        db.session.commit()
+        if not enunciadoFile:
+            flash('Por favor, carga un archivo .md.', 'danger')
+            return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
-        # Obtener el ID del ejercicio recién creado
-        id_ejercicio = nuevo_ejercicio.id
+        filename = secure_filename(enunciadoFile.filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
 
-        # Creamos la carpeta con el id del ejercicio en la serie correspondiente llamando a la funcion agregarCarpetaMavenPropuesta
-        ruta_ejercicio=agregarCarpetaMavenPropuesta(id_serie, id_ejercicio)
+        nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio=filepath, enunciado=filename, id_serie=id_serie)
 
-        # Actualizamos en la base de datos el path del ejercicio
-        nuevo_ejercicio.path_ejercicio = ruta_ejercicio
-        db.session.commit()
+        try:
+            db.session.add(nuevo_ejercicio)
+            db.session.commit()  # Intentamos guardar el ejercicio en la base de datos
 
-        # Devolver una respuesta JSON indicando que la operación fue exitosa
-        return jsonify({'message': 'Ejercicio guardado exitosamente'})
+            # Una vez que el ejercicio está en la base de datos, intentamos crear la carpeta
+            agregarCarpetaMavenPropuesta(id_serie, nuevo_ejercicio.id)
 
-    else:
-        # Renderizar la plantilla con la lista de series disponibles
-        series_disponibles = Serie.query.all()
-        return render_template('agregarEjercicio.html', series=series_disponibles)
+            enunciadoFile.save(filepath)  # Solo guardamos el archivo si la operación de la base de datos y la creación de la carpeta fueron exitosas
+
+        except Exception as e:
+            db.session.rollback()  # Si hay un error, deshacemos los cambios en la base de datos
+
+            if os.path.exists(filepath):  # Si el archivo fue guardado, lo eliminamos
+                os.remove(filepath)
+
+            flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
+            return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
+
+        flash('Ejercicio agregado con éxito', 'success')
+        return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+
+    return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
 # Ruta para mostrar las series que el alumno tiene asignadas
 @app.route('/serie/<int:serie_id>')
@@ -450,7 +378,6 @@ def mostrar_ejercicio_serie(serie_id, ejercicio_id):
         return "Ejercicio no encontrado en esta serie", 404
     
     return render_template('mostrar_ejercicio.html', ejercicio=ejercicio)
-
 
 @app.route('/ejercicios', methods=['GET', 'POST'])
 def listar_ejercicios():

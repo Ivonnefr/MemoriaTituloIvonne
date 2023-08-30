@@ -12,17 +12,6 @@
           <li>
             {{ serie.nombre }} ({{ serie.fecha }})
             
-            <!-- Botón para cambiar el estado de la serie -->
-            <form method="post" action="{{ url_for('toggle_serie', supervisor_id=supervisor_id, serie_id=serie.id) }}" style="display: inline;">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-              {% if serie.activa %}
-                  <button type="submit" class="btn btn-success btn-sm">Activa</button>
-              {% else %}
-                  <button type="submit" class="btn btn-danger btn-sm">Inactiva</button>
-              {% endif %}
-          </form>
-          
-            
             <ul>
               {% for ejercicio in ejercicios_por_serie[serie.id] %}
                 <li>
