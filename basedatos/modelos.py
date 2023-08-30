@@ -5,16 +5,14 @@ from DBManager import db
 
 class Supervisor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), nullable=False)
-    apellido_paterno = db.Column(db.String(50), nullable=False)
-    apellido_materno = db.Column(db.String(50), nullable=False)
+    nombres= db.Column(db.String(200), nullable=False)
+    apellidos= db.Column(db.String(200), nullable=False)
     correo = db.Column(db.String(50), nullable=False)
     password = db.Column(db.String(50), nullable=False)
     
-    def __init__(self, nombre, apellido_paterno, apellido_materno, correo, password):
-        self.nombre = nombre
-        self.apellido_paterno = apellido_paterno
-        self.apellido_materno = apellido_materno
+    def __init__(self, nombres, apellidos, correo, password):
+        self.nombres = nombres
+        self.apellidos = apellidos
         self.correo = correo
         self.password = password
     @property
@@ -54,20 +52,19 @@ class Serie(db.Model):
 class Estudiante(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     matricula = db.Column(db.String(50), nullable=False)
-    nombre = db.Column(db.String(50), nullable=False)
-    apellido_paterno = db.Column(db.String(50), nullable=False)
-    apellido_materno = db.Column(db.String(50), nullable=False)
-    correo = db.Column(db.String(50), nullable=False)
+    nombres = db.Column(db.String(200), nullable=False)
+    apellidos = db.Column(db.String(200), nullable=False)
+    correo = db.Column(db.String(50), nullable=True)
     password = db.Column(db.String(50), nullable=False)
     carrera = db.Column(db.String(100), nullable=False)
     
-    def __init__(self, matricula, nombre, apellido_paterno, apellido_materno, correo, password):
+    def __init__(self, matricula, nombres, apellidos, correo, password, carrera):
         self.matricula = matricula
-        self.nombre = nombre
-        self.apellido_paterno = apellido_paterno
-        self.apellido_materno = apellido_materno
+        self.nombres = nombres
+        self.apellidos = apellidos
         self.correo = correo
         self.password = password
+        self.carrera = carrera
     @property
     def is_authenticated(self):
         return True

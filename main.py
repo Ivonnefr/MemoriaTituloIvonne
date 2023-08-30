@@ -1,4 +1,5 @@
 import datetime
+import os
 from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -18,6 +19,7 @@ from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Comprobacion_ejercicio
 from pathlib import Path
 import markdown
+import csv
 #inicializar la aplicacion
 app = Flask(__name__)
 init_app(app)
@@ -28,12 +30,33 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'  # Nombre de la vista para iniciar sesión
 
 UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
-ALLOWED_EXTENSIONS = {'md'}
+ALLOWED_EXTENSIONS = {'md','xml'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Se define que tipo de arhivos se pueden recibir
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+
+def procesar_archivo_csv(filename):
+    with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            matricula, nombres, apellidos, carrera = row
+            password = generate_password_hash(matricula)  # Contraseña por defecto
+
+            estudiante = Estudiante(
+                matricula=matricula,
+                nombres=nombres,
+                apellidos=apellidos,
+                correo=None,
+                password=password,
+                carrera=carrera
+            )
+
+            # Añade el nuevo estudiante a la base de datos
+            db.session.add(estudiante)
+        db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -57,10 +80,10 @@ def login():
 
         if user and check_password_hash(user.password, password):
             login_user(user)
-            flash('Has iniciado sesión exitosamente', 'success')
             if isinstance(user, Estudiante):
                 return redirect(url_for('dashEstudiante', estudiante_id=user.id))
             else:
+                flash('Has iniciado sesión exitosamente', 'success')
                 return redirect(url_for('dashDocente', supervisor_id=user.id))
         flash('Credenciales inválidas', 'danger')
     
@@ -79,6 +102,10 @@ def home():
 @login_required
 def dashEstudiante(estudiante_id):
     # Aquí primero aseguramos que el usuario logueado está tratando de acceder a su propio dashboard
+    if not isinstance(current_user, Estudiante):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Estudiante.', 'danger')
+        return redirect(url_for('login'))
+    
     if current_user.id != estudiante_id:
         flash('No tienes permiso para acceder a este dashboard.', 'danger')
         return redirect(url_for('login'))
@@ -87,7 +114,6 @@ def dashEstudiante(estudiante_id):
 @app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
 @login_required
 def dashDocente(supervisor_id):
-    print("Dentro de dashDocente")  # Solo para depuración
     # Aquí nos aseguramos que el usuario logueado es un Supervisor
     if not isinstance(current_user, Supervisor):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
@@ -123,28 +149,30 @@ def dashDocente(supervisor_id):
 def register_page():
     return render_template('register.html')
 
+from flask import flash, redirect, url_for, render_template
+
 @app.route('/registersupervisor', methods=['POST'])
 def register():
     # Obtén los datos del formulario
-    nombre = request.form.get('nombre')
-    apellido_paterno = request.form.get('apellido_paterno')
-    apellido_materno = request.form.get('apellido_materno')
+    nombres= request.form.get('nombres')
+    apellidos = request.form.get('apellidos')
     correo = request.form.get('correo')
     password = request.form.get('password')
 
-    if not nombre or not apellido_paterno or not apellido_materno or not correo or not password:
-        return jsonify(message='Todos los campos son requeridos.'), 400
+    if not nombres or not apellidos or not correo or not password:
+        flash('Todos los campos son requeridos.', 'danger')
+        return render_template('registersupervisor.html')  # Asume que así se llama tu plantilla
 
     # Verifica si ya existe un supervisor con ese correo
     supervisor = Supervisor.query.filter_by(correo=correo).first()
     if supervisor:
-        return jsonify(message='Ya existe un supervisor con ese correo.'), 400
+        flash('Ya existe un supervisor con ese correo.', 'warning')
+        return render_template('registersupervisor.html')  # Asume que así se llama tu plantilla
 
     # Crea el nuevo supervisor
     new_supervisor = Supervisor(
-        nombre=nombre,
-        apellido_paterno=apellido_paterno,
-        apellido_materno=apellido_materno,
+        nombres=nombres,
+        apellidos=apellidos,
         correo=correo,
         password=generate_password_hash(password)  # Almacena la contraseña de forma segura
     )
@@ -153,7 +181,37 @@ def register():
     db.session.add(new_supervisor)
     db.session.commit()
 
-    return jsonify(message='Supervisor registrado exitosamente.'), 201
+    flash('Supervisor registrado exitosamente.', 'success')
+    return redirect(url_for('home'))  # Asumiendo que 'home' es la función que maneja tu página de inicio.
+
+@app.route('/registerEstudiantes/<int:supervisor_id>', methods=['GET', 'POST'])
+@login_required
+def registerEstudiantesPage(supervisor_id):
+    #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
+    
+    # Aquí nos aseguramos que el usuario logueado es un Supervisor
+    if not isinstance(current_user, Supervisor):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+
+    # Luego, aseguramos que el Supervisor está tratando de acceder a su propio dashboard
+    if current_user.id != supervisor_id:
+        flash('No tienes permiso para acceder a este dashboard.', 'danger')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        archivo = request.files['archivo']
+        if archivo and allowed_file(archivo.filename, ALLOWED_EXTENSIONS):
+            filename = secure_filename(archivo.filename)
+            archivo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+            # Procesa el archivo
+            procesar_archivo_csv(filename)
+
+            # Redirecciona a la página de inicio
+            return redirect(url_for('home'))
+
+    return render_template('registerEstudiantes.html')
 
 
 @app.route('/registerEstudiante', methods=['GET'])
@@ -163,16 +221,15 @@ def estudianteRegisterPage():
 @app.route('/registerEstudiante', methods=['POST'])
 def registerEstudiante():
     matricula=request.form.get('matricula')
-    nombre=request.form.get('nombre')
-    apellido_paterno=request.form.get('apellido_paterno')
-    apellido_materno=request.form.get('apellido_materno')
+    nombres=request.form.get('nombres')
+    apellidos=request.form.get('apellidos')
     correo=request.form.get('correo')
     password=request.form.get('password')
-
-    if not nombre or not apellido_paterno or not apellido_materno or not correo or not password or not matricula:
+    carrera=request.form.get('carrera')
+    if not nombres or not apellidos or not correo or not password or not matricula:
         return jsonify(message='Todos los campos son requeridos.'), 400
         # Verifica si ya existe un estudiante con ese correo
-        
+    
     estudiante = Estudiante.query.filter_by(correo=correo).first()
     if estudiante:
         return jsonify(message='Ya existe un estudiante con ese correo.'), 400
@@ -180,18 +237,19 @@ def registerEstudiante():
     # Crea el nuevo esstudiante
     new_estudiante = Estudiante(
         matricula=matricula,
-        nombre=nombre,
-        apellido_paterno=apellido_paterno,
-        apellido_materno=apellido_materno,
+        nombres=nombres,
+        apellidos=apellidos,
         correo=correo,
-        password=generate_password_hash(password)  # Almacena la contraseña de forma segura
+        password=generate_password_hash(password),  # Almacena la contraseña de forma segura
+        carrera=carrera
     )
 
-    # Añade el nuevo supervisor a la base de datos
+    # Añade el nuevo estudiante a la base de datos
     db.session.add(new_estudiante)
     db.session.commit()
 
-    return jsonify(message='Estudiante registrado exitosamente.'), 201
+    flash('Estudiante registrado exitosamente.', 'success')
+    return redirect(url_for('home'))
 
 # @app.route('/supervisores/<int:supervisor_id>', methods=['GET'])
 # def ver_supervisor(supervisor_id):

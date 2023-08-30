@@ -32,7 +32,18 @@
         </ul>
       </div>
     </nav>
-
+    <!-- Bloque para mostrar mensajes flash -->
+    <div class="container mt-3">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+              {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}">
+                      {{ message }}
+                  </div>
+              {% endfor %}
+          {% endif %}
+      {% endwith %}
+    </div>
     <main class="container mt-4">
       {% block content %}
       <!-- El contenido de las vistas individuales irá aquí -->
