@@ -32,11 +32,15 @@ def crear_carpeta_ejercicio(id_serie, id_ejercicio):
     return rutaEjercicio
 
 
-def crear_carpeta_serie(id_serie):
+def crear_carpeta_serie(id_serie, serie_nombre):
     # Crea una carpeta para una serie específica
     rutaBase = "ejerciciosPropuestos/"
-    rutaSerie = os.path.join(rutaBase, str(id_serie))
+    
+    # Crear la carpeta con el formato id_nombreSerie
+    nombre_carpeta = f"{id_serie}_{serie_nombre}"
+    rutaSerie = os.path.join(rutaBase, nombre_carpeta)
 
     if not os.path.exists(rutaSerie):
         os.makedirs(rutaSerie)
+    
     return rutaSerie

@@ -10,7 +10,7 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
 from funciones_archivo.delete_packages import eliminar_packages
-from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, agregarCarpetaMavenPropuesta, crear_carpeta_serie
+from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, crear_carpeta_serie, crear_carpeta_ejercicio
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
@@ -275,37 +275,31 @@ def agregarSerie(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
 
-    # Ahora se toman los datos del formulario
     if request.method == 'POST':
         nombreSerie= request.form.get('nombreSerie')
         fecha = request.form.get('fecha')
         
-        # Convertir el valor de 'activa' a booleano
         activa_value = True if request.form.get('activa') == "true" else False
 
-        # Validación simple para comprobar si los campos no están vacíos
         if not (nombreSerie and fecha):
             flash('Por favor, complete todos los campos.', 'danger')
             return redirect(url_for('agregarSerie', supervisor_id=supervisor_id))
         
-        # Crea el nuevo objeto Serie en la base de datos
         nueva_serie = Serie(nombre=nombreSerie, fecha=datetime.date.fromisoformat(fecha), activa=activa_value)
         db.session.add(nueva_serie)
+        db.session.commit()  # Primero confirmamos en la base de datos para obtener el ID
         
         try:
-            # Crea las carpetas correspondientes
-            crear_carpeta_serie(nueva_serie.id)
-            
-            # Si todo está bien, confirmamos la transacción
-            db.session.commit()
-
+            # Intentar crear carpeta de la serie con el ID y el nombre
+            crear_carpeta_serie(nueva_serie.id, nueva_serie.nombre)
             flash('Serie agregada con éxito', 'success')
             return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
         except Exception as e:
-            db.session.rollback()  # Deshace la transacción si hay un error
+            db.session.rollback()
             flash(f'Error al agregar la serie: {str(e)}', 'danger')
-
+            return render_template('agregarSerie.html', supervisor_id=supervisor_id)
+    
     return render_template('agregarSerie.html', supervisor_id=supervisor_id)
 
 @app.route('/dashDocente/<int:supervisor_id>/agregarEjercicio', methods = ['GET', 'POST'])
@@ -331,17 +325,16 @@ def agregarEjercicio(supervisor_id):
 
         try:
             db.session.add(nuevo_ejercicio)
-            db.session.commit()  # Intentamos guardar el ejercicio en la base de datos
-
-            # Una vez que el ejercicio está en la base de datos, intentamos crear la carpeta
-            agregarCarpetaMavenPropuesta(id_serie, nuevo_ejercicio.id)
-
-            enunciadoFile.save(filepath)  # Solo guardamos el archivo si la operación de la base de datos y la creación de la carpeta fueron exitosas
+            # Intentar crear carpeta del ejercicio
+            crear_carpeta_ejercicio(id_serie, nuevo_ejercicio.id)
+            db.session.commit()
+            
+            enunciadoFile.save(filepath)
 
         except Exception as e:
-            db.session.rollback()  # Si hay un error, deshacemos los cambios en la base de datos
+            db.session.rollback()
 
-            if os.path.exists(filepath):  # Si el archivo fue guardado, lo eliminamos
+            if os.path.exists(filepath):
                 os.remove(filepath)
 
             flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
