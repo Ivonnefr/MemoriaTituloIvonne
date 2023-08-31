@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Registro de Estudiantes
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <h1>Registrar Estudiantes</h1>
+    <h4>Por favor seguir el formato de la lista</h2>
+    <form method="post" action="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id )}}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="listaClases">Cargar lista de clases (.csv): </label>
+            <input type="file" class="form-control-file" id="listaClases" name="listaClases" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Subir y Registrar</button>
+    </form>
+</div>
+
+{% endblock %}
