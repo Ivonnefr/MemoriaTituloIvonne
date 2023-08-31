@@ -162,9 +162,9 @@ def register():
     flash('Supervisor registrado exitosamente.', 'success')
     return redirect(url_for('home'))  # Asumiendo que 'home' es la función que maneja tu página de inicio.
 
-@app.route('/dashDocente/<int:supervisor_id>/registerEstudiantes/', methods=['GET', 'POST'])
+@app.route('/dashDocente/<int:supervisor_id>/registrarEstudiantes/', methods=['GET', 'POST'])
 @login_required
-def registerEstudiantesPage(supervisor_id):
+def registrarEstudiantes(supervisor_id):
     #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
     
     # Aquí nos aseguramos que el usuario logueado es un Supervisor
@@ -189,7 +189,7 @@ def registerEstudiantesPage(supervisor_id):
             # Redirecciona a la página de inicio
             return redirect(url_for('home'))
 
-    return render_template('registerEstudiantes.html')
+    return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
 
 @app.route('/registerEstudiante', methods=['GET'])
 def estudianteRegisterPage():
@@ -312,6 +312,7 @@ def agregarEjercicio(supervisor_id):
     if request.method == 'POST':
         nombreEjercicio = request.form.get('nombreEjercicio')
         id_serie = request.form.get('id_serie')
+        serie_actual = db.session.get(Serie, int(id_serie))
         enunciadoFile = request.files.get('enunciadoFile')
 
         if not enunciadoFile:
@@ -319,24 +320,31 @@ def agregarEjercicio(supervisor_id):
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
         filename = secure_filename(enunciadoFile.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
 
-        nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio=filepath, enunciado=filename, id_serie=id_serie)
+        nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado=filename, id_serie=id_serie)
 
         try:
             db.session.add(nuevo_ejercicio)
-            # Intentar crear carpeta del ejercicio
-            crear_carpeta_ejercicio(id_serie, nuevo_ejercicio.id)
-            db.session.commit()
+            db.session.flush()  # Esto genera el id sin confirmar en la base de datos
+
+            ruta_ejercicio, mensaje = crear_carpeta_ejercicio(id_serie, serie_actual.nombre, nuevo_ejercicio.id)
+
+            if ruta_ejercicio is None:
+                raise Exception(mensaje)
             
-            enunciadoFile.save(filepath)
+            filepath_ejercicio = os.path.join(ruta_ejercicio, filename)
+            
+            enunciadoFile.save(filepath_ejercicio)
+            
+            nuevo_ejercicio.path_ejercicio = filepath_ejercicio
+            db.session.commit()
 
         except Exception as e:
             db.session.rollback()
 
-            if os.path.exists(filepath):
-                os.remove(filepath)
-
+            if 'filepath_ejercicio' in locals() and os.path.exists(filepath_ejercicio):
+                os.remove(filepath_ejercicio)
+            
             flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
@@ -344,61 +352,6 @@ def agregarEjercicio(supervisor_id):
         return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
-
-# Ruta para mostrar las series que el alumno tiene asignadas
-@app.route('/serie/<int:serie_id>')
-def mostrar_serie(serie_id):
-    serie = Serie.query.get(serie_id)
-    
-    # Verificar si la serie existe en la base de datos.
-    if serie is None:
-        return "Serie no encontrada", 404
-
-    # Verificar si la serie está activa.
-    if not serie.activa:
-        return "Serie no activa", 403
-
-    return render_template('mostrar_serie.html', serie=serie)
-
-
-#ruta para que el alumno vea los ejercicios que tiene asignados
-@app.route('/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>')
-def mostrar_ejercicio_serie(serie_id, ejercicio_id):
-    ejercicio = Ejercicio.query.filter_by(id=ejercicio_id, id_serie=serie_id).first()
-    
-    # Verificar si el ejercicio existe en la base de datos.
-    if ejercicio is None:
-        return "Ejercicio no encontrado en esta serie", 404
-    
-    return render_template('mostrar_ejercicio.html', ejercicio=ejercicio)
-
-@app.route('/ejercicios', methods=['GET', 'POST'])
-def listar_ejercicios():
-    # Obtiene todas las series que son activas
-    seriesActivas = Serie.query.filter_by(activa=True).all()
-
-    # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-    ejercicios_por_serie = {serie.id: [] for serie in seriesActivas}
-
-    # Obtiene todos los ejercicios
-    ejercicios = Ejercicio.query.all()
-
-    # Agrega los ejercicios a las listas correspondientes en el diccionario
-    for ejercicio in ejercicios:
-        if ejercicio.id_serie in ejercicios_por_serie:
-            ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
-
-    # Devuelve la plantilla con el diccionario de ejercicios por serie
-    return render_template('listadoEjercicios.html', series=seriesActivas, ejercicios_por_serie=ejercicios_por_serie)
-
-# @app.route('/ejercicio/<int:id>', methods=['GET', 'POST'])
-# def show_ejercicio(id):
-#     ejercicio = Ejercicio.query.get_or_404(id)
-#     with open(ejercicio.path_ejercicio, 'r') as file:
-#         content = file.read()
-#         enunciado_html = markdown.markdown(content)
-#     return render_template('ejercicio.html', enunciado=enunciado_html)
-
 
 # #Ruta para subir archivo java
 # @app.route('/upload_file', methods=['GET',"POST"])
