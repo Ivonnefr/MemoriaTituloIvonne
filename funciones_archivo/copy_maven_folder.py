@@ -21,17 +21,24 @@ def agregarCarpetaMavenEstudiante(matricula, numero_ejercicio):
 #Se crea por primera vez la copia de la carpeta
 
 
-def crear_carpeta_ejercicio(id_serie, id_ejercicio):
-    # Crea una carpeta para un ejercicio dentro de su serie correspondiente
+# Funcion para crear la carpeta del ejercicio en la carpeta de su respectiva serie.
+def crear_carpeta_ejercicio(id_serie, serie_nombre, id_ejercicio):
     rutaBase = "ejerciciosPropuestos/"
-    rutaSerie = os.path.join(rutaBase, str(id_serie))
+    rutaSerie = os.path.join(rutaBase, f"{id_serie}_{serie_nombre}")
     rutaEjercicio = os.path.join(rutaSerie, str(id_ejercicio))
 
-    if not os.path.exists(rutaEjercicio):
-        os.makedirs(rutaEjercicio)
-    return rutaEjercicio
+    if os.path.exists(rutaEjercicio):
+        return None, "La carpeta ya existe"
+    
+    try:
+        shutil.copytree("plantillaMaven/", rutaEjercicio)
+        return rutaEjercicio, "Carpeta creada con éxito"
+    except Exception as e:
+        return None, f"Error al crear la carpeta: {str(e)}"
 
 
+
+# Funcion para crear la carpeta de la serie en la carpeta de ejercicios propuestos.
 def crear_carpeta_serie(id_serie, serie_nombre):
     # Crea una carpeta para una serie específica
     rutaBase = "ejerciciosPropuestos/"
@@ -42,5 +49,8 @@ def crear_carpeta_serie(id_serie, serie_nombre):
 
     if not os.path.exists(rutaSerie):
         os.makedirs(rutaSerie)
-    
+    #else if la carpeta ya existe, devolver el error
+    else:
+        return "La carpeta ya existe"
+
     return rutaSerie
