@@ -89,6 +89,17 @@ def verify_supervisor(supervisor_id):
 
     return True
 
+# Verifica que el usuario logueado es un Estudiante
+def verify_estudiante(estudiante_id):
+    
+    if not isinstance(current_user, Estudiante):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Estudiante.', 'danger')
+        return False
+    # Asegura que el Estudiante está tratando de acceder a su propio dashboard
+    if current_user.id != estudiante_id:
+        flash('No tienes permiso para acceder a este dashboard.', 'danger')
+        return False
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -228,19 +239,6 @@ def registerEstudiante():
     flash('Estudiante registrado exitosamente.', 'success')
     return redirect(url_for('home'))
 
-@app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET, POST'])
-@login_required
-def dashEstudiante(estudiante_id):
-    # Aquí primero aseguramos que el usuario logueado está tratando de acceder a su propio dashboard
-    if not isinstance(current_user, Estudiante):
-        flash('No tienes permiso para acceder a este dashboard. Debes ser un Estudiante.', 'danger')
-        return redirect(url_for('login'))
-    
-    if current_user.id != estudiante_id:
-        flash('No tienes permiso para acceder a este dashboard.', 'danger')
-        return redirect(url_for('login'))
-    return render_template('vistaEstudiante.html')
-
 @app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
 @login_required
 def dashDocente(supervisor_id):
@@ -353,6 +351,17 @@ def agregarEjercicio(supervisor_id):
 
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
+# DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas
+@app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET, POST'])
+@login_required
+def dashEstudiante(estudiante_id):
+    # Uso la funcion de verificacion
+    if not verify_estudiante(estudiante_id):
+        return redirect(url_for('login'))
+    # Si el método es get muestra el dashBoard del Estudiante
+    if request.method == 'GET':
+        return render_template('vistaEstudiante.html', estudiante_id=estudiante_id)
+
 # #Ruta para subir archivo java
 # @app.route('/upload_file', methods=['GET',"POST"])
 # def upload_file():  
@@ -378,17 +387,6 @@ def agregarEjercicio(supervisor_id):
 #         # return "File has been uploaded."
     
 #     return render_template('upload_file.html', form=form)
-
-
-
-
-# #Ruta siguiente despues de subir el archivo, donde se muestran los resultados de aplicar los test unitarios
-# @app.route('/upload_file/pregunta', methods=["POST"])
-# def pregunta():
-
-#     return render_template('pregunta.html')
-
-
 
 
 #Funcion para ejecutar el script 404
