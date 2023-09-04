@@ -7,22 +7,23 @@
 <div class="row">
     <div class="col-md-12">
       <h2>Series y sus Ejercicios</h2>
-      <ul>
+      <ol>
         {% for serie in series %}
           <li>
-            {{ serie.nombre }} ({{ serie.fecha }})
+            <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, id=serie.id) }}">{{ serie.nombre }}</a> ({{ serie.fecha }})
             
-            <ul>
+            <ol>
               {% for ejercicio in ejercicios_por_serie[serie.id] %}
                 <li>
-                  {{ ejercicio.nombre }}: {{ ejercicio.enunciado }}
-                  <br>Path: {{ ejercicio.path_ejercicio }}
+                  <a href="{{ url_for('detallesEjercicio', supervisor_id=supervisor_id, id=ejercicio.id) }}">{{ ejercicio.nombre }}</a>: {{ ejercicio.enunciado }}
+                  
                 </li>
               {% endfor %}
-            </ul>
+              </ol>
           </li>
         {% endfor %}
-      </ul>
+
+        </ol>
     </div>
 </div>
 {% endblock %}

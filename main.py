@@ -173,26 +173,22 @@ def register():
     flash('Supervisor registrado exitosamente.', 'success')
     return redirect(url_for('home'))  # Asumiendo que 'home' es la función que maneja tu página de inicio.
 
-@app.route('/dashDocente/<int:supervisor_id>/registrarEstudiantes/', methods=['GET', 'POST'])
+@app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
 @login_required
 def registrarEstudiantes(supervisor_id):
     #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
-    
-    # Aquí nos aseguramos que el usuario logueado es un Supervisor
-    if not isinstance(current_user, Supervisor):
+    # Usa la función de verificación
+    flash('hola', 'danger')
+    if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
-
-    # Luego, aseguramos que el Supervisor está tratando de acceder a su propio dashboard
-    if current_user.id != supervisor_id:
-        flash('No tienes permiso para acceder a este dashboard.', 'danger')
-        return redirect(url_for('login'))
-    
+    if request.method == 'GET':
+        return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
     if request.method == 'POST':
-        archivo = request.files['archivo']
-        if archivo and allowed_file(archivo.filename, ALLOWED_EXTENSIONS):
-            filename = secure_filename(archivo.filename)
-            archivo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        listaClases = request.files['archivo']
+        if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
+            filename = secure_filename(listaClases.filename)
+            listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
             # Procesa el archivo
             procesar_archivo_csv(filename)
@@ -202,42 +198,42 @@ def registrarEstudiantes(supervisor_id):
 
     return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
 
-@app.route('/registerEstudiante', methods=['GET'])
-def estudianteRegisterPage():
-    return render_template('registerEstudiante.html')
+# @app.route('/registerEstudiante', methods=['GET'])
+# def estudianteRegisterPage():
+#     return render_template('registerEstudiante.html')
 
-@app.route('/registerEstudiante', methods=['POST'])
-def registerEstudiante():
-    matricula=request.form.get('matricula')
-    nombres=request.form.get('nombres')
-    apellidos=request.form.get('apellidos')
-    correo=request.form.get('correo')
-    password=request.form.get('password')
-    carrera=request.form.get('carrera')
-    if not nombres or not apellidos or not correo or not password or not matricula:
-        return jsonify(message='Todos los campos son requeridos.'), 400
-        # Verifica si ya existe un estudiante con ese correo
+# @app.route('/registerEstudiante', methods=['POST'])
+# def registerEstudiante():
+#     matricula=request.form.get('matricula')
+#     nombres=request.form.get('nombres')
+#     apellidos=request.form.get('apellidos')
+#     correo=request.form.get('correo')
+#     password=request.form.get('password')
+#     carrera=request.form.get('carrera')
+#     if not nombres or not apellidos or not correo or not password or not matricula:
+#         return jsonify(message='Todos los campos son requeridos.'), 400
+#         # Verifica si ya existe un estudiante con ese correo
     
-    estudiante = Estudiante.query.filter_by(correo=correo).first()
-    if estudiante:
-        return jsonify(message='Ya existe un estudiante con ese correo.'), 400
+#     estudiante = Estudiante.query.filter_by(correo=correo).first()
+#     if estudiante:
+#         return jsonify(message='Ya existe un estudiante con ese correo.'), 400
 
-    # Crea el nuevo esstudiante
-    new_estudiante = Estudiante(
-        matricula=matricula,
-        nombres=nombres,
-        apellidos=apellidos,
-        correo=correo,
-        password=generate_password_hash(password),  # Almacena la contraseña de forma segura
-        carrera=carrera
-    )
+#     # Crea el nuevo esstudiante
+#     new_estudiante = Estudiante(
+#         matricula=matricula,
+#         nombres=nombres,
+#         apellidos=apellidos,
+#         correo=correo,
+#         password=generate_password_hash(password),  # Almacena la contraseña de forma segura
+#         carrera=carrera
+#     )
 
-    # Añade el nuevo estudiante a la base de datos
-    db.session.add(new_estudiante)
-    db.session.commit()
+#     # Añade el nuevo estudiante a la base de datos
+#     db.session.add(new_estudiante)
+#     db.session.commit()
 
-    flash('Estudiante registrado exitosamente.', 'success')
-    return redirect(url_for('home'))
+#     flash('Estudiante registrado exitosamente.', 'success')
+#     return redirect(url_for('home'))
 
 @app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
 @login_required
@@ -262,7 +258,7 @@ def dashDocente(supervisor_id):
             if ejercicio.id_serie in ejercicios_por_serie:
                 ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
 
-        return render_template("vistaDocente.html", series=series, ejercicios_por_serie=ejercicios_por_serie)
+        return render_template("vistaDocente.html", supervisor_id=supervisor_id, series=series, ejercicios_por_serie=ejercicios_por_serie)
 
     # Aquí va el resto de la lógica para mostrar el dashboard del Supervisor, por ejemplo:
     return render_template('vistaDocente.html')
@@ -351,6 +347,32 @@ def agregarEjercicio(supervisor_id):
 
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
+
+@app.route('/dashDocente/<int:supervisor_id>/serie/<int:id>')
+@login_required
+def detallesSeries(supervisor_id, id):
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    serie = Serie.query.get(id)
+    ejercicios = Ejercicio.query.filter_by(id_serie=id).all()
+    return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id)
+
+
+@app.route('/dashDocente/<int:supervisor_id>/ejercicio/<int:id>')
+@login_required
+def detallesEjercicio(supervisor_id, id):
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    ejercicio = Ejercicio.query.get(id)
+    return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id)
+
+
+
+
+
+
 # DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas
 @app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET, POST'])
 @login_required
@@ -397,7 +419,7 @@ def pagina_no_encontrada(error):
 
 #Ruta para ejecutar el script
 if __name__ == '__main__':
-    app.register_error_handler(404, pagina_no_encontrada)
+    #app.register_error_handler(404, pagina_no_encontrada)
     app.run(host='0.0.0.0',debug=True, port=3000)
     debug=True
 

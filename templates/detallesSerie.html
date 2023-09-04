@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalles de la serie{% endblock %}
+
+{% block content %}
+<h1>{{ serie.nombre }}</h1>
+<p>Fecha: {{ serie.fecha }}</p>
+<p>Activa: {{ serie.activa }}</p>
+<h2>Ejercicios</h2>
+<ol>
+    {% for ejercicio in ejercicios %}
+        <li>
+            <a href="{{ url_for('detallesEjercicio', supervisor_id=supervisor_id, id=ejercicio.id) }}">{{ ejercicio.nombre }}</a>
+        </li>
+    {% endfor %}
+    </ol>
+{% endblock %}
