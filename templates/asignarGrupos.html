@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Asignación de Grupos por Curso
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Asignar nuevos Grupos</h1>
+</div>
+<div class="container mt-5">
+    <p>Para asignar nuevos grupos a los estudiantes</p>
+    <form method="post" action="{{ url_for('asignarGrupos', supervisor_id=supervisor_id) }}">
+        <div class="form-group">
+            <label for="curso">Curso:</label>
+            <select class="form-control" id="curso" name="curso" required>
+                {% for curso in cursos %}
+                <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="nuevoGrupo">Nombre del Nuevo Grupo:</label>
+            <input type="text" class="form-control" id="nuevoGrupo" name="nuevoGrupo" placeholder="Ingrese el nombre del nuevo grupo" required>
+        </div>
+        <div class="form-group">
+            <label>Estudiantes:</label>
+            <ul>
+                {% for estudiante in estudiantes %}
+                <li>
+                    <label>
+                        <input type="checkbox" name="estudiantes[]" value="{{ estudiante.id }}"> {{ estudiante.nombres }} {{ estudiante.apellidos }}
+                    </label>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <button type="submit" class="btn btn-primary">Asignar Grupos</button>
+    </form>
+</div>
+{% endblock %}
