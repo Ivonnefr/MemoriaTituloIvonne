@@ -72,13 +72,11 @@ class Ejercicio(db.Model):
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
-    fecha = db.Column(db.Date(), nullable=True)
     activa = db.Column(db.Boolean(), nullable=False)
     ejercicios = db.relationship('Ejercicio', order_by=Ejercicio.id, back_populates='serie')
     
-    def __init__(self, nombre, fecha, activa):
+    def __init__(self, nombre, activa):
         self.nombre = nombre
-        self.fecha = fecha
         self.activa = activa
 
 
@@ -114,21 +112,19 @@ class Estudiante(db.Model):
 
     def get_id(self):
         return f"e{self.id}"
-
     
-
 class Test(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
     path_test = db.Column(db.String(200), nullable=False)
-    resultado = db.Column(db.Boolean(), nullable=False)
+    resultado = db.Column(db.Boolean(), nullable=False) 
+    id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
+    ejercicio_realizado = db.relationship('Ejercicio_realizado', back_populates='test')
 
-    def __init__(self, id_ejercicio, path_test):
-        self.id_ejercicio = id_ejercicio
+    def __init__(self, id_ejercicio_realizado, path_test):
+        self.id_ejercicio_realizado = id_ejercicio_realizado
         self.path_test = path_test
-        self.resultado = False 
-        self.path_test = path_test
-    
+        self.resultado = False
+
     
 class Supervision(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -156,6 +152,7 @@ class Ejercicio_realizado(db.Model):
     fecha = db.Column(db.Date(), nullable=False)
     id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), nullable=False)
     test = db.relationship('Test', uselist=False, back_populates='ejercicio_realizado')
+    # uselist=False indica que la relación es one-to-one
     envios = db.relationship('Envio', back_populates='ejercicio_realizado')
     #Ejercicio_realizado tiene una relación one-to-one con Test y una relación one-to-many con Envio.
     def __init__(self, id_ejercicio, id_estudiante, path, fecha):
@@ -175,6 +172,7 @@ class Curso(db.Model):
 class Envio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
+    ejercicio_realizado = db.relationship('Ejercicio_realizado', back_populates='envios')
     fecha = db.Column(db.Date(), nullable=False)
     
     def __init__(self, id_ejercicio_realizado, fecha):

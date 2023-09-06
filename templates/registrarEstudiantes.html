@@ -5,12 +5,21 @@ Registro de Estudiantes
 {% endblock %}
 
 {% block content %}
+<div class="form-group">
+    <label for="curso">Curso:</label>
+    <select class="form-control" id="curso" name="curso">
+        {% for curso in cursos %}
+        <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+        {% endfor %}
+    </select>
+</div>
+
 <div class="container mt-5">
     <h1>Registro de Estudiantes</h1>
     
     <form method="post" action="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" enctype="multipart/form-data">
         <div class="form-group">
-            <label for="enunciadoFile">Cargar Lista(.csv): </label>
+            <label for="enunciadoFile">Cargar Lista de clases (.csv): </label>
             <input type="file" class="form-control-file" id="listaClases" name="listaClases" accept=".csv" required>
         </div>
 

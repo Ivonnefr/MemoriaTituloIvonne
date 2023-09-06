@@ -7,5 +7,6 @@
 <p>Enunciado: {{ ejercicio.enunciado }}</p>
 <p>Ruta del Ejercicio: {{ ejercicio.path_ejercicio }}</p>
 
-<a href="{{ url_for('detallesSeries', id=ejercicio.serie.id) }}">Volver a la serie</a>
+<a href="{{ url_for('detallesSeries',supervisor_id=supervisor_id, id=ejercicio.serie.id) }}">Volver a la serie</a>
 {% endblock %}
+<!-- Me falta cargar el enunciado desde el md -->

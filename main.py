@@ -44,25 +44,32 @@ def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 
-def procesar_archivo_csv(filename):
+def procesar_archivo_csv(filename, curso_id):
     with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as f:
         reader = csv.reader(f)
+        next(reader)
         for row in reader:
-            matricula, nombres, apellidos, carrera = row
+            matricula, nombres, apellidos, correo, carrera = row
             password = generate_password_hash(matricula)  # Contraseña por defecto
 
             estudiante = Estudiante(
                 matricula=matricula,
                 nombres=nombres,
                 apellidos=apellidos,
-                correo=None,
+                correo=correo,
                 password=password,
                 carrera=carrera
             )
 
+            # Asociar el estudiante al curso seleccionado
+            curso = Curso.query.get(curso_id)
+            if curso:
+                curso.estudiantes.append(estudiante)
+
             # Añade el nuevo estudiante a la base de datos
             db.session.add(estudiante)
         db.session.commit()
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -142,6 +149,7 @@ def register_page():
 
 @app.route('/registersupervisor', methods=['POST'])
 def register():
+
     # Obtén los datos del formulario
     nombres= request.form.get('nombres')
     apellidos = request.form.get('apellidos')
@@ -173,68 +181,6 @@ def register():
     flash('Supervisor registrado exitosamente.', 'success')
     return redirect(url_for('home'))  # Asumiendo que 'home' es la función que maneja tu página de inicio.
 
-@app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
-@login_required
-def registrarEstudiantes(supervisor_id):
-    #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
-    # Usa la función de verificación
-    flash('hola', 'danger')
-    if not verify_supervisor(supervisor_id):
-        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
-        return redirect(url_for('login'))
-    if request.method == 'GET':
-        return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
-    if request.method == 'POST':
-        listaClases = request.files['archivo']
-        if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
-            filename = secure_filename(listaClases.filename)
-            listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
-            # Procesa el archivo
-            procesar_archivo_csv(filename)
-
-            # Redirecciona a la página de inicio
-            return redirect(url_for('home'))
-
-    return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
-
-# @app.route('/registerEstudiante', methods=['GET'])
-# def estudianteRegisterPage():
-#     return render_template('registerEstudiante.html')
-
-# @app.route('/registerEstudiante', methods=['POST'])
-# def registerEstudiante():
-#     matricula=request.form.get('matricula')
-#     nombres=request.form.get('nombres')
-#     apellidos=request.form.get('apellidos')
-#     correo=request.form.get('correo')
-#     password=request.form.get('password')
-#     carrera=request.form.get('carrera')
-#     if not nombres or not apellidos or not correo or not password or not matricula:
-#         return jsonify(message='Todos los campos son requeridos.'), 400
-#         # Verifica si ya existe un estudiante con ese correo
-    
-#     estudiante = Estudiante.query.filter_by(correo=correo).first()
-#     if estudiante:
-#         return jsonify(message='Ya existe un estudiante con ese correo.'), 400
-
-#     # Crea el nuevo esstudiante
-#     new_estudiante = Estudiante(
-#         matricula=matricula,
-#         nombres=nombres,
-#         apellidos=apellidos,
-#         correo=correo,
-#         password=generate_password_hash(password),  # Almacena la contraseña de forma segura
-#         carrera=carrera
-#     )
-
-#     # Añade el nuevo estudiante a la base de datos
-#     db.session.add(new_estudiante)
-#     db.session.commit()
-
-#     flash('Estudiante registrado exitosamente.', 'success')
-#     return redirect(url_for('home'))
-
 @app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
 @login_required
 def dashDocente(supervisor_id):
@@ -263,6 +209,7 @@ def dashDocente(supervisor_id):
     # Aquí va el resto de la lógica para mostrar el dashboard del Supervisor, por ejemplo:
     return render_template('vistaDocente.html')
 
+
 @app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
 @login_required
 def agregarSerie(supervisor_id):
@@ -271,15 +218,13 @@ def agregarSerie(supervisor_id):
 
     if request.method == 'POST':
         nombreSerie= request.form.get('nombreSerie')
-        fecha = request.form.get('fecha')
-        
         activa_value = True if request.form.get('activa') == "true" else False
 
-        if not (nombreSerie and fecha):
+        if not (nombreSerie):
             flash('Por favor, complete todos los campos.', 'danger')
             return redirect(url_for('agregarSerie', supervisor_id=supervisor_id))
         
-        nueva_serie = Serie(nombre=nombreSerie, fecha=datetime.date.fromisoformat(fecha), activa=activa_value)
+        nueva_serie = Serie(nombre=nombreSerie, activa=activa_value)
         db.session.add(nueva_serie)
         db.session.commit()  # Primero confirmamos en la base de datos para obtener el ID
         
@@ -368,6 +313,51 @@ def detallesEjercicio(supervisor_id, id):
     ejercicio = Ejercicio.query.get(id)
     return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id)
 
+@app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
+@login_required
+def registrarEstudiantes(supervisor_id):
+    #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
+    # Usa la función de verificación
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+
+    if request.method == 'GET':
+        cursos = Curso.query.all()
+        return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id, cursos=cursos)
+    if request.method == 'POST':
+        listaClases = request.files['archivo']
+        if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
+            filename = secure_filename(listaClases.filename)
+            listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+            # Procesa el archivo
+            procesar_archivo_csv(filename)
+
+            # Redirecciona a la página de inicio
+            return redirect(url_for('home'))
+
+    return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -433,3 +423,40 @@ if __name__ == '__main__':
 
 #Ruta donde debe quedar el archivo del alumno plantillaMaven/src/main/java/org/example/
 # Ruta donde debe quedar el archivo de los test del profesor plantillaMaven/src/test/java/org/example/
+
+# @app.route('/registerEstudiante', methods=['GET'])
+# def estudianteRegisterPage():
+#     return render_template('registerEstudiante.html')
+
+# @app.route('/registerEstudiante', methods=['POST'])
+# def registerEstudiante():
+#     matricula=request.form.get('matricula')
+#     nombres=request.form.get('nombres')
+#     apellidos=request.form.get('apellidos')
+#     correo=request.form.get('correo')
+#     password=request.form.get('password')
+#     carrera=request.form.get('carrera')
+#     if not nombres or not apellidos or not correo or not password or not matricula:
+#         return jsonify(message='Todos los campos son requeridos.'), 400
+#         # Verifica si ya existe un estudiante con ese correo
+    
+#     estudiante = Estudiante.query.filter_by(correo=correo).first()
+#     if estudiante:
+#         return jsonify(message='Ya existe un estudiante con ese correo.'), 400
+
+#     # Crea el nuevo esstudiante
+#     new_estudiante = Estudiante(
+#         matricula=matricula,
+#         nombres=nombres,
+#         apellidos=apellidos,
+#         correo=correo,
+#         password=generate_password_hash(password),  # Almacena la contraseña de forma segura
+#         carrera=carrera
+#     )
+
+#     # Añade el nuevo estudiante a la base de datos
+#     db.session.add(new_estudiante)
+#     db.session.commit()
+
+#     flash('Estudiante registrado exitosamente.', 'success')
+#     return redirect(url_for('home'))

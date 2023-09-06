@@ -7,10 +7,10 @@
 <div class="row">
     <div class="col-md-12">
       <h2>Series y sus Ejercicios</h2>
-      <ol>
         {% for serie in series %}
           <li>
-            <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, id=serie.id) }}">{{ serie.nombre }}</a> ({{ serie.fecha }})
+            <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, id=serie.id) }}" style="font-size: 2em;">{{ serie.nombre }}</a>
+
             
             <ol>
               {% for ejercicio in ejercicios_por_serie[serie.id] %}
@@ -23,7 +23,6 @@
           </li>
         {% endfor %}
 
-        </ol>
     </div>
 </div>
 {% endblock %}
