@@ -30,7 +30,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'  # Nombre de la vista para iniciar sesión
 
 UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
-ALLOWED_EXTENSIONS = {'md','xml'}
+ALLOWED_EXTENSIONS = {'md','xml','csv'}
 
 # Encuentra la ruta del directorio del archivo actual
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -43,11 +43,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
-
 def procesar_archivo_csv(filename, curso_id):
+    estudiantes_repetidos = []  # Lista para almacenar estudiantes repetidos
+
     with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as f:
         reader = csv.reader(f)
-        next(reader)
+        next(reader)  # Saltar la primera fila
         for row in reader:
             matricula, nombres, apellidos, correo, carrera = row
             password = generate_password_hash(matricula)  # Contraseña por defecto
@@ -61,16 +62,45 @@ def procesar_archivo_csv(filename, curso_id):
                 carrera=carrera
             )
 
-            # Asociar el estudiante al curso seleccionado
-            curso = Curso.query.get(curso_id)
-            if curso:
-                curso.estudiantes.append(estudiante)
+            # Verificar si el correo o matrícula ya existen en la base de datos
+            estudiante_existente = Estudiante.query.filter_by(correo=correo).first()
+            if estudiante_existente:
+                # El estudiante con el mismo correo ya existe
+                flash(f'El estudiante con correo {correo} ya está registrado en la base de datos.', 'warning')
+                estudiantes_repetidos.append(estudiante)  # Agregar a la lista de repetidos
+            else:
+                # Añade el nuevo estudiante a la base de datos
+                db.session.add(estudiante)
 
-            # Añade el nuevo estudiante a la base de datos
-            db.session.add(estudiante)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            flash('Error al guardar en la bd', 'danger')
+            db.session.rollback()
 
+    if estudiantes_repetidos:
+        # Si hay estudiantes repetidos, puedes manejarlos de acuerdo a tus necesidades
+        # Por ejemplo, puedes crear un archivo CSV con los estudiantes repetidos
+        # y guardarlos en algún lugar para su revisión
+        archivo_repetidos = 'estudiantes_repetidos.csv'  # Nombre del archivo
+        ruta_archivo_repetidos = os.path.join(app.config['UPLOAD_FOLDER'], archivo_repetidos)
 
+    with open(ruta_archivo_repetidos, 'w', newline='') as csvfile:
+        fieldnames = ['Matrícula', 'Nombres', 'Apellidos', 'Correo', 'Carrera']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for est in estudiantes_repetidos:
+            writer.writerow({
+                'Matrícula': est.matricula,
+                'Nombres': est.nombres,
+                'Apellidos': est.apellidos,
+                'Correo': est.correo,
+                'Carrera': est.carrera
+            })
+
+    #flash(f'Se han encontrado estudiantes repetidos. Consulta el archivo {archivo_repetidos} para más detalles.', 'warning')
+    #Falta crear el hipervinculo para abrir el archivo.
 @login_manager.user_loader
 def load_user(user_id):
     if user_id.startswith("e"):
@@ -313,41 +343,96 @@ def detallesEjercicio(supervisor_id, id):
     ejercicio = Ejercicio.query.get(id)
     return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id)
 
+
 @app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
 @login_required
 def registrarEstudiantes(supervisor_id):
-    #Método para recibir un archivo xml con los datos de los estudiantes y registrarlos en la base de datos
+    # Ruta para recibir un archivo csv con los datos de los estudiantes y registrarlos en la base de datos
     # Usa la función de verificación
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
 
+    cursos = Curso.query.all()
+
     if request.method == 'GET':
         cursos = Curso.query.all()
         return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id, cursos=cursos)
+    
     if request.method == 'POST':
-        listaClases = request.files['archivo']
-        if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
-            filename = secure_filename(listaClases.filename)
-            listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        accion= request.form['accion']
+        
+        if accion == 'crearCurso':
+            #Procesar el formulario y agregarlo a la base de datos
+            nombre_curso= request.form['nombreCurso']
+            nuevo_curso= Curso(
+                nombre=nombre_curso
+            )
+            db.session.add(nuevo_curso)
+            db.session.commit()
+            flash('Has creado exitosamente un nuevo Curso', 'success')
+            return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
+        
+        elif accion == 'registrarEstudiantes':
+            
+            id_curso=request.form['curso']
+            listaClases = request.files['listaClases']
+            if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
+                filename = secure_filename(listaClases.filename)
+                listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-            # Procesa el archivo
-            procesar_archivo_csv(filename)
+                # Procesa el archivo y agrega a la bd
+                procesar_archivo_csv(filename, id_curso)
 
-            # Redirecciona a la página de inicio
-            return redirect(url_for('home'))
-
+                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+            
     return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
 
+@app.route('/dashDocente/<int:supervisor_id>/asignarGrupos', methods=['GET', 'POST'])
+@login_required
+def asignarGrupos(supervisor_id):
+    # Ruta para asignar los grupos al curso respectivo seleccionado
+    # Usa la función de verificación
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
 
+    cursos = Curso.query.all()
+    estudiantes = Estudiante.query.all()
 
+    if not cursos:
+        flash('No existen cursos, por favor crear un curso', 'danger')
+        return redirect(url_for('dashDocente',supervisor_id=supervisor_id))
 
+    if request.method=='POST':
+        id_curso = request.form['curso']
+        nuevo_grupo_nombre = request.form['nuevoGrupo']
+        estudiantes_seleccionados_ids = request.form.getlist('estudiantes[]')
 
+        # Buscar el curso y crear un nuevo grupo
+        curso = Curso.query.get(id_curso)
 
+        if not curso:
+            flash('Curso no encontrado', 'danger')
+            return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
 
+        nuevo_grupo = Grupo(nombre=nuevo_grupo_nombre)
+        curso.grupos.append(nuevo_grupo)
 
+        # Asigna estudiantes seleccionados al nuevo grupo
+        estudiantes_seleccionados = Estudiante.query.filter(Estudiante.id.in_(estudiantes_seleccionados_ids)).all()
+        nuevo_grupo.estudiantes.extend(estudiantes_seleccionados)
 
+        try:
+            db.session.commit()
+            flash('Grupos asignados con éxito', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al asignar grupos', 'danger')
 
+        return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
+
+    return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes=estudiantes)
 
 
 

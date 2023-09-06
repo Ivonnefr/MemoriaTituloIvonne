@@ -11,18 +11,23 @@
           <li>
             <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, id=serie.id) }}" style="font-size: 2em;">{{ serie.nombre }}</a>
 
+            {% if serie.activa %}
+              <span class="badge badge-success ml-2">Activa</span>
+              <i class="fas fa-check-circle text-success ml-2"></i>
+            {% else %}
+              <span class="badge badge-danger ml-2">Inactiva</span>
+              <i class="fas fa-times-circle text-danger ml-2"></i>
+            {% endif %}
             
             <ol>
               {% for ejercicio in ejercicios_por_serie[serie.id] %}
                 <li>
                   <a href="{{ url_for('detallesEjercicio', supervisor_id=supervisor_id, id=ejercicio.id) }}">{{ ejercicio.nombre }}</a>: {{ ejercicio.enunciado }}
-                  
                 </li>
               {% endfor %}
-              </ol>
+            </ol>
           </li>
         {% endfor %}
-
     </div>
 </div>
 {% endblock %}
