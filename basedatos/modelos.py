@@ -163,7 +163,7 @@ class Ejercicio_realizado(db.Model):
     
 class Curso(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), nullable=False)
+    nombre = db.Column(db.String(100), nullable=False, unique=True)
     estudiantes = db.relationship('Estudiante', secondary=inscripciones, back_populates='cursos')
     grupos = db.relationship('Grupo', order_by=Grupo.id, back_populates='curso')
     def __init__(self, nombre ):
