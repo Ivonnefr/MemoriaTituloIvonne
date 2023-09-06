@@ -16,7 +16,7 @@ from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
-from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Comprobacion_ejercicio
+from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Curso, Envio
 from pathlib import Path
 import markdown
 import csv

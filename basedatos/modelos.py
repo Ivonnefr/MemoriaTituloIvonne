@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from DBManager import db
-# Las tablas son para many to many
+# Las tablas son para many-to-many
 
 # Tabla de asociación
 inscripciones = db.Table('inscripciones',
@@ -22,8 +22,8 @@ class Supervisor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombres= db.Column(db.String(200), nullable=False)
     apellidos= db.Column(db.String(200), nullable=False)
-    correo = db.Column(db.String(50), nullable=False)
-    password = db.Column(db.String(50), nullable=False)
+    correo = db.Column(db.String(50), nullable=False, unique=True)
+    password = db.Column(db.String(150), nullable=False)
     
     def __init__(self, nombres, apellidos, correo, password):
         self.nombres = nombres
@@ -55,12 +55,27 @@ class Grupo(db.Model):
     def __init__(self, nombre):
         self.nombre = nombre
 
+class Ejercicio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(50), nullable=False)
+    path_ejercicio = db.Column(db.String(200), nullable=False)
+    enunciado = db.Column(db.String(), nullable=False)
+    id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
+    serie = db.relationship('Serie', back_populates='ejercicios')
+
+    def __init__(self, nombre, path_ejercicio, enunciado, id_serie):
+        self.nombre = nombre
+        self.path_ejercicio = path_ejercicio
+        self.enunciado = enunciado
+        self.id_serie = id_serie
+    
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
     fecha = db.Column(db.Date(), nullable=True)
     activa = db.Column(db.Boolean(), nullable=False)
     ejercicios = db.relationship('Ejercicio', order_by=Ejercicio.id, back_populates='serie')
+    
     def __init__(self, nombre, fecha, activa):
         self.nombre = nombre
         self.fecha = fecha
@@ -72,8 +87,8 @@ class Estudiante(db.Model):
     matricula = db.Column(db.String(50), nullable=False)
     nombres = db.Column(db.String(200), nullable=False)
     apellidos = db.Column(db.String(200), nullable=False)
-    correo = db.Column(db.String(50), nullable=True)
-    password = db.Column(db.String(50), nullable=False)
+    correo = db.Column(db.String(50), nullable=True, unique=True)
+    password = db.Column(db.String(150), nullable=False)
     carrera = db.Column(db.String(100), nullable=False)
     cursos = db.relationship('Curso', secondary=inscripciones, back_populates='estudiantes')
     grupos = db.relationship('Grupo', secondary=estudiantes_grupos, back_populates='estudiantes')
@@ -101,27 +116,17 @@ class Estudiante(db.Model):
         return f"e{self.id}"
 
     
-class Ejercicio(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), nullable=False)
-    path_ejercicio = db.Column(db.String(200), nullable=False)
-    enunciado = db.Column(db.String(), nullable=False)
-    id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
-    serie = db.relationship('Serie', back_populates='ejercicios')
-    def __init__(self, nombre, path_ejercicio, enunciado, id_serie):
-        self.nombre = nombre
-        self.path_ejercicio = path_ejercicio
-        self.enunciado = enunciado
-        self.id_serie = id_serie
-    
+
 class Test(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
     path_test = db.Column(db.String(200), nullable=False)
-    resultado = db.Column(db.String(50), nullable=False)
-    
+    resultado = db.Column(db.Boolean(), nullable=False)
+
     def __init__(self, id_ejercicio, path_test):
         self.id_ejercicio = id_ejercicio
+        self.path_test = path_test
+        self.resultado = False 
         self.path_test = path_test
     
     
@@ -138,7 +143,8 @@ class Serie_asignada(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    
+    calificacion = db.Column(db.Integer, nullable=True)
+
     def __init__(self, id_serie, id_estudiante):
         self.id_serie = id_serie
         self.id_estudiante = id_estudiante
@@ -149,14 +155,14 @@ class Ejercicio_realizado(db.Model):
     path = db.Column(db.String(200), nullable=False)
     fecha = db.Column(db.Date(), nullable=False)
     id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), nullable=False)
-    tests = db.relationship('Test', backref='ejercicio_realizado')
-
+    test = db.relationship('Test', uselist=False, back_populates='ejercicio_realizado')
+    envios = db.relationship('Envio', back_populates='ejercicio_realizado')
+    #Ejercicio_realizado tiene una relación one-to-one con Test y una relación one-to-many con Envio.
     def __init__(self, id_ejercicio, id_estudiante, path, fecha):
         self.id_ejercicio = id_ejercicio
         self.id_estudiante = id_estudiante
         self.path = path
         self.fecha = fecha
-
     
 class Curso(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -165,3 +171,12 @@ class Curso(db.Model):
     grupos = db.relationship('Grupo', order_by=Grupo.id, back_populates='curso')
     def __init__(self, nombre ):
         self.nombre = nombre
+
+class Envio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
+    fecha = db.Column(db.Date(), nullable=False)
+    
+    def __init__(self, id_ejercicio_realizado, fecha):
+        self.id_ejercicio_realizado = id_ejercicio_realizado
+        self.fecha = fecha
