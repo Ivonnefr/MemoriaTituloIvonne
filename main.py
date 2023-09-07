@@ -374,7 +374,6 @@ def registrarEstudiantes(supervisor_id):
             return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
         
         elif accion == 'registrarEstudiantes':
-            
             id_curso=request.form['curso']
             listaClases = request.files['listaClases']
             if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
@@ -418,6 +417,8 @@ def asignarGrupos(supervisor_id):
 
         nuevo_grupo = Grupo(nombre=nuevo_grupo_nombre)
         curso.grupos.append(nuevo_grupo)
+        # Obtener los estudiantes del curso seleccionado
+        estudiantes = Estudiante.query.filter(Estudiante.cursos.contains(curso)).all()
 
         # Asigna estudiantes seleccionados al nuevo grupo
         estudiantes_seleccionados = Estudiante.query.filter(Estudiante.id.in_(estudiantes_seleccionados_ids)).all()
@@ -435,7 +436,10 @@ def asignarGrupos(supervisor_id):
     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes=estudiantes)
 
 
-
+@app.route('/dashDocente/<int:supervisor_id>/asignarSeries', methods=['GET', 'POST'])
+@login_required
+def asignarSeries(supervisor_id):
+    return render_template('asignarSeries.html', supervisor_id=supervisor_id)
 
 
 

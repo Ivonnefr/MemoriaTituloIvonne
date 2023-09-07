@@ -27,15 +27,28 @@ Asignación de Grupos por Curso
             <label>Estudiantes:</label>
             <ul>
                 {% for estudiante in estudiantes %}
-                <li>
-                    <label>
-                        <input type="checkbox" name="estudiantes[]" value="{{ estudiante.id }}"> {{ estudiante.nombres }} {{ estudiante.apellidos }}
-                    </label>
-                </li>
+                    <li>
+                        <label>
+                            <input type="checkbox" name="estudiantes[]" value="{{ estudiante.id }}">
+                            {% if estudiante.grupo_asignado %}
+                                <span class="asignado">{{ estudiante.nombres }} {{ estudiante.apellidos }}</span>
+                            {% else %}
+                                {{ estudiante.nombres }} {{ estudiante.apellidos }}
+                            {% endif %}
+                        </label>
+                    </li>
                 {% endfor %}
             </ul>
         </div>
+        
         <button type="submit" class="btn btn-primary">Asignar Grupos</button>
     </form>
 </div>
+
+<style>
+    .asignado {
+        color: purple;
+    }
+</style>
+
 {% endblock %}

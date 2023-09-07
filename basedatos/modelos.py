@@ -138,9 +138,10 @@ class Supervision(db.Model):
 class Serie_asignada(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
+    id_grupo = db.Column()
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
     calificacion = db.Column(db.Integer, nullable=True)
-
+    
     def __init__(self, id_serie, id_estudiante):
         self.id_serie = id_serie
         self.id_estudiante = id_estudiante
