@@ -343,6 +343,15 @@ def detallesEjercicio(supervisor_id, id):
     ejercicio = Ejercicio.query.get(id)
     return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id)
 
+@app.route('/dashDocente/<int:supervisor_id>/verGrupos', methods=['GET','POST'])
+@login_required
+def verGrupos(supervisor_id):
+    cursos = Curso.query.all()
+
+    if request.method=='POST':
+        curso=request.form['curso']
+
+    return render_template('verGrupos.html', supervisor_id=supervisor_id, cursos=cursos)
 
 @app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
 @login_required
@@ -434,6 +443,28 @@ def asignarGrupos(supervisor_id):
         return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
 
     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes=estudiantes)
+
+@app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
+@login_required
+def editarGrupos(supervisor_id):
+    return render_template('editarGrupos.html', supervisor_id=supervisor_id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @app.route('/dashDocente/<int:supervisor_id>/asignarSeries', methods=['GET', 'POST'])
