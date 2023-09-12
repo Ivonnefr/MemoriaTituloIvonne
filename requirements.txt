@@ -1,6 +1,8 @@
 Flask==2.2.3
-Flask_Login==0.6.2
-flask_sqlalchemy==3.0.3
-Flask_WTF==1.1.1
+Flask-Login==0.6.2
+Flask-SQLAlchemy==3.0.3
+Flask-WTF==1.1.1
+Markdown==3.4.4
+SQLAlchemy==2.0.20
 Werkzeug==2.2.3
 WTForms==3.0.1
