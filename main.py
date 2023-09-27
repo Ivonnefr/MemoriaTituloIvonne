@@ -1,5 +1,6 @@
 import datetime
 import os
+from sqlite3 import IntegrityError
 from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -63,17 +64,43 @@ def procesar_archivo_csv(filename, curso_id):
                 # Usando tabla de inscripciones
                 try:
                     nueva_inscripcion = inscripciones.insert().values(id_estudiante=estudiante_existente.id, id_curso=curso_id)
+                    db.session.execute(nueva_inscripcion)
+                except IntegrityError as e:
+                    db.session.rollback()
+                    flash(f'El estudiante con matrícula {matricula} ya está inscrito en el curso.', 'warning')
+                    continue
+            
+            # Si el estudiantes no existe, se crea
+            elif not estudiante_existente:
 
-
-
-            estudiante = Estudiante(
+                estudiante = Estudiante(
                 matricula=matricula,
                 nombres=nombres,
                 apellidos=apellidos,
                 correo=correo,
                 password=password,
-                carrera=carrera
-            )
+                carrera=carrera)
+                # Crear el nuevo estudiante en la base de datos
+                try:
+                    db.session.add(estudiante)
+                    db.session.flush()  # Esto genera el id sin confirmar en la base de datos
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error al crear al registrar {nombres} {apellidos} .', 'warning')
+                    continue
+                
+                # Revisar si el estudiante ya está asignado a curso_id
+                
+                
+
+
+
+
+
+
+
+            
 
             # Verificar si el correo o matrícula ya existen en la base de datos
             estudiante_existente = Estudiante.query.filter_by(correo=correo).first()
