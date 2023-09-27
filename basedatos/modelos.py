@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from DBManager import db
 # Las tablas son para many-to-many
 
-# Tabla de asociación
+# Tabla de asociación entre Cursos y Estudiantes
 inscripciones = db.Table('inscripciones',
     db.Column('id_estudiante', db.Integer, db.ForeignKey('estudiante.id'), primary_key=True),
     db.Column('id_curso', db.Integer, db.ForeignKey('curso.id'), primary_key=True)

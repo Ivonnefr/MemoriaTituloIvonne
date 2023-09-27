@@ -8,39 +8,42 @@ Asignación de Grupos por Curso
 <div class="container mt-5">
     <h1>Asignar nuevos Grupos</h1>
 </div>
+
 <div class="container mt-5">
     <p>Para asignar nuevos grupos a los estudiantes</p>
-    <form method="post" action="{{ url_for('asignarGrupos', supervisor_id=supervisor_id) }}">
+    <form method="post" action="{{ url_for('asignarGrupos', supervisor_id=supervisor_id) }}" id="cursoForm">
+        <input type="hidden" name="accion" value="seleccionarCurso">
         <div class="form-group">
             <label for="curso">Curso:</label>
             <select class="form-control" id="curso" name="curso" required>
                 {% for curso in cursos %}
-                <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+                <option value="{{ curso.id }}" {% if curso.id == selectedCursoId %}selected{% endif %}>
+                    {{ curso.nombre }}
+                </option>
                 {% endfor %}
             </select>
         </div>
-        <div class="form-group">
-            <label for="nuevoGrupo">Nombre del Nuevo Grupo:</label>
-            <input type="text" class="form-control" id="nuevoGrupo" name="nuevoGrupo" placeholder="Ingrese el nombre del nuevo grupo" required>
-        </div>
-        <div class="form-group">
-            <label>Estudiantes:</label>
-            <ul>
-                {% for estudiante in estudiantes %}
-                    <li>
-                        <label>
-                            <input type="checkbox" name="estudiantes[]" value="{{ estudiante.id }}">
-                            {% if estudiante.grupo_asignado %}
-                                <span class="asignado">{{ estudiante.nombres }} {{ estudiante.apellidos }}</span>
-                            {% else %}
-                                {{ estudiante.nombres }} {{ estudiante.apellidos }}
-                            {% endif %}
-                        </label>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-        
+    </form>
+</div>
+
+<div class="container mt-5">
+    <form method="post" action="{{url_for('asignarGrupos', supervisor_id=supervisor_id)}}">
+        <input type="hidden" name ='accion' value='asignarGrupos'>
+        <input type="hidden" name="cursoSeleccionado" value="{{ selectedCursoId }}"> <!-- Agrega un campo oculto para el ID del curso -->
+            <!-- input para introducir el nombre del nuevo grupo -->
+            <label for="nombreGrupo">Nombre del Grupo:</label>
+            <input type="text" class="form-control" id="nombreGrupo" name="nombreGrupo" required>
+
+            <legend>Estudiantes:</legend>
+            {% for estudiante in estudiantes_curso %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="estudiantes[]" value="{{estudiante.id}}" id="estudiante{{ estudiante.id }}">
+                <label class="form-check-label" for="estudiante{{ estudiante.id }}">
+                    {{estudiante.nombres}} {{estudiante.apellidos}}
+                </label>
+            </div>
+            {% endfor %}
+        </fieldset>
         <button type="submit" class="btn btn-primary">Asignar Grupos</button>
     </form>
 </div>
@@ -50,5 +53,14 @@ Asignación de Grupos por Curso
         color: purple;
     }
 </style>
+
+<script>
+    // Captura el evento de cambio del elemento <select> con id "curso"
+    document.getElementById("curso").addEventListener("change", function() {
+        // Simula el envío del formulario del curso cuando cambia la selección
+        document.getElementById("cursoForm").submit();
+    });
+</script>
+
 
 {% endblock %}

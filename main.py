@@ -16,7 +16,7 @@ from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
-from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Curso, Envio
+from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Curso, Envio, inscripciones, estudiantes_grupos,supervisores_grupos
 from pathlib import Path
 import markdown
 import csv
@@ -46,12 +46,25 @@ def allowed_file(filename, allowed_extensions):
 def procesar_archivo_csv(filename, curso_id):
     estudiantes_repetidos = []  # Lista para almacenar estudiantes repetidos
 
+
     with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as f:
         reader = csv.reader(f)
         next(reader)  # Saltar la primera fila
         for row in reader:
             matricula, nombres, apellidos, correo, carrera = row
             password = generate_password_hash(matricula)  # Contraseña por defecto
+            
+            estudiante_existente = Estudiante.query.filter_by(matricula=matricula).first()
+            if estudiante_existente:
+                # El estudiante con el mismo correo ya existe
+                flash(f'El estudiante con matrícula {matricula} ya está registrado en la base de datos.', 'warning')
+
+                # Revisar si el estudiante ya está asignado a curso_id
+                # Usando tabla de inscripciones
+                try:
+                    nueva_inscripcion = inscripciones.insert().values(id_estudiante=estudiante_existente.id, id_curso=curso_id)
+
+
 
             estudiante = Estudiante(
                 matricula=matricula,
@@ -111,6 +124,7 @@ def load_user(user_id):
         return None
 
     return user
+
 
 # Verifica que el usuario logueado es un Supervisor
 def verify_supervisor(supervisor_id):
@@ -345,8 +359,18 @@ def detallesEjercicio(supervisor_id, id):
 
 @app.route('/dashDocente/<int:supervisor_id>/verGrupos', methods=['GET','POST'])
 @login_required
-def verGrupos(supervisor_id):
+def verGrupos(supervisor_id):   
+    # Usa la función de verificación
+
+    # Agregarle la casilla de seleccionar.
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    
     cursos = Curso.query.all()
+    if not cursos:
+        flash('No existen cursos, por favor crear un curso', 'danger')
+        return redirect(url_for('dashDocente',supervisor_id=supervisor_id))
 
     if request.method=='POST':
         curso=request.form['curso']
@@ -399,50 +423,70 @@ def registrarEstudiantes(supervisor_id):
 @app.route('/dashDocente/<int:supervisor_id>/asignarGrupos', methods=['GET', 'POST'])
 @login_required
 def asignarGrupos(supervisor_id):
-    # Ruta para asignar los grupos al curso respectivo seleccionado
-    # Usa la función de verificación
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
 
     cursos = Curso.query.all()
-    estudiantes = Estudiante.query.all()
 
     if not cursos:
         flash('No existen cursos, por favor crear un curso', 'danger')
-        return redirect(url_for('dashDocente',supervisor_id=supervisor_id))
+        return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
-    if request.method=='POST':
-        id_curso = request.form['curso']
-        nuevo_grupo_nombre = request.form['nuevoGrupo']
-        estudiantes_seleccionados_ids = request.form.getlist('estudiantes[]')
+    if request.method == 'POST':
 
-        # Buscar el curso y crear un nuevo grupo
-        curso = Curso.query.get(id_curso)
+        accion = request.form['accion']
 
-        if not curso:
-            flash('Curso no encontrado', 'danger')
+        if accion == 'seleccionarCurso':
+            id_curso_seleccionado = request.form['curso']
+            estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=id_curso_seleccionado)).all()
+            # Si en estudiantes_curso, hay estudiantes con grupos asignados, los guardo
+            estudiantes_curso_con_grupo = []
+            for estudiante in estudiantes_curso:
+                if estudiante.grupos:
+                    estudiantes_curso_con_grupo.append(estudiante)
+
+
+            return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes_curso=estudiantes_curso)
+        
+        elif accion == 'asignarGrupos':
+            #Recibir del formulario los estudiantes seleccionados
+            estudiantes_seleccionados_ids = request.form.getlist('estudiantes[]')
+            
+            #Recibir del formulario el nombre del grupo
+            nuevo_grupo_nombre = request.form['nuevoGrupo']
+
+            #Recibir del formulario el id del curso
+            id_curso_seleccionado=request.form['cursoSeleccionado']
+
+            if not nuevo_grupo_nombre or not estudiantes_seleccionados_ids or not id_curso_seleccionado :
+                flash('Por favor, complete todos los campos.', 'danger')
+                return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
+
+            nuevo_grupo = Grupo(nombre=nuevo_grupo_nombre)
+            db.session.add(nuevo_grupo)
+           # Con los estudiantes que se seleccionaron, se asocian al grupo creado
+           
+           
+
+            try:
+                db.session.commit()
+                flash('Grupos asignados con éxito', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash('Error al asignar grupos', 'danger')
+
             return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
 
-        nuevo_grupo = Grupo(nombre=nuevo_grupo_nombre)
-        curso.grupos.append(nuevo_grupo)
-        # Obtener los estudiantes del curso seleccionado
-        estudiantes = Estudiante.query.filter(Estudiante.cursos.contains(curso)).all()
+    # Cuando se accede a la página inicialmente o después de enviar el formulario,
+    # obtén el ID del curso seleccionado (si se proporciona)
+    id_curso_seleccionado = request.args.get('curso_id')
 
-        # Asigna estudiantes seleccionados al nuevo grupo
-        estudiantes_seleccionados = Estudiante.query.filter(Estudiante.id.in_(estudiantes_seleccionados_ids)).all()
-        nuevo_grupo.estudiantes.extend(estudiantes_seleccionados)
-
-        try:
-            db.session.commit()
-            flash('Grupos asignados con éxito', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash('Error al asignar grupos', 'danger')
-
-        return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
-
-    return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes=estudiantes)
+    # Obtener los estudiantes del curso seleccionado (si se proporciona un ID de curso)
+    estudiantes_curso = []
+    if id_curso_seleccionado:
+        estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=id_curso_seleccionado)).all()
+    return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes_curso=estudiantes_curso)
 
 @app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
 @login_required
