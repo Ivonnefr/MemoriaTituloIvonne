@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+{{ curso.nombre }}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <h1>{{ curso.nombre }}</h1>
+        <h2>Lista de clases</h2>
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Apellidos Nombres</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for estudiante in estudiantes_curso %}
+                    <tr>
+                        <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-3"> <!-- Agrega la clase mb-3 aquí -->
+            <!-- Contenido de la tarjeta -->
+            <div class="card-header">
+                <h5>Grupos del curso</h5>
+            </div>
+            <div class="card-body">
+                {% if grupos|length == 0 %}
+                <p class="card-text">No hay grupos</p>
+                {% endif %}
+                {% for grupo in grupos %}
+                <p class="card-text">{{ grupo.nombre }}</p>
+                {% endfor %}
+            </div>            
+        </div>
+        <div class="card">
+            <!-- Contenido de la tarjeta -->
+            <div class="card-header">
+                <h5>Asignar nuevo grupo</h5>
+            </div>
+            <div class="card-body">
+                hola
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
