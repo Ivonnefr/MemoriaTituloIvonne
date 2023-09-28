@@ -45,29 +45,39 @@ def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 def procesar_archivo_csv(filename, curso_id):
-    estudiantes_repetidos = []  # Lista para almacenar estudiantes repetidos
+
+    # ----->>>Falta borrar los flash de depuracion :)<<<<------
 
 
+    # Procesa el archivo
     with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as f:
         reader = csv.reader(f)
         next(reader)  # Saltar la primera fila
         for row in reader:
+            # Por cada fila, extraer los datos
             matricula, nombres, apellidos, correo, carrera = row
-            password = generate_password_hash(matricula)  # Contraseña por defecto
-            
+            password = generate_password_hash(matricula)  # Contraseña por defecto: hash de la matrícula
+            # Verificar si el estudiante ya existe en la base de datos:
             estudiante_existente = Estudiante.query.filter_by(matricula=matricula).first()
+            
             if estudiante_existente:
                 # El estudiante con el mismo correo ya existe
-                flash(f'El estudiante con matrícula {matricula} ya está registrado en la base de datos.', 'warning')
-
+                #flash(f'El estudiante con matrícula {matricula} ya está registrado en la base de datos.', 'warning')
                 # Revisar si el estudiante ya está asignado a curso_id
                 # Usando tabla de inscripciones
+                relacion_existente = db.session.query(inscripciones).filter_by(id_estudiante=estudiante_existente.id, id_curso=curso_id).first()
+                if relacion_existente:
+                    flash(f'El estudiante con matrícula {matricula} ya está inscrito en el curso {curso_id}.', 'warning')
+                    continue
+
                 try:
                     nueva_inscripcion = inscripciones.insert().values(id_estudiante=estudiante_existente.id, id_curso=curso_id)
                     db.session.execute(nueva_inscripcion)
+                    db.session.commit()
+                    flash(f'El estudiante con matrícula {matricula} ha sido inscrito en el curso.', 'success')
                 except IntegrityError as e:
                     db.session.rollback()
-                    flash(f'El estudiante con matrícula {matricula} ya está inscrito en el curso.', 'warning')
+                    flash(f'Error al registrar en el curso {curso_id} al estudiante {matricula} .', 'warning')
                     continue
             
             # Si el estudiantes no existe, se crea
@@ -84,63 +94,27 @@ def procesar_archivo_csv(filename, curso_id):
                 try:
                     db.session.add(estudiante)
                     db.session.flush()  # Esto genera el id sin confirmar en la base de datos
+                    estudiante_id = estudiante.id  # Obtener el id del estudiante recién creado
                     db.session.commit()
+                    flash(f'El estudiante con matrícula {matricula} ha sido registrado en la base de datos.', 'success')
                 except Exception as e:
                     db.session.rollback()
                     flash(f'Error al crear al registrar {nombres} {apellidos} .', 'warning')
                     continue
-                
-                # Revisar si el estudiante ya está asignado a curso_id
-                
-                
 
-
-
-
-
+                # Si el estudiante se creó correctamente en la bd, se inscribe en el curso
+                try:
+                    nueva_inscripcion = inscripciones.insert().values(id_estudiante=estudiante_id, id_curso=curso_id)
+                    db.session.execute(nueva_inscripcion)
+                    db.session.commit()
+                    flash(f'El estudiante con matrícula {matricula} ha sido inscrito en el curso.', 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'Error al inscribir a {nombres} {apellidos} en el curso.', 'warning')
+                    continue
 
 
             
-
-            # Verificar si el correo o matrícula ya existen en la base de datos
-            estudiante_existente = Estudiante.query.filter_by(correo=correo).first()
-            if estudiante_existente:
-                # El estudiante con el mismo correo ya existe
-                flash(f'El estudiante con correo {correo} ya está registrado en la base de datos.', 'warning')
-                estudiantes_repetidos.append(estudiante)  # Agregar a la lista de repetidos
-            else:
-                # Añade el nuevo estudiante a la base de datos
-                db.session.add(estudiante)
-
-        try:
-            db.session.commit()
-        except Exception as e:
-            flash('Error al guardar en la bd', 'danger')
-            db.session.rollback()
-
-    if estudiantes_repetidos:
-        # Si hay estudiantes repetidos, puedes manejarlos de acuerdo a tus necesidades
-        # Por ejemplo, puedes crear un archivo CSV con los estudiantes repetidos
-        # y guardarlos en algún lugar para su revisión
-        archivo_repetidos = 'estudiantes_repetidos.csv'  # Nombre del archivo
-        ruta_archivo_repetidos = os.path.join(app.config['UPLOAD_FOLDER'], archivo_repetidos)
-
-    with open(ruta_archivo_repetidos, 'w', newline='') as csvfile:
-        fieldnames = ['Matrícula', 'Nombres', 'Apellidos', 'Correo', 'Carrera']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for est in estudiantes_repetidos:
-            writer.writerow({
-                'Matrícula': est.matricula,
-                'Nombres': est.nombres,
-                'Apellidos': est.apellidos,
-                'Correo': est.correo,
-                'Carrera': est.carrera
-            })
-
-    #flash(f'Se han encontrado estudiantes repetidos. Consulta el archivo {archivo_repetidos} para más detalles.', 'warning')
-    #Falta crear el hipervinculo para abrir el archivo.
 @login_manager.user_loader
 def load_user(user_id):
     if user_id.startswith("e"):
@@ -151,7 +125,6 @@ def load_user(user_id):
         return None
 
     return user
-
 
 # Verifica que el usuario logueado es un Supervisor
 def verify_supervisor(supervisor_id):
@@ -383,6 +356,32 @@ def detallesEjercicio(supervisor_id, id):
         return redirect(url_for('login'))
     ejercicio = Ejercicio.query.get(id)
     return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id)
+
+
+@app.route('/dashDocente/<int:supervisor_id>/verCursos', methods=['GET','POST'])
+@login_required
+def verCursos(supervisor_id):
+    # Usar la funcion de verificación
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    cursos = Curso.query.all()
+    grupos=Grupo.query.all()
+    if not cursos:
+        flash('No existen cursos, por favor crear un curso', 'danger')
+        return redirect(url_for('dashDocente',supervisor_id=supervisor_id))
+    
+    return render_template('verCursos.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos)
+
+
+@app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>', methods=['GET','POST'])
+@login_required
+def detallesCurso(supervisor_id, curso_id):
+    curso_actual=Curso.query.get(curso_id)
+    grupos=Grupo.query.filter_by(id_curso=curso_id).all()
+    estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
+    return(render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, estudiantes_curso=estudiantes_curso))
+
 
 @app.route('/dashDocente/<int:supervisor_id>/verGrupos', methods=['GET','POST'])
 @login_required
