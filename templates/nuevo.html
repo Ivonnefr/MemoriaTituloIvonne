@@ -1,0 +1,75 @@
+{% extends 'layout.html' %}
+
+
+{% block title %}
+Asignar Grupos
+{% endblock %}
+
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Asignar Grupos</h1>
+</div>
+
+<div class="container mt-5">
+
+    <form method="post" action="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso_seleccionado) }}" id="cursoForm">
+        <input type="hidden" name="accion" value="seleccionarCurso">
+        <div class="form-group">
+            <label for="curso">Curso:</label>
+            <select class="form-control" id="curso" name="curso" required>
+                {% for curso in cursos %}
+                <option value="{{ curso.id }}" {% if curso.id == curso_seleccionado %}selected{% endif %}>
+                    {{ curso.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+<div class="container mt-5">
+    <table class="table table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>Seleccionar</th>
+                <th>Lista de Clases</th>
+            </tr>
+        </thead>
+        <tbody>
+            <form method="post" action="{{url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso_seleccionado)}}" id="estudiantesForm">
+                <input type="hidden" name ='accion' value='seleccionarEstudiantes'>
+                <input type="hidden" name="cursoSeleccionado" value="{{ curso_seleccionado }}"> <!-- Agrega un campo oculto para el ID del curso -->
+                {% for estudiante in estudiantes_curso %}
+                <tr>
+                    <td><input  type="checkbox" name="estudiante_id[]" value="{{estudiante_id}}"></td>
+                    <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                    <td colspan="2">
+                        <div class="form-group">
+                            <label for="nombreGrupo">Nombre del Grupo:</label>
+                            <input type="text" class="form-control" id="nombreGrupo" name="nombreGrupo" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Crear Grupo</button>
+                    </td>
+                </tr>
+            </form>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const cursoSelect = document.getElementById('curso');
+    const cursoForm = document.getElementById('cursoForm');
+
+    cursoSelect.addEventListener('change', function () {
+        // Simular el envío del formulario cuando cambia la selección
+        cursoForm.submit();
+    });
+});
+
+</script>
+{% endblock %}
