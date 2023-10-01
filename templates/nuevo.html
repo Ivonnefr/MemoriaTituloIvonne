@@ -39,13 +39,27 @@ Asignar Grupos
         <tbody>
             <form method="post" action="{{url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso_seleccionado)}}" id="estudiantesForm">
                 <input type="hidden" name ='accion' value='seleccionarEstudiantes'>
-                <input type="hidden" name="cursoSeleccionado" value="{{ curso_seleccionado }}"> <!-- Agrega un campo oculto para el ID del curso -->
+                <input type="hidden" name="curso_seleccionado" value="{{ curso_seleccionado }}"> <!-- Agrega un campo oculto para el ID del curso -->
                 {% for estudiante in estudiantes_curso %}
                 <tr>
-                    <td><input  type="checkbox" name="estudiante_id[]" value="{{estudiante_id}}"></td>
+                    <td>
+                        <input type="checkbox" name="estudiantes[]" value="{{estudiante.id}}">
+                    </td>
                     <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+                    <td>
+                        {% if estudiante.grupos|selectattr('curso.id', 'equalto', curso_seleccionado)|list %}
+                            {% for grupo in estudiante.grupos %}
+                                {% if grupo.curso.id == curso_seleccionado %}
+                                    {{ grupo.nombre }}
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            Sin asignar
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
+                            
                 <tr>
                     <td colspan="2">
                         <div class="form-group">

@@ -52,8 +52,9 @@ class Grupo(db.Model):
     curso = db.relationship('Curso', back_populates='grupos')
     estudiantes = db.relationship('Estudiante', secondary=estudiantes_grupos, back_populates='grupos')
     id_curso = db.Column(db.Integer, db.ForeignKey('curso.id'))
-    def __init__(self, nombre):
+    def __init__(self, nombre, id_curso):
         self.nombre = nombre
+        self.id_curso = id_curso
 
 class Ejercicio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -138,13 +139,15 @@ class Supervision(db.Model):
 class Serie_asignada(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
-    id_grupo = db.Column()
+    id_grupo = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)  # Agregar el tipo de datos aquí
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
     calificacion = db.Column(db.Integer, nullable=True)
     
-    def __init__(self, id_serie, id_estudiante):
+    def __init__(self, id_serie, id_grupo, id_estudiante):
         self.id_serie = id_serie
+        self.id_grupo = id_grupo
         self.id_estudiante = id_estudiante
+
 
 class Ejercicio_realizado(db.Model):
     id = db.Column(db.Integer, primary_key=True)
