@@ -48,7 +48,7 @@ class Supervisor(db.Model):
     
 class Grupo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), nullable=False)
+    nombre = db.Column(db.String(50), nullable=False, unique=True)
     curso = db.relationship('Curso', back_populates='grupos')
     estudiantes = db.relationship('Estudiante', secondary=estudiantes_grupos, back_populates='grupos')
     id_curso = db.Column(db.Integer, db.ForeignKey('curso.id'))
@@ -73,7 +73,7 @@ class Ejercicio(db.Model):
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
-    activa = db.Column(db.Boolean(), nullable=False)
+    #activa = db.Column(db.Boolean(), nullable=False)
     ejercicios = db.relationship('Ejercicio', order_by=Ejercicio.id, back_populates='serie')
     
     def __init__(self, nombre, activa):
@@ -140,8 +140,8 @@ class Serie_asignada(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
     id_grupo = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)  # Agregar el tipo de datos aquí
-    id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    calificacion = db.Column(db.Integer, nullable=True)
+    #id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
+    #calificacion = db.Column(db.Integer, nullable=True)
     
     def __init__(self, id_serie, id_grupo, id_estudiante):
         self.id_serie = id_serie
@@ -166,6 +166,7 @@ class Ejercicio_realizado(db.Model):
         self.fecha = fecha
     
 class Curso(db.Model):
+    # Curso activo o no ?x
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     estudiantes = db.relationship('Estudiante', secondary=inscripciones, back_populates='cursos')

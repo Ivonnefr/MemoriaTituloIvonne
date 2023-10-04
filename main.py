@@ -249,8 +249,8 @@ def dashDocente(supervisor_id):
                 ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
 
         return render_template("vistaDocente.html", supervisor_id=supervisor_id, series=series, ejercicios_por_serie=ejercicios_por_serie)
-
-    # Aquí va el resto de la lógica para mostrar el dashboard del Supervisor, por ejemplo:
+    if request.method == 'POST':
+        
     return render_template('vistaDocente.html')
 
 
@@ -439,7 +439,6 @@ def asignarGrupos(supervisor_id, curso_id):
         flash('No existen cursos, por favor crear un curso', 'danger')
         return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
     
-    # grupos=Grupo.query.filter_by(id_curso=curso_id).all()
     estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
     if request.method == 'POST':
         accion = request.form['accion']
@@ -460,6 +459,8 @@ def asignarGrupos(supervisor_id, curso_id):
                 return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=id_curso_seleccionado))
 
             try:
+                # Verificar si el grupo ya existe
+
                 flash(f'estudiantes seleccionados: {estudiantes_seleccionados_ids}', 'danger')
                 nuevo_grupo=Grupo(nombre=nombre_grupo, id_curso=id_curso_seleccionado)
                 db.session.add(nuevo_grupo)
@@ -480,123 +481,20 @@ def asignarGrupos(supervisor_id, curso_id):
                     except Exception as e:
                         db.session.rollback()
                         flash('Error al asignar estudiantes', 'danger')
-
-
-
     return render_template('nuevo.html', supervisor_id=supervisor_id, cursos=cursos, curso_seleccionado=curso_id,estudiantes_curso=estudiantes_curso)
 
-
-
-# @app.route('/dashDocente/<int:supervisor_id>/asignarGrupos', methods=['GET', 'POST'])
-# @login_required
-# def asignarGrupos(supervisor_id,curso_id):
-#     if not verify_supervisor(supervisor_id):
-#         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
-#         return redirect(url_for('login'))
-
-#     cursos = Curso.query.all()
-
-#     if not cursos:
-#         flash('No existen cursos, por favor crear un curso', 'danger')
-#         return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
-
-#     if request.method == 'POST':
-
-#         accion = request.form['accion']
-
-#         if accion == 'seleccionarCurso':
-#             id_curso_seleccionado = request.form['curso']
-#             estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=id_curso_seleccionado)).all()
-#             # Si en estudiantes_curso, hay estudiantes con grupos asignados, los guardo
-#             estudiantes_curso_con_grupo = []
-#             for estudiante in estudiantes_curso:
-#                 if estudiante.grupos:
-#                     estudiantes_curso_con_grupo.append(estudiante)
-
-
-#             return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes_curso=estudiantes_curso)
-        
-#         elif accion == 'asignarGrupos':
-#             #Recibir del formulario los estudiantes seleccionados
-#             estudiantes_seleccionados_ids = request.form.getlist('estudiantes[]')
-            
-#             #Recibir del formulario el nombre del grupo
-#             nuevo_grupo_nombre = request.form['nuevoGrupo']
-
-#             #Recibir del formulario el id del curso
-#             id_curso_seleccionado=request.form['cursoSeleccionado']
-
-#             if not nuevo_grupo_nombre or not estudiantes_seleccionados_ids or not id_curso_seleccionado :
-#                 flash('Por favor, complete todos los campos.', 'danger')
-#                 return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
-
-#             nuevo_grupo = Grupo(nombre=nuevo_grupo_nombre)
-#             db.session.add(nuevo_grupo)
-#            # Con los estudiantes que se seleccionaron, se asocian al grupo creado
-           
-           
-
-#             try:
-#                 db.session.commit()
-#                 flash('Grupos asignados con éxito', 'success')
-#             except Exception as e:
-#                 db.session.rollback()
-#                 flash('Error al asignar grupos', 'danger')
-
-#             return redirect(url_for('asignarGrupos', supervisor_id=supervisor_id))
-
-#     # Cuando se accede a la página inicialmente o después de enviar el formulario,
-#     # obtén el ID del curso seleccionado (si se proporciona)
-#     id_curso_seleccionado = request.args.get('curso_id')
-
-#     # Obtener los estudiantes del curso seleccionado (si se proporciona un ID de curso)
-#     estudiantes_curso = []
-#     if id_curso_seleccionado:
-#         estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=id_curso_seleccionado)).all()
-#     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, estudiantes_curso=estudiantes_curso)
-
-
-
-
-
-
+# boton de seleccionar todo los estudiantes
 @app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
 @login_required
+# Falta por implementar **
 def editarGrupos(supervisor_id):
     return render_template('editarGrupos.html', supervisor_id=supervisor_id)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 @app.route('/dashDocente/<int:supervisor_id>/asignarSeries', methods=['GET', 'POST'])
 @login_required
 def asignarSeries(supervisor_id):
     return render_template('asignarSeries.html', supervisor_id=supervisor_id)
-
-
-
-
-
-
-
-
-
-
 
 
 # DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas

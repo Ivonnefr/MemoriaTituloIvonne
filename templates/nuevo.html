@@ -44,6 +44,11 @@ Asignar Grupos
                 <tr>
                     <td>
                         <input type="checkbox" name="estudiantes[]" value="{{estudiante.id}}">
+                        {% if estudiante.grupos|selectattr('curso.id', 'equalto', curso_seleccionado)|list %}
+                            <span class="text-success">Asignado</span>
+                        {% else %}
+                            <span class="text-danger">Sin asignar</span>
+                        {% endif %}
                     </td>
                     <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
                     <td>
@@ -54,11 +59,12 @@ Asignar Grupos
                                 {% endif %}
                             {% endfor %}
                         {% else %}
-                            Sin asignar
+                            -
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
+                
                             
                 <tr>
                     <td colspan="2">
