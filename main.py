@@ -232,33 +232,40 @@ def dashDocente(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
     
-    # Si el método es get: muestra el dashboard del Supervisor
-    if request.method == 'GET':
-        # Obtiene todas las series
-        series = Serie.query.all()
-        cursos= Curso.query.all()
-        # Crea un diccionario donde las llaves son los id de las series y los valores son listas de ejercicios
-        ejercicios_por_serie = {serie.id: [] for serie in series}
 
-        # Obtiene todos los ejercicios
-        ejercicios = Ejercicio.query.all()
-        id_curso_seleccionado=cursos[0].id
-        # Agrega los ejercicios a las listas correspondientes en el diccionario
+    series = Serie.query.all()
+    cursos = Curso.query.all()
+    ejercicios_por_serie = {}  # Usaremos un diccionario vacío
+
+    # Verificar si hay cursos, series y ejercicios
+    if not cursos:
+        flash('No existen cursos, por favor crear un curso', 'danger')
+    #     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+
+    if not series:
+        flash('No existen series, por favor crear una serie', 'danger')
+    #     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+
+    ejercicios = Ejercicio.query.all()
+    if not ejercicios:
+        flash('No existen ejercicios, por favor crear un ejercicio', 'danger')
+    #     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+
+    # # Verificar si se ha seleccionado un curso
+    id_curso_seleccionado = request.args.get('curso_id')  # Obtener el valor del curso seleccionado desde los argumentos de la URL
+
+    # if id_curso_seleccionado is None:
+    #     # Si no se ha seleccionado un curso, seleccionar el primer curso en la lista
+    #     id_curso_seleccionado = cursos[0].id
+
+    # Agregar los ejercicios a las listas correspondientes en el diccionario
+    if ejercicios:
+
         for ejercicio in ejercicios:
             if ejercicio.id_serie in ejercicios_por_serie:
-                ejercicios_por_serie[ejercicio.id_serie].append(ejercicio)
+                ejercicios_por_serie.setdefault(ejercicio.id_serie, []).append(ejercicio)
 
-        return render_template("vistaDocente.html", supervisor_id=supervisor_id, series=series, ejercicios_por_serie=ejercicios_por_serie,cursos=cursos,id_curso_seleccionado=id_curso_seleccionado)
-    
-    if request.method == 'POST':
-        accion = request.form['accion']
-        if accion == 'seleccionarCurso':
-            id_curso_seleccionado = request.form['curso']
-            flash(f'Se cambió el curso a {id_curso_seleccionado}', 'success')
-            return render_template("vistaDocente.html", supervisor_id=supervisor_id, series=series, ejercicios_por_serie=ejercicios_por_serie,cursos=cursos,id_curso_seleccionado=id_curso_seleccionado)
-
-    return render_template('vistaDocente.html')
-
+    return render_template('vistaDocente.html', supervisor_id=supervisor_id)
 
 @app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
 @login_required

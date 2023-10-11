@@ -8,22 +8,29 @@
   <h1>Vista Docente</h1>
 </div>
 
-
 <div class="row">
-  <form action="post" accion="{{url_for('dashDocente', supervisor_id=supervisor_id)}}">
+  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id, curso_id=curso_seleccionado) }}" id="cursoForm">
     <input type="hidden" name="accion" value="seleccionarCurso">
-    <select class="form-control" id="curso" name="curso" required>
-      {% for curso in cursos %}
-      <option value="{{ curso.id }}" {% if curso.id == curso_seleccionado %}selected{% endif %}>
-          {{ curso.nombre }}
-      </option>
-      {% endfor %}
-    </select>
+    <div class="form-group">
+        <label for="curso">Curso:</label>
+        <select class="form-control" id="curso" name="curso" required>
+          {% if not cursos %}
+            <option value="" disabled selected>No existen cursos</option>
+          {% endif %}
+          {% if cursos %}
+            {% for curso in cursos %}
+            <option value="{{ curso.id }}" {% if curso.id == curso_seleccionado %}selected{% endif %}>
+                {{ curso.nombre }}
+            </option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
   </form>
-  <h3>Activo o no ??</h3>
 </div>
 
 <div class="row">
+  {% if cursos %}
   <div class="col-md-6">
     <h2>Lista de series</h2>
     {% for serie in series %}
@@ -39,6 +46,11 @@
       </li>
     {% endfor %}
   </div>
+  {% else %}
+  <div class="col-md-6">
+    <h2>No existen cursos</h2>
+  </div>
+  {% endif %}
   <div class="col-md-6">
     <div class="card">
       <div class="card-header">
@@ -46,10 +58,9 @@
       </div>
     </div>
   </div>
-
 </div>
 
-<script>
+<!-- <script>
   document.addEventListener('DOMContentLoaded', function () {
   const cursoSelect = document.getElementById('curso');
   const cursoForm = document.getElementById('cursoForm');
@@ -60,6 +71,6 @@
   });
 });
 
-</script>
+</script> -->
 
 {% endblock %}

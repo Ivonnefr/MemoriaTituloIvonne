@@ -73,7 +73,6 @@ class Ejercicio(db.Model):
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False)
-    #activa = db.Column(db.Boolean(), nullable=False)
     ejercicios = db.relationship('Ejercicio', order_by=Ejercicio.id, back_populates='serie')
     
     def __init__(self, nombre, activa):
@@ -137,12 +136,12 @@ class Supervision(db.Model):
         self.id_grupo = id_grupo
 
 class Serie_asignada(db.Model):
+    # tabla para asignar una serie a un grupo de estudiantes
     id = db.Column(db.Integer, primary_key=True)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
     id_grupo = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)  # Agregar el tipo de datos aquí
     #id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
     #calificacion = db.Column(db.Integer, nullable=True)
-    
     def __init__(self, id_serie, id_grupo, id_estudiante):
         self.id_serie = id_serie
         self.id_grupo = id_grupo
@@ -169,9 +168,10 @@ class Curso(db.Model):
     # Curso activo o no ?x
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
+    activa = db.Column(db.Boolean(), nullable=False)
     estudiantes = db.relationship('Estudiante', secondary=inscripciones, back_populates='cursos')
     grupos = db.relationship('Grupo', order_by=Grupo.id, back_populates='curso')
-    def __init__(self, nombre ):
+    def __init__(self, nombre):
         self.nombre = nombre
 
 class Envio(db.Model):
