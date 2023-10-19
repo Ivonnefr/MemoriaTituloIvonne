@@ -10,17 +10,23 @@ Registro de Estudiantes
 </div>
 
 <div class="container mt-5">
-    <p>Para registrar estudiantes, carga un archivo .csv con la lista de clases.
-    Si no has creado un Curso o quieres crear uno nuevo, llena el formulario:</p>
+    <p>Para registrar estudiantes, carga un archivo .csv con la lista de clases. Si no has creado un Curso o quieres crear uno nuevo, llena el formulario:</p>
     <form method="post" action="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}">
         <input type="hidden" name="accion" value="crearCurso"> <!-- Agrega un campo oculto para identificar el formulario -->
         <div class="form-group">
             <label for="nombreCurso">Nombre del Curso</label>
             <input type="text" class="form-control" id="nombreCurso" name="nombreCurso" placeholder="Ingresa el nombre del curso" required>
         </div>
+
+        <div class="custom-control custom-switch">
+            <input type="checkbox" class="custom-control-input" id="activaSwitch" name="activa" checked>
+            <label class="custom-control-label" for="activaSwitch">Activo</label>
+        </div>
+
         <button type="submit" class="btn btn-primary">Crear Curso</button>
     </form>
 </div>
+
 
 <div class="container mt-5">
     <h3>Registrar Estudiantes con la lista de clases</h2>

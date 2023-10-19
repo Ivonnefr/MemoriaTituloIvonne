@@ -17,7 +17,7 @@ from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
-from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, Supervision, Serie_asignada, Ejercicio_realizado, Curso, Envio, inscripciones, estudiantes_grupos,supervisores_grupos
+from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, serie_asignada, Ejercicio_realizado, Curso, Envio, inscripciones, estudiantes_grupos, supervisores_grupos
 from pathlib import Path
 import markdown
 import csv
@@ -45,17 +45,14 @@ def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 def procesar_archivo_csv(filename, curso_id):
-
     # ----->>>Falta borrar los flash de depuracion :)<<<<------
-
-
     # Procesa el archivo
     with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as f:
         reader = csv.reader(f)
         next(reader)  # Saltar la primera fila
         for row in reader:
             # Por cada fila, extraer los datos
-            matricula, nombres, apellidos, correo, carrera = row
+            matricula, apellidos, nombres, correo, carrera = row
             password = generate_password_hash(matricula)  # Contraseña por defecto: hash de la matrícula
             # Verificar si el estudiante ya existe en la base de datos:
             estudiante_existente = Estudiante.query.filter_by(matricula=matricula).first()
@@ -85,8 +82,8 @@ def procesar_archivo_csv(filename, curso_id):
 
                 estudiante = Estudiante(
                 matricula=matricula,
-                nombres=nombres,
                 apellidos=apellidos,
+                nombres=nombres,
                 correo=correo,
                 password=password,
                 carrera=carrera)
@@ -150,6 +147,7 @@ def verify_estudiante(estudiante_id):
     if current_user.id != estudiante_id:
         flash('No tienes permiso para acceder a este dashboard.', 'danger')
         return False
+    return True
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -232,40 +230,36 @@ def dashDocente(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
     
-
     series = Serie.query.all()
     cursos = Curso.query.all()
-    ejercicios_por_serie = {}  # Usaremos un diccionario vacío
+    ejercicios = Ejercicio.query.all()
+    ejercicios_por_serie = {}  # Usaremos un diccionario vacío para llenarlo con los ejericios y pasarlo al template
 
     # Verificar si hay cursos, series y ejercicios
     if not cursos:
         flash('No existen cursos, por favor crear un curso', 'danger')
-    #     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+        id_curso_seleccionado=None
 
     if not series:
         flash('No existen series, por favor crear una serie', 'danger')
-    #     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
-    ejercicios = Ejercicio.query.all()
     if not ejercicios:
         flash('No existen ejercicios, por favor crear un ejercicio', 'danger')
-    #     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+    # id_curso_seleccionado = request.form.get('curso'
+    # if request.method =='POST':
+    #     accion= request.form['accion']
+    #     if accion == 'seleccionarCurso':
+    #         id_curso_seleccionado = request.form['curso']
+    #         flash(f'se cambio el curso a {id_curso_seleccionado}', 'success')
+    #         return redirect(url_for('dashDocente', supervisor_id=supervisor_id,id_curso_seleccionado=id_curso_seleccionado))
 
-    # # Verificar si se ha seleccionado un curso
-    id_curso_seleccionado = request.args.get('curso_id')  # Obtener el valor del curso seleccionado desde los argumentos de la URL
+    # # Agregar los ejercicios a las listas correspondientes en el diccionario
+    # if ejercicios:
+    #     for ejercicio in ejercicios:
+    #         if ejercicio.id_serie in ejercicios_por_serie:
+    #             ejercicios_por_serie.setdefault(ejercicio.id_serie, []).append(ejercicio)
 
-    # if id_curso_seleccionado is None:
-    #     # Si no se ha seleccionado un curso, seleccionar el primer curso en la lista
-    #     id_curso_seleccionado = cursos[0].id
-
-    # Agregar los ejercicios a las listas correspondientes en el diccionario
-    if ejercicios:
-
-        for ejercicio in ejercicios:
-            if ejercicio.id_serie in ejercicios_por_serie:
-                ejercicios_por_serie.setdefault(ejercicio.id_serie, []).append(ejercicio)
-
-    return render_template('vistaDocente.html', supervisor_id=supervisor_id)
+    return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos)
 
 @app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
 @login_required
@@ -390,9 +384,13 @@ def registrarEstudiantes(supervisor_id):
         
         if accion == 'crearCurso':
             #Procesar el formulario y agregarlo a la base de datos
-            nombre_curso= request.form['nombreCurso']
+            nombre_curso = request.form['nombreCurso']
+            activa_value = True if request.form.get('activa') == "true" else False
+            if not nombre_curso :
+                flash('Por favor, complete todos los campos.', 'danger')
             nuevo_curso= Curso(
-                nombre=nombre_curso
+                nombre=nombre_curso,
+                activa=activa_value
             )
             db.session.add(nuevo_curso)
             db.session.commit()
@@ -496,30 +494,75 @@ def asignarGrupos(supervisor_id, curso_id):
                         flash('Error al asignar estudiantes', 'danger')
     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, curso_seleccionado=curso_id,estudiantes_curso=estudiantes_curso)
 
-# boton de seleccionar todo los estudiantes
+# boton de seleccionar todo los estudiantes 
 @app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
 @login_required
 # Falta por implementar **
 def editarGrupos(supervisor_id):
     return render_template('editarGrupos.html', supervisor_id=supervisor_id)
 
-
-@app.route('/dashDocente/<int:supervisor_id>/asignarSeries', methods=['GET', 'POST'])
-@login_required
-def asignarSeries(supervisor_id):
-    return render_template('asignarSeries.html', supervisor_id=supervisor_id)
-
-
 # DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas
-@app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET, POST'])
+@app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET', 'POST'])
 @login_required
 def dashEstudiante(estudiante_id):
     # Uso la funcion de verificacion
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
     # Si el método es get muestra el dashBoard del Estudiante
-    if request.method == 'GET':
-        return render_template('vistaEstudiante.html', estudiante_id=estudiante_id)
+    estudiante= Estudiante.query.get(estudiante_id)
+        # Obtiene el supervisor asignado
+    # supervisor = (
+    #     Supervisor.query
+    #     .join(supervisores_grupos)  # Join con la tabla supervisores_grupos
+    #     .filter(supervisores_grupos.c.id_supervisor == Supervisor.id)
+    #     .filter(supervisores_grupos.c.id_grupo == estudiante.grupos[0].id)  # Suponiendo que el estudiante está en un solo grupo
+    #     .first()
+    # )
+
+    # Obtiene el grupo asociado al estudiante
+    # Obtiene el grupo asignado
+    # Obtiene el grupo asignado (si existe)
+    # Obtiene el grupo asignado (si existe)
+    grupo = (
+        Grupo.query
+        .join(estudiantes_grupos)  # Join con la tabla estudiantes_grupos
+        .filter(estudiantes_grupos.c.id_grupo == Grupo.id)
+        .filter(estudiantes_grupos.c.id_estudiante == estudiante_id)
+        .first()
+    )
+
+    # Si no se encuentra ningún grupo asignado, grupo será None
+    # En tu ruta de Flask, asegúrate de manejar el caso en el que grupo es None
+    if not grupo:
+        grupo_nombre = "Ningún grupo asignado"  # O cualquier otro mensaje que desees
+    else:
+        grupo_nombre = grupo.nombre
+
+    # Ahora, puedes usar grupo_nombre en tu plantilla en lugar de grupo.id
+
+    # Obtiene el curso asignado al estudiante
+    curso = (
+        Curso.query
+        .join(inscripciones)  # Join con la tabla inscripciones
+        .filter(inscripciones.c.id_curso == Curso.id)
+        .filter(inscripciones.c.id_estudiante == estudiante_id)
+        .first()
+    )
+
+    # Verifica si el estudiante tiene un grupo asignado antes de consultar las series asignadas
+    # series_asignadas = []
+    # if grupo:
+    #     series_asignadas = serie_asignada.query.filter_by(id_grupo=grupo.id).all()
+
+    # ejercicios_por_serie = {}
+
+    # for serie_asignada in series_asignadas:
+    #     serie = Serie.query.get(serie_asignada.id_serie)
+    #     ejercicios = Ejercicio.query.filter_by(id_serie=serie.id).all()
+    #     ejercicios_por_serie[serie] = ejercicios
+
+
+    return render_template('vistaEstudiante.html', estudiante_id=estudiante_id, estudiante=estudiante,grupo=grupo, curso=curso)
 
 # #Ruta para subir archivo java
 # @app.route('/upload_file', methods=['GET',"POST"])
@@ -607,3 +650,5 @@ if __name__ == '__main__':
 
 #     flash('Estudiante registrado exitosamente.', 'success')
 #     return redirect(url_for('home'))
+# ssh ivonne@pa3p2.inf.udec.cl
+# mail5@udec.cl     

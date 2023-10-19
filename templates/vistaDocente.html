@@ -1,76 +1,27 @@
-{% extends "layout.html" %}
+{% extends 'layout.html' %}
 
-{% block title %}Vista Docente{% endblock %}
+{% block title %}
+Vista Docente - {% if curso_seleccionado %}{{ curso_seleccionado }}{% endif %}
+{% endblock %}
 
 {% block content %}
 
-<div class="row">
-  <h1>Vista Docente</h1>
+<div class="container mt-5">
+  <h1>{% if curso_seleccionado%}{{curso_seleccionado}}{%endif%}
+
+  </h1>
 </div>
 
-<div class="row">
-  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id, curso_id=curso_seleccionado) }}" id="cursoForm">
-    <input type="hidden" name="accion" value="seleccionarCurso">
-    <div class="form-group">
-        <label for="curso">Curso:</label>
-        <select class="form-control" id="curso" name="curso" required>
-          {% if not cursos %}
-            <option value="" disabled selected>No existen cursos</option>
-          {% endif %}
-          {% if cursos %}
-            {% for curso in cursos %}
-            <option value="{{ curso.id }}" {% if curso.id == curso_seleccionado %}selected{% endif %}>
-                {{ curso.nombre }}
-            </option>
-            {% endfor %}
-          {% endif %}
-        </select>
-      </div>
+<div class="container mt-5">
+  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" id="cursoForm">
+     <input type="hidden" name="accion" value="seleccionarCurso">
+     <label for="curso">Selecciona un curso:</label>
+     <select name="curso" id="curso">
+       {% for curso in cursos %}
+         <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+       {% endfor %}
+     </select>
+     <button type="submit">Seleccionar</button>
   </form>
 </div>
-
-<div class="row">
-  {% if cursos %}
-  <div class="col-md-6">
-    <h2>Lista de series</h2>
-    {% for serie in series %}
-      <li>
-        <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, id=serie.id) }}" style="font-size: 2em;">{{ serie.nombre }}</a>
-        <ol>
-          {% for ejercicio in ejercicios_por_serie[serie.id] %}
-            <li>
-              <a href="{{ url_for('detallesEjercicio', supervisor_id=supervisor_id, id=ejercicio.id) }}">{{ ejercicio.nombre }}</a>: {{ ejercicio.enunciado }}
-            </li>
-          {% endfor %}
-        </ol>
-      </li>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="col-md-6">
-    <h2>No existen cursos</h2>
-  </div>
-  {% endif %}
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">
-        <h5>Asignar nueva serie</h5>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- <script>
-  document.addEventListener('DOMContentLoaded', function () {
-  const cursoSelect = document.getElementById('curso');
-  const cursoForm = document.getElementById('cursoForm');
-
-  cursoSelect.addEventListener('change', function () {
-      // Simular el envío del formulario cuando cambia la selección
-      cursoForm.submit();
-  });
-});
-
-</script> -->
-
 {% endblock %}
