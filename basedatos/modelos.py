@@ -17,7 +17,11 @@ supervisores_grupos = db.Table('supervisores_grupos',
     db.Column('id_supervisor', db.Integer, db.ForeignKey('supervisor.id'), primary_key=True),
     db.Column('id_grupo', db.Integer, db.ForeignKey('grupo.id'), primary_key=True)
 )
-
+# Tabla de asignación many-to-many para relacionar series y grupos
+serie_asignada = db.Table('serie_grupo_asignacion',
+    db.Column('id_serie', db.Integer, db.ForeignKey('serie.id'), primary_key=True),
+    db.Column('id_grupo', db.Integer, db.ForeignKey('grupo.id'), primary_key=True)
+)
 class Supervisor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombres= db.Column(db.String(200), nullable=False)
@@ -124,40 +128,17 @@ class Test(db.Model):
         self.id_ejercicio_realizado = id_ejercicio_realizado
         self.path_test = path_test
         self.resultado = False
-
-    
-class Supervision(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    id_supervisor = db.Column(db.Integer, db.ForeignKey('supervisor.id'), nullable=False)
-    id_grupo = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)
-    
-    def __init__(self, id_supervisor, id_grupo):
-        self.id_supervisor = id_supervisor
-        self.id_grupo = id_grupo
-
-class Serie_asignada(db.Model):
-    # tabla para asignar una serie a un grupo de estudiantes
-    id = db.Column(db.Integer, primary_key=True)
-    id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
-    id_grupo = db.Column(db.Integer, db.ForeignKey('grupo.id'), nullable=False)  # Agregar el tipo de datos aquí
-    #id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    #calificacion = db.Column(db.Integer, nullable=True)
-    def __init__(self, id_serie, id_grupo, id_estudiante):
-        self.id_serie = id_serie
-        self.id_grupo = id_grupo
-        self.id_estudiante = id_estudiante
-
-
+        
 class Ejercicio_realizado(db.Model):
+    # Ejercicio_realizado tiene una relación one-to-one con Test y una relación one-to-many con Envio.
+    # uselist=False indica que la relación es one-to-one
     id = db.Column(db.Integer, primary_key=True)
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
     path = db.Column(db.String(200), nullable=False)
     fecha = db.Column(db.Date(), nullable=False)
     id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), nullable=False)
     test = db.relationship('Test', uselist=False, back_populates='ejercicio_realizado')
-    # uselist=False indica que la relación es one-to-one
     envios = db.relationship('Envio', back_populates='ejercicio_realizado')
-    #Ejercicio_realizado tiene una relación one-to-one con Test y una relación one-to-many con Envio.
     def __init__(self, id_ejercicio, id_estudiante, path, fecha):
         self.id_ejercicio = id_ejercicio
         self.id_estudiante = id_estudiante
@@ -165,14 +146,14 @@ class Ejercicio_realizado(db.Model):
         self.fecha = fecha
     
 class Curso(db.Model):
-    # Curso activo o no ?x
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
-    activa = db.Column(db.Boolean(), nullable=False)
+    activa = db.Column(db.Boolean(), nullable=False, default=True)
     estudiantes = db.relationship('Estudiante', secondary=inscripciones, back_populates='cursos')
     grupos = db.relationship('Grupo', order_by=Grupo.id, back_populates='curso')
-    def __init__(self, nombre):
+    def __init__(self, nombre, activa=True):
         self.nombre = nombre
+        self.activa = activa
 
 class Envio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
