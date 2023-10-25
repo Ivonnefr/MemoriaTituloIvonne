@@ -22,6 +22,7 @@ serie_asignada = db.Table('serie_grupo_asignacion',
     db.Column('id_serie', db.Integer, db.ForeignKey('serie.id'), primary_key=True),
     db.Column('id_grupo', db.Integer, db.ForeignKey('grupo.id'), primary_key=True)
 )
+
 class Supervisor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombres= db.Column(db.String(200), nullable=False)
@@ -117,50 +118,30 @@ class Estudiante(db.Model):
     def get_id(self):
         return f"e{self.id}"
     
-class Test(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    path_test = db.Column(db.String(200), nullable=False)
-    resultado = db.Column(db.Boolean(), nullable=False) 
-    id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
-    ejercicio_realizado = db.relationship('Ejercicio_realizado', back_populates='test')
-
-    def __init__(self, id_ejercicio_realizado, path_test):
-        self.id_ejercicio_realizado = id_ejercicio_realizado
-        self.path_test = path_test
-        self.resultado = False
-        
-class Ejercicio_realizado(db.Model):
-    # Ejercicio_realizado tiene una relación one-to-one con Test y una relación one-to-many con Envio.
-    # uselist=False indica que la relación es one-to-one
-    id = db.Column(db.Integer, primary_key=True)
-    id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), nullable=False)
-    path = db.Column(db.String(200), nullable=False)
-    fecha = db.Column(db.Date(), nullable=False)
-    id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), nullable=False)
-    test = db.relationship('Test', uselist=False, back_populates='ejercicio_realizado')
-    envios = db.relationship('Envio', back_populates='ejercicio_realizado')
-    def __init__(self, id_ejercicio, id_estudiante, path, fecha):
-        self.id_ejercicio = id_ejercicio
-        self.id_estudiante = id_estudiante
-        self.path = path
-        self.fecha = fecha
-    
 class Curso(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     activa = db.Column(db.Boolean(), nullable=False, default=True)
     estudiantes = db.relationship('Estudiante', secondary=inscripciones, back_populates='cursos')
     grupos = db.relationship('Grupo', order_by=Grupo.id, back_populates='curso')
+    
     def __init__(self, nombre, activa=True):
         self.nombre = nombre
         self.activa = activa
 
-class Envio(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    id_ejercicio_realizado = db.Column(db.Integer, db.ForeignKey('ejercicio_realizado.id'), nullable=False)
-    ejercicio_realizado = db.relationship('Ejercicio_realizado', back_populates='envios')
-    fecha = db.Column(db.Date(), nullable=False)
-    
-    def __init__(self, id_ejercicio_realizado, fecha):
-        self.id_ejercicio_realizado = id_ejercicio_realizado
-        self.fecha = fecha
+
+class Ejercicio_asignado(db.Model):
+    id_estudiante= db.Column(db.Integer, db.ForeignKey('estudiante.id'), primary_key=True)
+    id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), primary_key=True)
+    contador= db.Column(db.Integer, nullable=False)
+    estado= db.Column(db.Boolean(), nullable=False, default=False)
+    ultimo_envio = db.Column(db.String(), nullable=True)
+    fecha_ultimo_envio = db.Column(db.DateTime(), nullable=True)
+    test_output = db.Column(db.String(), nullable=True)
+
+    def __init__(self, contador, estado, ultimo_envio, fecha_ultimo_envio, test_output):
+        self.contador=contador
+        self.estado=estado
+        self.ultimo_envio=ultimo_envio
+        self.fecha_ultimo_envio=fecha_ultimo_envio
+        self.test_output=test_output

@@ -17,9 +17,9 @@ from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
-from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Test, serie_asignada, Ejercicio_realizado, Curso, Envio, inscripciones, estudiantes_grupos, supervisores_grupos
+from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
 from pathlib import Path
-import markdown
+#import markdown
 import csv
 #inicializar la aplicacion
 app = Flask(__name__)
