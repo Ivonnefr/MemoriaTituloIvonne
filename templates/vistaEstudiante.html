@@ -7,7 +7,7 @@
 <div class="row">
   <div class="container mt-5">
     <h1>Hola, {{estudiante.nombres}} {{estudiante.apellidos}}</h1>
-    <h2>Tu supervisor es: </h2>
+    <h2>Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}</h2>
   </div>
 </div>
 
@@ -24,16 +24,18 @@
 
 <div class="row">
   <div class="container mt-5">
-    <h2>Series Asignadas</h2>
+    <h2>Series de ejercicios asignadas</h2>
     <ul>
-      {% if ejercicios_por_serie %}
-        {% for serie, ejercicios in ejercicios_por_serie.items() %}
-          <li>{{ serie.nombre }}</li>
-          <ul>
-            {% for ejercicio in ejercicios %}
-              <li>{{ ejercicio.nombre }}</li>
-            {% endfor %}
-          </ul>
+      {% if seriesAsignadas %}
+              {% for serie in seriesAsignadas %}
+          <li>
+            <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" style="font-size:  2em;">{{serie.nombre}}</a>
+          </li>
+          {% for ejercicio in ejerciciosPorSerie[serie] %}
+            <li>
+              <a href="{{url_for('detallesEjercicioEstudiante', estudiante_id=estudiante_id, ejercicio_id=ejercicio.id)}}" style="font-size:  1em;">{{ejercicio.nombre}}</a>
+            </li>
+          {% endfor %}
         {% endfor %}
       {% else %}
         <li>No tienes series asignadas en este momento.</li>

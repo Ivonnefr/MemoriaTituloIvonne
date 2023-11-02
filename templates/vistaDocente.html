@@ -1,27 +1,73 @@
 {% extends 'layout.html' %}
 
 {% block title %}
-Vista Docente - {% if curso_seleccionado %}{{ curso_seleccionado }}{% endif %}
+Vista Docente -
 {% endblock %}
 
 {% block content %}
-
 <div class="container mt-5">
-  <h1>{% if curso_seleccionado%}{{curso_seleccionado}}{%endif%}
-
-  </h1>
+  <h1>{% if curso_seleccionado %}{{ curso_seleccionado.nombre }}{% else %}Seleccione un curso{% endif %}</h1>
 </div>
 
 <div class="container mt-5">
-  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" id="cursoForm">
+  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" id="cursoForm" class="form-inline">
      <input type="hidden" name="accion" value="seleccionarCurso">
-     <label for="curso">Selecciona un curso:</label>
-     <select name="curso" id="curso">
-       {% for curso in cursos %}
-         <option value="{{ curso.id }}">{{ curso.nombre }}</option>
-       {% endfor %}
-     </select>
-     <button type="submit">Seleccionar</button>
+     <div class="form-group">
+       <label for="curso" class="mr-2">Selecciona un curso:</label>
+       <select name="curso" id="curso" class="form-control mr-2">
+         {% for curso in cursos %}
+           <option value="{{ curso.id }}">{{ curso.nombre }}</option>
+         {% endfor %}
+       </select>
+     </div>
+     <button type="submit" class="btn btn-primary">Seleccionar</button>
   </form>
 </div>
+
+{% if grupos %}
+<div class="container mt-5">
+  <h2>Grupos Asociados al Curso</h2>
+  <ul>
+    {% for grupo in grupos %}
+      <li>{{ grupo.nombre }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="container mt-5">
+  <h3>Asignar serie a grupo</h3>
+  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" id="asignarSeries" class="form-inline">
+    <input type="hidden" name="accion" value="asignarSeries">
+    
+    <div class="form-group">
+      <select name="series" id="series" class="form-control mr-2">
+        {% if series %}
+          {% for serie in series %}
+            <option value="{{ serie.id }}">{{ serie.nombre }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="" disabled selected >No hay series disponibles</option>
+        {% endif %}
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <h3> a       </h3>
+      <select name="grupos" id="grupos" class="form-control mr-2">
+        {% if grupos %}
+          {% for grupo in grupos %}
+            <option value="{{ grupo.id }}">{{ grupo.nombre }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="" disabled selected >No hay grupos disponibles</option>
+        {% endif %}
+      </select>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">Asignar</button>
+  </form>
+</div>
+
+
 {% endblock %}

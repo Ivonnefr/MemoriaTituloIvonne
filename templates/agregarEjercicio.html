@@ -5,7 +5,8 @@
 {% block content %}
 <div class="container mt-5">
     <h1>Agregar nuevo ejercicio</h1>
-    
+    <h4>El nombre no puede contener más de 50 caracteres.</h4>
+
     <form method="post" action="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" enctype="multipart/form-data">
         <div class="form-group">
             <label for="nombreEjercicio">Nombre del Ejercicio: </label>

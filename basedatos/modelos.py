@@ -7,7 +7,7 @@ inscripciones = db.Table('inscripciones',
     db.Column('id_estudiante', db.Integer, db.ForeignKey('estudiante.id'), primary_key=True),
     db.Column('id_curso', db.Integer, db.ForeignKey('curso.id'), primary_key=True)
 )
-# Tabla de asociación entre Estudiantes y Grupos
+# Tabla de asociación entre E studiantes y Grupos
 estudiantes_grupos = db.Table('estudiantes_grupos',
     db.Column('id_estudiante', db.Integer, db.ForeignKey('estudiante.id'), primary_key=True),
     db.Column('id_grupo', db.Integer, db.ForeignKey('grupo.id'), primary_key=True)
@@ -18,7 +18,7 @@ supervisores_grupos = db.Table('supervisores_grupos',
     db.Column('id_grupo', db.Integer, db.ForeignKey('grupo.id'), primary_key=True)
 )
 # Tabla de asignación many-to-many para relacionar series y grupos
-serie_asignada = db.Table('serie_grupo_asignacion',
+serie_asignada = db.Table('serie_asignada',
     db.Column('id_serie', db.Integer, db.ForeignKey('serie.id'), primary_key=True),
     db.Column('id_grupo', db.Integer, db.ForeignKey('grupo.id'), primary_key=True)
 )

@@ -1,9 +1,12 @@
 package org.example;
 
-public class Sprite {
+public class Sprite extends Bebida{
     private int serie;
 
     public Sprite(int serie) {
-        this.serie = serie;
+        super(serie);
+    }
+    public String beber(){
+        return "bebida";
     }
 }

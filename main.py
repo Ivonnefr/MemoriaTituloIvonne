@@ -5,7 +5,7 @@ from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_sqlalchemy import SQLAlchemy
-from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators
+from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators, FileField
 from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
@@ -110,8 +110,6 @@ def procesar_archivo_csv(filename, curso_id):
                     flash(f'Error al inscribir a {nombres} {apellidos} en el curso.', 'warning')
                     continue
 
-
-            
 @login_manager.user_loader
 def load_user(user_id):
     if user_id.startswith("e"):
@@ -200,14 +198,14 @@ def register():
 
     if not nombres or not apellidos or not correo or not password:
         flash('Todos los campos son requeridos.', 'danger')
-        return render_template('registersupervisor.html')  # Asume que así se llama tu plantilla
-
+        return render_template('registersupervisor.html')
+    
     # Verifica si ya existe un supervisor con ese correo
     supervisor = Supervisor.query.filter_by(correo=correo).first()
     if supervisor:
         flash('Ya existe un supervisor con ese correo.', 'warning')
-        return render_template('registersupervisor.html')  # Asume que así se llama tu plantilla
-
+        return render_template('registersupervisor.html')
+    
     # Crea el nuevo supervisor
     new_supervisor = Supervisor(
         nombres=nombres,
@@ -221,7 +219,7 @@ def register():
     db.session.commit()
 
     flash('Supervisor registrado exitosamente.', 'success')
-    return redirect(url_for('home'))  # Asumiendo que 'home' es la función que maneja tu página de inicio.
+    return redirect(url_for('login'))
 
 @app.route('/dashDocente/<int:supervisor_id>', methods=['GET', 'POST'])
 @login_required
@@ -236,6 +234,8 @@ def dashDocente(supervisor_id):
     ejercicios_por_serie = {}  # Usaremos un diccionario vacío para llenarlo con los ejericios y pasarlo al template
 
     # Verificar si hay cursos, series y ejercicios
+    curso_seleccionado_id=None
+    grupos = []
     if not cursos:
         flash('No existen cursos, por favor crear un curso', 'danger')
         id_curso_seleccionado=None
@@ -245,21 +245,43 @@ def dashDocente(supervisor_id):
 
     if not ejercicios:
         flash('No existen ejercicios, por favor crear un ejercicio', 'danger')
-    # id_curso_seleccionado = request.form.get('curso'
-    # if request.method =='POST':
-    #     accion= request.form['accion']
-    #     if accion == 'seleccionarCurso':
-    #         id_curso_seleccionado = request.form['curso']
-    #         flash(f'se cambio el curso a {id_curso_seleccionado}', 'success')
-    #         return redirect(url_for('dashDocente', supervisor_id=supervisor_id,id_curso_seleccionado=id_curso_seleccionado))
 
-    # # Agregar los ejercicios a las listas correspondientes en el diccionario
-    # if ejercicios:
-    #     for ejercicio in ejercicios:
-    #         if ejercicio.id_serie in ejercicios_por_serie:
-    #             ejercicios_por_serie.setdefault(ejercicio.id_serie, []).append(ejercicio)
+    # Si no se selecciona un curso o se selecciona el primer curso, busca los grupos del primer curso en tu base de datos.
+    if curso_seleccionado_id is None or curso_seleccionado_id == 1:  # Ajusta el 1 al ID del primer curso en tu base de datos
+        # primer_curso = Curso.query.get(1)  # Obtén el primer curso por ID
+        primer_curso = session.get(1)
+        if primer_curso:
+            grupos = Grupo.query.filter_by(id_curso=curso_seleccionado_id)
 
-    return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos)
+    if request.method == 'POST':
+        if request.form['accion']=='seleccionarCurso':
+            curso_seleccionado_id = int(request.form['curso'])
+            # Con el ID del curso seleccionado, se obtienen los grupos asociados
+            grupos = Grupo.query.filter_by(id_curso=curso_seleccionado_id).all()
+            series = Serie.query.all()
+            return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos, id_curso_seleccionado=curso_seleccionado_id,series=series)
+        if request.form['accion']=='asignarSeries':
+            serie_seleccionada= request.form.get('series')
+            grupo_seleccionado= request.form.get('grupos')
+            try:
+                if serie_seleccionada and grupo_seleccionado: 
+                    db.session.execute(serie_asignada.insert().values(id_serie=serie_seleccionada, id_grupo=grupo_seleccionado))
+                    db.session.commit()
+                    flash('Serie asignada con éxito', 'success')
+                    grupos = Grupo.query.filter_by(id_curso=curso_seleccionado_id).all()
+                    series = Serie.query.all()
+                    return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+            except Exception as e:
+                db.session.rollback()
+                flash('Error al asignar la serie', 'danger')
+                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+
+    # Luego, busca los grupos asociados al curso seleccionado, si hay uno.
+    grupos = []
+    if curso_seleccionado_id is not None:
+        grupos = Grupo.query.filter_by(curso_id=curso_seleccionado_id).all()
+
+    return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos, curso_seleccionado_id=curso_seleccionado_id,series=series)
 
 @app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
 @login_required
@@ -296,45 +318,47 @@ def agregarSerie(supervisor_id):
 def agregarEjercicio(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
-
+    # --->Restringir la cantidad de caracteres del enunciado<---
+    # Falta agregar la opcion de recibir el archivo con el .java de los test unitarios
+    # se debe guardar en: ./id_serie_nombre_serie/id_ejercicio/src/test/java/org/example
     series = Serie.query.all()
-
+    
     if request.method == 'POST':
         nombreEjercicio = request.form.get('nombreEjercicio')
         id_serie = request.form.get('id_serie')
-        serie_actual = db.session.get(Serie, int(id_serie))
         enunciadoFile = request.files.get('enunciadoFile')
-
+        serie_actual = db.session.get(Serie, int(id_serie))
         if not enunciadoFile:
             flash('Por favor, carga un archivo .md.', 'danger')
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
         filename = secure_filename(enunciadoFile.filename)
-
-        nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado=filename, id_serie=id_serie)
-
+        nuevoNombre= nombreEjercicio + "_" + serie_actual.nombre + ".md"
+        nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
+        rutaEnunciadoEjercicios = './enunciadosEjercicios'
         try:
             db.session.add(nuevo_ejercicio)
             db.session.flush()  # Esto genera el id sin confirmar en la base de datos
 
             ruta_ejercicio, mensaje = crear_carpeta_ejercicio(id_serie, serie_actual.nombre, nuevo_ejercicio.id)
-
+            
             if ruta_ejercicio is None:
                 raise Exception(mensaje)
             
-            filepath_ejercicio = os.path.join(ruta_ejercicio, filename)
-            
-            enunciadoFile.save(filepath_ejercicio)
-            
-            nuevo_ejercicio.path_ejercicio = filepath_ejercicio
-            db.session.commit()
+            filepath_ejercicio = ruta_ejercicio
+            nuevoNombre = "ejercicio" + str(nuevo_ejercicio.id) + "_serie_" + str(serie_actual.id) + ".md"
 
+            enunciadoFile.save(os.path.join(rutaEnunciadoEjercicios, nuevoNombre))
+            
+            nuevo_ejercicio.path_ejercicio = ruta_ejercicio
+            nuevo_ejercicio.enunciado = os.path.join(rutaEnunciadoEjercicios, nuevoNombre)
+            db.session.commit()
         except Exception as e:
             db.session.rollback()
 
-            if 'filepath_ejercicio' in locals() and os.path.exists(filepath_ejercicio):
+            if filepath_ejercicio and os.path.exists(filepath_ejercicio):
                 os.remove(filepath_ejercicio)
-            
+
             flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
@@ -342,7 +366,6 @@ def agregarEjercicio(supervisor_id):
         return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
-
 
 @app.route('/dashDocente/<int:supervisor_id>/serie/<int:id>')
 @login_required
@@ -353,7 +376,6 @@ def detallesSeries(supervisor_id, id):
     serie = Serie.query.get(id)
     ejercicios = Ejercicio.query.filter_by(id_serie=id).all()
     return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id)
-
 
 @app.route('/dashDocente/<int:supervisor_id>/ejercicio/<int:id>')
 @login_required
@@ -411,7 +433,6 @@ def registrarEstudiantes(supervisor_id):
             
     return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
 
-
 @app.route('/dashDocente/<int:supervisor_id>/verCursos', methods=['GET','POST'])
 @login_required
 def verCursos(supervisor_id):
@@ -427,7 +448,6 @@ def verCursos(supervisor_id):
     
     return render_template('verCursos.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos)
 
-
 @app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>', methods=['GET','POST'])
 @login_required
 def detallesCurso(supervisor_id, curso_id):
@@ -435,7 +455,6 @@ def detallesCurso(supervisor_id, curso_id):
     grupos=Grupo.query.filter_by(id_curso=curso_id).all()
     estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
     return(render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, estudiantes_curso=estudiantes_curso))
-
 
 @app.route('/dashDocente/<int:supervisor_id>/asignarGrupos/<int:curso_id>', methods=['GET', 'POST'])
 @login_required
@@ -471,12 +490,12 @@ def asignarGrupos(supervisor_id, curso_id):
 
             try:
                 # Verificar si el grupo ya existe
-
                 flash(f'estudiantes seleccionados: {estudiantes_seleccionados_ids}', 'danger')
                 nuevo_grupo=Grupo(nombre=nombre_grupo, id_curso=id_curso_seleccionado)
                 db.session.add(nuevo_grupo)
                 db.session.commit()
                 flash('Grupo creado con éxito', 'success')
+
             except Exception as e:
                 db.session.rollback()
                 flash('Error al crear el grupo', 'danger')
@@ -492,6 +511,17 @@ def asignarGrupos(supervisor_id, curso_id):
                     except Exception as e:
                         db.session.rollback()
                         flash('Error al asignar estudiantes', 'danger')
+                try:
+                    nuevo_registro= supervisores_grupos.insert().values(
+                        id_supervisor=supervisor_id,
+                        id_grupo=nuevo_grupo.id
+                    )
+                    db.session.execute(nuevo_registro)
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    flash('Error al asignar el supervisor al grupo','danger')
+
     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, curso_seleccionado=curso_id,estudiantes_curso=estudiantes_curso)
 
 # boton de seleccionar todo los estudiantes 
@@ -509,36 +539,8 @@ def dashEstudiante(estudiante_id):
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
     # Si el método es get muestra el dashBoard del Estudiante
-    estudiante= Estudiante.query.get(estudiante_id)
-        # Obtiene el supervisor asignado
-    # supervisor = (
-    #     Supervisor.query
-    #     .join(supervisores_grupos)  # Join con la tabla supervisores_grupos
-    #     .filter(supervisores_grupos.c.id_supervisor == Supervisor.id)
-    #     .filter(supervisores_grupos.c.id_grupo == estudiante.grupos[0].id)  # Suponiendo que el estudiante está en un solo grupo
-    #     .first()
-    # )
-
-    # Obtiene el grupo asociado al estudiante
-    # Obtiene el grupo asignado
-    # Obtiene el grupo asignado (si existe)
-    # Obtiene el grupo asignado (si existe)
-    grupo = (
-        Grupo.query
-        .join(estudiantes_grupos)  # Join con la tabla estudiantes_grupos
-        .filter(estudiantes_grupos.c.id_grupo == Grupo.id)
-        .filter(estudiantes_grupos.c.id_estudiante == estudiante_id)
-        .first()
-    )
-
-    # Si no se encuentra ningún grupo asignado, grupo será None
-    # En tu ruta de Flask, asegúrate de manejar el caso en el que grupo es None
-    if not grupo:
-        grupo_nombre = "Ningún grupo asignado"  # O cualquier otro mensaje que desees
-    else:
-        grupo_nombre = grupo.nombre
-
-    # Ahora, puedes usar grupo_nombre en tu plantilla en lugar de grupo.id
+    # estudiante= Estudiante.query.get(estudiante_id)
+    estudiante = db.session.get(Estudiante, int(estudiante_id))
 
     # Obtiene el curso asignado al estudiante
     curso = (
@@ -548,23 +550,70 @@ def dashEstudiante(estudiante_id):
         .filter(inscripciones.c.id_estudiante == estudiante_id)
         .first()
     )
+    # Obtiene el grupo asociado al estudiante
+    grupo = (
+        Grupo.query
+        .join(estudiantes_grupos)  # Join con la tabla estudiantes_grupos
+        .filter(estudiantes_grupos.c.id_grupo == Grupo.id)
+        .filter(estudiantes_grupos.c.id_estudiante == estudiante_id)
+        .first()
+    )
+    # Obtiene el supervisor asignado
+    supervisor = (
+        Supervisor.query
+        .join(supervisores_grupos)  # Join con la tabla supervisores_grupos
+        .filter(supervisores_grupos.c.id_supervisor == Supervisor.id)
+        .filter(supervisores_grupos.c.id_grupo == grupo.id)  # Suponiendo que el estudiante está en un solo grupo
+        .first()
+    )
+    # Si no se encuentra ningún grupo asignado, grupo será None
+    if not grupo:
+        grupo_nombre = "Ningún grupo asignado"
+    else:
+        grupo_nombre = grupo.nombre
 
-    # Verifica si el estudiante tiene un grupo asignado antes de consultar las series asignadas
-    # series_asignadas = []
-    # if grupo:
-    #     series_asignadas = serie_asignada.query.filter_by(id_grupo=grupo.id).all()
+    # Obtiene la serie asignada al estudiante
+    # Obtiene todas las series asignadas al grupo del estudiante
+    seriesAsignadas = (
+        Serie.query
+        .join(serie_asignada)  # Unirse a la tabla de asignación de series
+        .filter(serie_asignada.c.id_grupo == grupo.id)  # Filtrar por el ID del grupo
+        .all()  # Obtener todas las series asignadas al grupo
+    )
 
-    # ejercicios_por_serie = {}
+    # A continuación, puedes obtener los ejercicios para cada serie en series_asignadas
+    ejerciciosPorSerie = {}
+    for serieAsignada in seriesAsignadas:
+        if serieAsignada:
+            serie = session.get(serieAsignada.id)
+            if serie:
+                ejercicios = Ejercicio.query.filter_by(id_serie=serie.id).all()
+                ejerciciosPorSerie[serie] = ejercicios
 
-    # for serie_asignada in series_asignadas:
-    #     serie = Serie.query.get(serie_asignada.id_serie)
-    #     ejercicios = Ejercicio.query.filter_by(id_serie=serie.id).all()
-    #     ejercicios_por_serie[serie] = ejercicios
 
 
-    return render_template('vistaEstudiante.html', estudiante_id=estudiante_id, estudiante=estudiante,grupo=grupo, curso=curso)
+    return render_template('vistaEstudiante.html', estudiante_id=estudiante_id, estudiante=estudiante,grupo=grupo, curso=curso, supervisor=supervisor,seriesAsignadas=seriesAsignadas,ejerciciosPorSerie=ejerciciosPorSerie)
 
-# #Ruta para subir archivo java
+@app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:id>', methods=['GET', 'POST'])
+@login_required
+def detallesSeriesEstudiante(estudiante_id, id_serie):
+
+    if not verify_estudiante(estudiante_id):
+        return redirect(url_for('login'))
+    
+    serie = session.get(id_serie)
+    ejercicios = Ejercicio.query.filter_by(id_serie=id).all()
+    return render_template('detallesSerieEstudiante.html', serie=serie, ejercicios=ejercicios, estudiante_id=estudiante_id)
+
+@app.route('/dashEstudiante/<int:estudiante_id>/ejercicio/<int:id>', methods=['GET', 'POST'])
+@login_required
+def detallesEjercicioEstudiante(estudiante_id, id):
+    if not verify_estudiante(estudiante_id):
+        return redirect(url_for('login'))
+    ejercicio = Ejercicio.query.get(id)
+    return render_template('detallesEjerciciosEstudiante.html', ejercicio=ejercicio, estudiante_id=estudiante_id)
+
+# Ruta para subir archivo java
 # @app.route('/upload_file', methods=['GET',"POST"])
 # def upload_file():  
 #     form = UploadFileForm()
@@ -575,18 +624,18 @@ def dashEstudiante(estudiante_id):
 #             filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
 #             file.save(filepath)
 #             print(filepath)
-#             #Cuando se sube un archivo se compila y luego se quitan los packages
-#             #Revisar que el archivo compile exitosamente
+#             Cuando se sube un archivo se compila y luego se quitan los packages
+#             Revisar que el archivo compile exitosamente
 #             eliminar_packages(filepath)
             
 #             compilar_archivo_java(filepath)
-#             #luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
+#             luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
 #         else:
-#             #Hacer esto en la misma página y no como return
+#             Hacer esto en la misma página y no como return
 #             return "Tipo de archivo invalido, enviar solo archivos .java ."
 
-#         # file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
-#         # return "File has been uploaded."
+#         file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
+#         return "File has been uploaded."
     
 #     return render_template('upload_file.html', form=form)
 
@@ -595,7 +644,6 @@ def dashEstudiante(estudiante_id):
 def pagina_no_encontrada(error):
     return render_template('404.html'), 404
     #return redirect(url_for('index')) #te devuelve a esa página
-
 
 #Ruta para ejecutar el script
 if __name__ == '__main__':
