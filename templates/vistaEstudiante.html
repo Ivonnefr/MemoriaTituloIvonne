@@ -33,7 +33,7 @@
           </li>
           {% for ejercicio in ejerciciosPorSerie[serie] %}
             <li>
-              <a href="{{url_for('detallesEjercicioEstudiante', estudiante_id=estudiante_id, ejercicio_id=ejercicio.id)}}" style="font-size:  1em;">{{ejercicio.nombre}}</a>
+              <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size:  1em;">{{ejercicio.nombre}}</a>
             </li>
           {% endfor %}
         {% endfor %}

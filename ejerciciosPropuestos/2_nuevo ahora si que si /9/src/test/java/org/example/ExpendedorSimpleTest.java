@@ -22,9 +22,7 @@ class ExpendedorSimpleTest {
     public void testComprarUnaBebida() throws Exception {
         System.out.println("comprarUnaBebida");
         int pago = 1000;
-        bebida1 b1= new bebida1();
         assertNotNull(expendedorSimple.comprarBebida(pago));
-
 
     }
 

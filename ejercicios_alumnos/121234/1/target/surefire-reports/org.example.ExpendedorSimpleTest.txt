@@ -1,14 +1,14 @@
 -------------------------------------------------------------------------------
 Test set: org.example.ExpendedorSimpleTest
 -------------------------------------------------------------------------------
-Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.093 s <<< FAILURE! - in org.example.ExpendedorSimpleTest
-org.example.ExpendedorSimpleTest.testComprarBebidaSinSuficienteMoneda  Time elapsed: 0.012 s  <<< FAILURE!
+Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.073 s <<< FAILURE! - in org.example.ExpendedorSimpleTest
+org.example.ExpendedorSimpleTest.testComprarBebidaSinSuficienteMoneda  Time elapsed: 0.004 s  <<< FAILURE!
 org.opentest4j.AssertionFailedError: Expected org.example.PagoInsuficienteException to be thrown, but nothing was thrown.
 	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
 	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:73)
 	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:35)
 	at org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3083)
-	at org.example.ExpendedorSimpleTest.testComprarBebidaSinSuficienteMoneda(ExpendedorSimpleTest.java:54)
+	at org.example.ExpendedorSimpleTest.testComprarBebidaSinSuficienteMoneda(ExpendedorSimpleTest.java:56)
 	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
 	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:725)

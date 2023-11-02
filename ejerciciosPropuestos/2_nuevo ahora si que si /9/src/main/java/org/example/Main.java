@@ -7,12 +7,4 @@ public class Main {
         ExpendedorSimple es = new ExpendedorSimple(2);
 
     }
-
-    
-}
-
-class bebida1{
-    public bebida1(){
-        
-    }
 }

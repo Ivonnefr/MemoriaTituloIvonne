@@ -1,9 +1,35 @@
 {% extends 'layout.html' %}
 
-
 {% block title %}
+Ejercicio {{ ejercicio.nombre }}
 {% endblock %}
 
-
 {% block content %}
+<h1>{{ejercicio.nombre}}</h1>
+
+
+<div class="row">
+    <div class="container mt-5">
+        <div class="enunciado-ejercicio">
+            {{ enunciado|safe }}
+        </div>
+    </div>
+</div>
+
+
+
+<div class="row">
+    Recibir mas de 1 archivo en el form
+    <div class=" container mt-5">
+        <form method="POST" action="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id) }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="archivo_java">Selecciona archivos .java</label>
+                <input type="file" class="form-control-file" name="archivo_java" accept=".java" multiple>
+            </div>
+            <button type="submit" class="btn btn-primary">Subir Solución</button>
+        </form>              
+    </div>
+</div>
+
+
 {% endblock %}

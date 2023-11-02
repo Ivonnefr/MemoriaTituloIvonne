@@ -19,7 +19,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
 from pathlib import Path
-#import markdown
+import markdown
 import csv
 #inicializar la aplicacion
 app = Flask(__name__)
@@ -584,36 +584,96 @@ def dashEstudiante(estudiante_id):
     # A continuación, puedes obtener los ejercicios para cada serie en series_asignadas
     ejerciciosPorSerie = {}
     for serieAsignada in seriesAsignadas:
-        if serieAsignada:
-            serie = session.get(serieAsignada.id)
-            if serie:
-                ejercicios = Ejercicio.query.filter_by(id_serie=serie.id).all()
-                ejerciciosPorSerie[serie] = ejercicios
-
-
+        ejercicios = Ejercicio.query.filter_by(id_serie=serieAsignada.id).all()
+        ejerciciosPorSerie[serieAsignada] = ejercicios
 
     return render_template('vistaEstudiante.html', estudiante_id=estudiante_id, estudiante=estudiante,grupo=grupo, curso=curso, supervisor=supervisor,seriesAsignadas=seriesAsignadas,ejerciciosPorSerie=ejerciciosPorSerie)
 
-@app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:id>', methods=['GET', 'POST'])
+@app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:serie_id>', methods=['GET', 'POST'])
 @login_required
-def detallesSeriesEstudiante(estudiante_id, id_serie):
+def detallesSeriesEstudiantes(estudiante_id, serie_id):
 
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
     
-    serie = session.get(id_serie)
-    ejercicios = Ejercicio.query.filter_by(id_serie=id).all()
+    serie = db.session.get(Serie, serie_id)
+    ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
     return render_template('detallesSerieEstudiante.html', serie=serie, ejercicios=ejercicios, estudiante_id=estudiante_id)
 
-@app.route('/dashEstudiante/<int:estudiante_id>/ejercicio/<int:id>', methods=['GET', 'POST'])
+@app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>', methods=['GET', 'POST'])
 @login_required
-def detallesEjercicioEstudiante(estudiante_id, id):
+def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
-    ejercicio = Ejercicio.query.get(id)
-    return render_template('detallesEjerciciosEstudiante.html', ejercicio=ejercicio, estudiante_id=estudiante_id)
 
-# Ruta para subir archivo java
+    # Obtén el ejercicio y su ruta de enunciado desde la base de datos
+    serie = Serie.query.get(serie_id)
+    ejercicio = Ejercicio.query.get(ejercicio_id)
+
+    # Asegúrate de que la ruta de enunciado del ejercicio no esté vacía
+    if ejercicio and ejercicio.enunciado:
+        # Lee el contenido del archivo de enunciado con Python-Markdown
+        with open(ejercicio.enunciado, 'r') as enunciado_file:
+            enunciado_markdown = enunciado_file.read()
+            # Convierte el Markdown en HTML
+            enunciado_html = markdown.markdown(enunciado_markdown)
+    else:
+        enunciado_html = "<p>El enunciado no está disponible.</p>"
+
+    if request.method == 'POST':
+        archivos_java = request.files.getlist('archivo_java')
+        
+        for archivo_java in archivos_java:
+            if archivo_java and archivo_java.filename.endswith('.java'):
+                # Guarda el archivo en una ubicación deseada
+                ruta_destino = os.path.join('ruta_de_guardado', f'estudiante_{estudiante_id}', f'ejercicio_{ejercicio_id}')
+                os.makedirs(ruta_destino, exist_ok=True)
+                archivo_java.save(os.path.join(ruta_destino, archivo_java.filename))
+
+    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
+
+
+
+# @app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>', methods=['GET', 'POST'])
+# @login_required
+# def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
+#     if not verify_estudiante(estudiante_id):
+#         return redirect(url_for('login'))
+
+#     # Obtén el ejercicio y su ruta de enunciado desde la base de datos
+#     serie = Serie.query.get(serie_id)
+#     ejercicio = Ejercicio.query.get(ejercicio_id)
+
+#     # Asegúrate de que la ruta de enunciado del ejercicio no esté vacía
+#     if ejercicio and ejercicio.enunciado:
+#         # Lee el contenido del archivo de enunciado con Python-Markdown
+#         with open(ejercicio.enunciado, 'r') as enunciado_file:
+#             enunciado_markdown = enunciado_file.read()
+#             # Convierte el Markdown en HTML
+#             enunciado_html = markdown.markdown(enunciado_markdown)
+#     else:
+#         enunciado_html = "<p>El enunciado no está disponible.</p>"
+#     # ---> EN QUE PARTE DEBO CREAR LA CARPETA DEL ESTUDIANTE ??????????????
+#     # ---> Crearlas todas juntas de una serie cuando son asignadas por estudiante o cuando sube el archivo??
+
+#     if request.method == 'POST':
+#         # Recibo mas de un archivo...
+#         archivo_java = request.files['archivo_java']
+#         if archivo_java and archivo_java.filename.endswith('.java'):
+#             # Guarda el archivo en una ubicación deseada
+#             ruta_destino = os.path.join('ruta_de_guardado', f'estudiante_{estudiante_id}', f'ejercicio_{ejercicio_id}')
+#             os.makedirs(ruta_destino, exist_ok=True)
+#             archivo_java.save(os.path.join(ruta_destino, archivo_java.filename))
+#             # Compilar el archivo usando funcion de compilar_archivo_java
+#             compilar_archivo_java(os.path.join(ruta_destino, archivo_java.filename))
+#             # Eliminar packages usando funcion de eliminar_packages
+#             eliminar_packages(os.path.join(ruta_destino, archivo_java.filename))
+#             # Eliminar .java
+
+#             # Ejecutar test unitarios
+#     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
+
+# # Ruta para subir archivo java
 # @app.route('/upload_file', methods=['GET',"POST"])
 # def upload_file():  
 #     form = UploadFileForm()
@@ -624,14 +684,14 @@ def detallesEjercicioEstudiante(estudiante_id, id):
 #             filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
 #             file.save(filepath)
 #             print(filepath)
-#             Cuando se sube un archivo se compila y luego se quitan los packages
-#             Revisar que el archivo compile exitosamente
+#             # Cuando se sube un archivo se compila y luego se quitan los packages
+#             # Revisar que el archivo compile exitosamente
 #             eliminar_packages(filepath)
             
 #             compilar_archivo_java(filepath)
-#             luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
+#             # luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
 #         else:
-#             Hacer esto en la misma página y no como return
+#             # Hacer esto en la misma página y no como return
 #             return "Tipo de archivo invalido, enviar solo archivos .java ."
 
 #         file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
@@ -700,3 +760,7 @@ if __name__ == '__main__':
 #     return redirect(url_for('home'))
 # ssh ivonne@pa3p2.inf.udec.cl
 # mail5@udec.cl     
+
+# Guardar el mismo nombre para todo en ejercicio_numero_serie_numero
+# Viusalizacion de salida? con errores o no ?
+# Sistema de notas feedback
