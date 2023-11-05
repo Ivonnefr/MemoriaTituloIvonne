@@ -11,7 +11,7 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
 from funciones_archivo.delete_packages import eliminar_packages
-from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante, crear_carpeta_serie, crear_carpeta_ejercicio
+from funciones_archivo.manejoCarpetas import agregarCarpetaMavenEstudiante, crear_carpeta_serie, crear_carpeta_ejercicio, crearArchivadorEstudiante
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
 from funciones_archivo.process_surefire_reports import procesar_surefire_reports
@@ -333,23 +333,25 @@ def agregarEjercicio(supervisor_id):
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
         filename = secure_filename(enunciadoFile.filename)
-        nuevoNombre= nombreEjercicio + "_" + serie_actual.nombre + ".md"
         nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
         rutaEnunciadoEjercicios = './enunciadosEjercicios'
+        nuevoNombre= str(nuevo_ejercicio.id) + "ejercicio.md"
+        
+        filepath_ejercicio = None
+
         try:
             db.session.add(nuevo_ejercicio)
-            db.session.flush()  # Esto genera el id sin confirmar en la base de datos
+            db.session.flush()
+            ruta_ejercicio, mensaje = crear_carpeta_ejercicio(nuevo_ejercicio.id, id_serie, serie_actual.nombre)
 
-            ruta_ejercicio, mensaje = crear_carpeta_ejercicio(id_serie, serie_actual.nombre, nuevo_ejercicio.id)
-            
             if ruta_ejercicio is None:
                 raise Exception(mensaje)
-            
+
             filepath_ejercicio = ruta_ejercicio
             nuevoNombre = "ejercicio" + str(nuevo_ejercicio.id) + "_serie_" + str(serie_actual.id) + ".md"
 
             enunciadoFile.save(os.path.join(rutaEnunciadoEjercicios, nuevoNombre))
-            
+
             nuevo_ejercicio.path_ejercicio = ruta_ejercicio
             nuevo_ejercicio.enunciado = os.path.join(rutaEnunciadoEjercicios, nuevoNombre)
             db.session.commit()
@@ -359,6 +361,7 @@ def agregarEjercicio(supervisor_id):
             if filepath_ejercicio and os.path.exists(filepath_ejercicio):
                 os.remove(filepath_ejercicio)
 
+            # Si se produce un error con la base de datos después de crear la carpeta, puedes eliminarla aquí
             flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
@@ -609,7 +612,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     # Obtén el ejercicio y su ruta de enunciado desde la base de datos
     serie = Serie.query.get(serie_id)
     ejercicio = Ejercicio.query.get(ejercicio_id)
-
+    matricula= Estudiante.query.get(estudiante_id).matricula
     # Asegúrate de que la ruta de enunciado del ejercicio no esté vacía
     if ejercicio and ejercicio.enunciado:
         # Lee el contenido del archivo de enunciado con Python-Markdown
@@ -622,7 +625,19 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
 
     if request.method == 'POST':
         archivos_java = request.files.getlist('archivo_java')
+        # Crear la carpeta del estudiante con la serie y el ejercicio.
+        # LLamar a copy_maven_folder para copiar la carpeta maven en la carpeta del estudiante
+        # La carpeta del ejercicio está guardada en ejerciciosPropuestos/numeroserie_nombredeserie/id_ejercicio
+        try:
+            rutaArchivador = crearArchivadorEstudiante(matricula)
+        except Exception as e:
+            flash(f'Ocurrió un error al crear el archivador: {str(e)}', 'danger')
+            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
+
+        # Luego de crear la carpeta con la matricula del estudiante, se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
         
+
+
         for archivo_java in archivos_java:
             if archivo_java and archivo_java.filename.endswith('.java'):
                 # Guarda el archivo en una ubicación deseada

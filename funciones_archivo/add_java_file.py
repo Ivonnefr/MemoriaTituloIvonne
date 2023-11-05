@@ -1,5 +1,5 @@
 import os, shutil
-from funciones_archivo.copy_maven_folder import agregarCarpetaMavenEstudiante
+from funciones_archivo.manejoCarpetas import agregarCarpetaMavenEstudiante
 def agregar_archivo_java(matricula, numero_ejercicio, archivo_java):
     #Funcion que agrega el archivo_java subido por el alumno a la carpeta con los ejercicios del alumno.
     #Recibe la matricula del alumno, el numero del ejercicio y la ruta del archivo .java
