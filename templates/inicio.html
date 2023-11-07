@@ -8,21 +8,10 @@ Inicio
 <h1>Bienvenido a la Plataforma Nombre</h1>
 <p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
 
-<!-- Mostrar mensajes flash -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
-
 <!-- Resto del código de tu formulario ... -->
 
 <div class="row justify-content-center">
-  <div class="col-4">
+  <div class="col-7">
     <h2>Iniciar sesión</h2>
     <!-- Asegúrate de especificar el método POST y la acción /login para el formulario -->
     <form method="POST" action="{{ url_for('login') }}">

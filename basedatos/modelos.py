@@ -133,7 +133,7 @@ class Curso(db.Model):
 class Ejercicio_asignado(db.Model):
     id_estudiante= db.Column(db.Integer, db.ForeignKey('estudiante.id'), primary_key=True)
     id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), primary_key=True)
-    contador= db.Column(db.Integer, nullable=False)
+    contador= db.Column(db.Integer, nullable=False, default=0)
     estado= db.Column(db.Boolean(), nullable=False, default=False)
     ultimo_envio = db.Column(db.String(), nullable=True)
     fecha_ultimo_envio = db.Column(db.DateTime(), nullable=True)

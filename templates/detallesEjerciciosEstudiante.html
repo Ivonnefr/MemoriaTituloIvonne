@@ -19,11 +19,10 @@ Ejercicio {{ ejercicio.nombre }}
 
 
 <div class="row">
-    Recibir mas de 1 archivo en el form
     <div class=" container mt-5">
         <form method="POST" action="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id) }}" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="archivo_java">Selecciona archivos .java</label>
+                <label for="archivo_java">Selecciona tus archivos .java (Proyecto/src/main/java/org/example)</label>
                 <input type="file" class="form-control-file" name="archivo_java" accept=".java" multiple>
             </div>
             <button type="submit" class="btn btn-primary">Subir Solución</button>

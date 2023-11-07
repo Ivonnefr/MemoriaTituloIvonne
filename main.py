@@ -10,11 +10,11 @@ from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.compile_java import compilar_archivo_java
 from funciones_archivo.run_unit_test import ejecutar_test_unitario
-from funciones_archivo.delete_packages import eliminar_packages
-from funciones_archivo.manejoCarpetas import agregarCarpetaMavenEstudiante, crear_carpeta_serie, crear_carpeta_ejercicio, crearArchivadorEstudiante
+from funciones_archivo.manejoArchivosJava import eliminar_packages
+from funciones_archivo.manejoCarpetas import agregarCarpetaSerieEstudiante,crear_carpeta_serie, crear_carpeta_ejercicio, crearArchivadorEstudiante, agregarCarpetaEjercicioEstudiante
 from funciones_archivo.add_java_file import agregar_archivo_java
 from funciones_archivo.add_packages import agregar_package
-from funciones_archivo.process_surefire_reports import procesar_surefire_reports
+from funciones_archivo.manejoMaven import procesar_surefire_reports
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
@@ -327,33 +327,45 @@ def agregarEjercicio(supervisor_id):
         nombreEjercicio = request.form.get('nombreEjercicio')
         id_serie = request.form.get('id_serie')
         enunciadoFile = request.files.get('enunciadoFile')
+        imagenesFiles = request.files.getlist('imagenesFiles')
+        unitTestFile = request.files.getlist('archivosJava')
         serie_actual = db.session.get(Serie, int(id_serie))
-        if not enunciadoFile:
-            flash('Por favor, carga un archivo .md.', 'danger')
+
+        # Recuperamos el nombre del archivo de test unitario
+        if not any(allowed_file(file.filename, '.java') for file in unitTestFile):
+            flash('Por favor, carga al menos un archivo .java.', 'danger')
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
-        filename = secure_filename(enunciadoFile.filename)
+
         nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
-        rutaEnunciadoEjercicios = './enunciadosEjercicios'
         nuevoNombre= str(nuevo_ejercicio.id) + "ejercicio.md"
-        
         filepath_ejercicio = None
 
         try:
             db.session.add(nuevo_ejercicio)
             db.session.flush()
-            ruta_ejercicio, mensaje = crear_carpeta_ejercicio(nuevo_ejercicio.id, id_serie, serie_actual.nombre)
+            rutaEjercicio,rutaEnunciadoEjercicios, mensaje = crear_carpeta_ejercicio(nuevo_ejercicio.id, id_serie, serie_actual.nombre)
 
-            if ruta_ejercicio is None:
+            if rutaEjercicio is None:
                 raise Exception(mensaje)
 
-            filepath_ejercicio = ruta_ejercicio
-            nuevoNombre = "ejercicio" + str(nuevo_ejercicio.id) + "_serie_" + str(serie_actual.id) + ".md"
+            filepath_ejercicio = rutaEjercicio
+            nuevoNombre = str(nuevo_ejercicio.id) + "_" + str(nuevo_ejercicio.nombre) + ".md"
 
             enunciadoFile.save(os.path.join(rutaEnunciadoEjercicios, nuevoNombre))
 
-            nuevo_ejercicio.path_ejercicio = ruta_ejercicio
+            nuevo_ejercicio.path_ejercicio = rutaEjercicio
             nuevo_ejercicio.enunciado = os.path.join(rutaEnunciadoEjercicios, nuevoNombre)
+
+            # Itera a través de las imágenes y guárdalas en la misma carpeta
+            for imagenFile in imagenesFiles:
+                imagen_filename = secure_filename(imagenFile.filename)
+                imagenFile.save(os.path.join(rutaEnunciadoEjercicios, imagen_filename))
+
+            ubicacionTest = os.path.join(rutaEjercicio, "src/test/java/org/example")
+            for unitTest in unitTestFile:
+                nombre_archivo = secure_filename(unitTest.filename)
+                unitTest.save(os.path.join(ubicacionTest, nombre_archivo))
             db.session.commit()
         except Exception as e:
             db.session.rollback()
@@ -561,28 +573,35 @@ def dashEstudiante(estudiante_id):
         .filter(estudiantes_grupos.c.id_estudiante == estudiante_id)
         .first()
     )
-    # Obtiene el supervisor asignado
-    supervisor = (
-        Supervisor.query
-        .join(supervisores_grupos)  # Join con la tabla supervisores_grupos
-        .filter(supervisores_grupos.c.id_supervisor == Supervisor.id)
-        .filter(supervisores_grupos.c.id_grupo == grupo.id)  # Suponiendo que el estudiante está en un solo grupo
-        .first()
-    )
     # Si no se encuentra ningún grupo asignado, grupo será None
     if not grupo:
         grupo_nombre = "Ningún grupo asignado"
     else:
         grupo_nombre = grupo.nombre
 
-    # Obtiene la serie asignada al estudiante
-    # Obtiene todas las series asignadas al grupo del estudiante
-    seriesAsignadas = (
-        Serie.query
-        .join(serie_asignada)  # Unirse a la tabla de asignación de series
-        .filter(serie_asignada.c.id_grupo == grupo.id)  # Filtrar por el ID del grupo
-        .all()  # Obtener todas las series asignadas al grupo
-    )
+    supervisor = None
+
+    # Obtiene el supervisor asignado si grupo no es None
+    if grupo:
+        supervisor = (
+            Supervisor.query
+            .join(supervisores_grupos)
+            .filter(supervisores_grupos.c.id_supervisor == Supervisor.id)
+            .filter(supervisores_grupos.c.id_grupo == grupo.id)
+            .first()
+        )
+
+    seriesAsignadas = []
+
+    # Obtiene las series asignadas solo si grupo no es None
+    if grupo:
+        seriesAsignadas = (
+            Serie.query
+            .join(serie_asignada)
+            .filter(serie_asignada.c.id_grupo == grupo.id)
+            .all()
+        )
+
 
     # A continuación, puedes obtener los ejercicios para cada serie en series_asignadas
     ejerciciosPorSerie = {}
@@ -628,14 +647,73 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
         # Crear la carpeta del estudiante con la serie y el ejercicio.
         # LLamar a copy_maven_folder para copiar la carpeta maven en la carpeta del estudiante
         # La carpeta del ejercicio está guardada en ejerciciosPropuestos/numeroserie_nombredeserie/id_ejercicio
+        rutaArchivador=None
+        # Si es  la primera vez que un estudiante envía un archivo se crea su archivador con su numero de matricula
         try:
             rutaArchivador = crearArchivadorEstudiante(matricula)
         except Exception as e:
             flash(f'Ocurrió un error al crear el archivador: {str(e)}', 'danger')
             return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
-
-        # Luego de crear la carpeta con la matricula del estudiante, se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
+        # Luego de crear la carpeta con la matricula del estudiante, se asigna el ejercicio a al estudiante en la bd
         
+        if rutaArchivador:
+            try:
+                # Revisar si ya existe un ejercicio asignado con el estudiante_id y ejercicio_id, si no existe crearlo en la bd
+                ejercicioAsignado = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio_id).first()
+                if not ejercicioAsignado:
+                    nuevoEjercicioAsignado = Ejercicio_asignado(
+                    id_estudiante=estudiante_id,
+                    id_ejercicio=ejercicio_id,
+                    fecha_ultimo_envio=datetime.now(),
+                    contador=0,
+                    estado=False,
+                    ultimo_envio=None,
+                    test_output=None)
+                    db.session.add(nuevoEjercicioAsignado)
+                    db.session.flush()
+                    # Queda temporalmente dentro de la bd
+                    # Crear la carpeta de la serie si es que no existe ya antes
+                    rutaSerieEstudiante = agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
+                    if rutaSerieEstudiante:
+                        # Crear la carpeta del ejercicio dentro de la carpeta de la serie
+                        rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.nombre, ejercicio.path_ejercicio)
+                        if os.path.exists(rutaEjercicioEstudiante):
+                            # Se creó exitosamente la carpeta con el ejercicio
+                            
+                            # Ahora se añaden los archivos del estudiante a la carpeta
+                            for archivo_java in archivos_java:
+                                rutaFinal = os.path.join(rutaEjercicioEstudiante, '/src/main/java/org/example')
+                                if archivo_java and archivo_java.filename.endswith('.java'):
+                                    archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
+                                    # Eliminar packages usando funcion de eliminar_packages??
+                            
+                            
+                            # Compilar ???
+                            # Ejecutar test unitarios!
+
+                            # Actualizar la base de datos con la ruta del ejercicio
+                            nuevoEjercicioAsignado.ultimo_envio = rutaFinal
+
+                            # Se ejecutan los test unitarios en la rutaFinal
+                            # Se obtiene el resultado de los test unitarios
+                            # Se actualiza la base de datos con el resultado de los test unitarios
+                            
+
+
+                    # Despues de hacer las carpetas y operaciones se hace el commit
+
+                    db.session.commit()
+                else:
+                    # En caso de que ya exista la relacion en la base de datos
+                    # Se actualiza la subida con el archivo y algunos datos de la relacion
+                    ejercicioAsignado.fecha_ultimo_envio=datetime.now()
+                    # Faltan cosas ....
+
+            except Exception as e:
+                flash("Error al asignar ejercicio al estudiante", 'danger')
+                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
+            # Se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
+
 
 
         for archivo_java in archivos_java:

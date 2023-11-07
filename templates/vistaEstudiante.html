@@ -7,7 +7,11 @@
 <div class="row">
   <div class="container mt-5">
     <h1>Hola, {{estudiante.nombres}} {{estudiante.apellidos}}</h1>
-    <h2>Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}</h2>
+    <h2>Tu supervisor es: {%if supervisor%} {{supervisor.nombres}} {{supervisor.apellidos}}
+      {% else %}
+        No tienes supervisor asignado.
+      {% endif %}
+    </h2>
   </div>
 </div>
 
