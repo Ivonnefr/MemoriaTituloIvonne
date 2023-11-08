@@ -1,7 +1,5 @@
 import re
-
-from funciones_archivo import add_packages
-# recibe un archivo java y quita los packages utilizando RegEx
+# Recibe un archivo java y quita los packages utilizando RegEx
 def eliminarPackages(archivo_java):
     with open(archivo_java, 'r') as archivo:
         txt = archivo.read()
@@ -9,11 +7,11 @@ def eliminarPackages(archivo_java):
     with open(archivo_java, 'w') as archivo:
         archivo.write(x)
     #Luego de quitar los packages se agrega la linea package org.example llamando a la funcion agregar_package
-    add_packages(archivo_java)
+    agregarPackage(archivo_java)
 
-#funcion para agregar al inicio del archivo .java la siguiente linea: package org.example;
-#esto es para luego poder ejecutar test unitarios con maven
-#recibe la ruta del archivo .java
+# Funcion para agregar al inicio del archivo .java la siguiente linea: package org.example;
+# Esto es para luego poder ejecutar test unitarios con maven
+# Recibe la ruta del archivo .java
 def agregarPackage(archivo_java):
     # Leer el contenido del archivo existente
     with open(archivo_java, 'r') as archivo:
@@ -26,4 +24,3 @@ def agregarPackage(archivo_java):
         # Escribir el contenido actualizado en el archivo
         with open(archivo_java, 'w') as archivo:
             archivo.writelines(lineas)
-
