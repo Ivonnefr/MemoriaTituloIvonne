@@ -702,12 +702,12 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     if rutaSerieEstudiante:
                         # Si la ruta de la serie se creo exitosamente en la carpeta del estudiante
                         # Se crea la carpeta del ejercicio dentro de la carpeta de la serie
-                        rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.nombre, ejercicio.path_ejercicio)
+                        rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id,  ejercicio.path_ejercicio)
                         if os.path.exists(rutaEjercicioEstudiante):
                             # Se creó exitosamente la carpeta con el ejercicio
                             # Ahora se añaden los archivos del estudiante a la carpeta
                             for archivo_java in archivos_java:
-                                rutaFinal = os.path.join(rutaEjercicioEstudiante, '/src/main/java/org/example')
+                                rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
                                 if archivo_java and archivo_java.filename.endswith('.java'):
                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
                                     # Eliminar packages usando funcion de eliminar_packages??

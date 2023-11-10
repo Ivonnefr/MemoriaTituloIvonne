@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-import subprocess,os
+import subprocess,os, re
 
 # Recibe los datos para encontrar la ruta del reporte de pruebas unitarias
 # Lee el archivo y procesa el xml, luego retorna esto en un formato entendible
@@ -29,27 +29,57 @@ def ejecutarTestUnitario(matricula,rutaEjercicioEstudiante):
     proceso.wait()  # Esperar a que el proceso termine
     return 'El archivo se ejecuto los test unitarios exitosamente'
 
-
 def compilarProyecto(rutaEjercicioEstudiante):
-    # Comando para ejecutar pruebas unitarias con Maven
-    comando = ['mvn','-l', './mvn.log','clean', 'compile']
-    
+    comando = ['mvn', '-l', './mvn.log', 'clean', 'compile']
+
     try:
-        # Ejecutar el comando utilizando subprocess y capturar la salida estándar y de error
         resultado = subprocess.run(comando, cwd=rutaEjercicioEstudiante, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        salida_estandar = resultado.stdout 
-        salida_error = resultado.stderr # Ocupar esto para procesar los erroress
+        salida_estandar = resultado.stdout
+        salida_error = resultado.stderr
 
         if resultado.returncode == 0:
-            # La compilación tuvo éxito
-            return f'La compilación se realizó exitosamente.\nSalida estándar:\n{salida_estandar}'
+            log_hasta_success = leer_hasta_build_success(salida_estandar)
+            return f'La compilación se realizó exitosamente.\nDetalles:\n{log_hasta_success}'
         else:
-            # La compilación falló, devuelve la salida de error
-            return f'Error de compilación:\n{salida_error}'
+            log_hasta_failure = leer_hasta_build_failure(salida_error)
+            errores_compilacion, info_errores = obtener_errores_compilacion(log_hasta_failure)
+            
+            return f'Error de compilación:\n{log_hasta_failure}\nDetalles:\n{errores_compilacion}\n{info_errores}'
     except Exception as e:
-        # Manejar excepciones si ocurren problemas al ejecutar el comando
         return f'Error al compilar: {str(e)}'
-    
-# Funcion para procesar los resultados de la compilacion
-#def procesarCompilacion():
+
+def leer_hasta_build_success(log):
+    patron = re.compile(r'([\s\S]*?)(?=\[INFO\] BUILD SUCCESS)')
+    coincidencia = patron.search(log)
+
+    if coincidencia:
+        return coincidencia.group(0)
+    else:
+        return "No se encontró 'BUILD SUCCESS' en el log."
+
+def leer_hasta_build_failure(log):
+    patron = re.compile(r'([\s\S]*?)(?=\[ERROR\] BUILD FAILURE)')
+    coincidencia = patron.search(log)
+
+    if coincidencia:
+        return coincidencia.group(0)
+    else:
+        return "No se encontró 'BUILD FAILURE' en el log."
+
+def obtener_errores_compilacion(log_hasta_failure):
+    # Patrón para extraer líneas entre COMPILATION ERROR y BUILD FAILURE
+    patron_errores = re.compile(r'\[ERROR\] COMPILATION ERROR(.+?)\[ERROR\] BUILD FAILURE', re.DOTALL)
+    coincidencia_errores = patron_errores.search(log_hasta_failure)
+
+    if coincidencia_errores:
+        errores_formateados = coincidencia_errores.group(1).strip()
+        
+        # Patrón para extraer la línea que contiene la cantidad de errores
+        patron_info_errores = re.compile(r'\[INFO\] (\d+) error')
+        coincidencia_info_errores = patron_info_errores.search(log_hasta_failure)
+        cantidad_errores = coincidencia_info_errores.group(1) if coincidencia_info_errores else "0"
+
+        return errores_formateados, f"Cantidad de errores: {cantidad_errores}"
+    else:
+        return "No se encontraron errores de compilación entre COMPILATION ERROR y BUILD FAILURE.", ""
+ 
