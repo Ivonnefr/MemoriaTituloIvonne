@@ -63,7 +63,7 @@ class Grupo(db.Model):
 
 class Ejercicio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), nullable=False)
+    nombre = db.Column(db.String(50), nullable=False, unique=True)
     path_ejercicio = db.Column(db.String(200), nullable=False)
     enunciado = db.Column(db.String(), nullable=False)
     id_serie = db.Column(db.Integer, db.ForeignKey('serie.id'), nullable=False)
@@ -74,10 +74,11 @@ class Ejercicio(db.Model):
         self.path_ejercicio = path_ejercicio
         self.enunciado = enunciado
         self.id_serie = id_serie
+
     
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(50), nullable=False)
+    nombre = db.Column(db.String(50), nullable=False, unique=True)
     ejercicios = db.relationship('Ejercicio', order_by=Ejercicio.id, back_populates='serie')
     
     def __init__(self, nombre, activa):
@@ -95,6 +96,7 @@ class Estudiante(db.Model):
     carrera = db.Column(db.String(100), nullable=False)
     cursos = db.relationship('Curso', secondary=inscripciones, back_populates='estudiantes')
     grupos = db.relationship('Grupo', secondary=estudiantes_grupos, back_populates='estudiantes')
+    ejercicios_asignados = db.relationship('Ejercicio_asignado', back_populates='estudiante')
 
     def __init__(self, matricula, nombres, apellidos, correo, password, carrera):
         self.matricula = matricula
@@ -130,18 +132,28 @@ class Curso(db.Model):
         self.activa = activa
 
 
+
 class Ejercicio_asignado(db.Model):
-    id_estudiante= db.Column(db.Integer, db.ForeignKey('estudiante.id'), primary_key=True)
+    __table_args__ = (
+        db.PrimaryKeyConstraint('id_estudiante', 'id_ejercicio'),
+    )
+    id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id'), primary_key=True)
     id_ejercicio = db.Column(db.Integer, db.ForeignKey('ejercicio.id'), primary_key=True)
-    contador= db.Column(db.Integer, nullable=False, default=0)
-    estado= db.Column(db.Boolean(), nullable=False, default=False)
+    
+    contador = db.Column(db.Integer, nullable=False, default=0)
+    estado = db.Column(db.Boolean(), nullable=False, default=False)
     ultimo_envio = db.Column(db.String(), nullable=True)
     fecha_ultimo_envio = db.Column(db.DateTime(), nullable=True)
     test_output = db.Column(db.String(), nullable=True)
 
-    def __init__(self, contador, estado, ultimo_envio, fecha_ultimo_envio, test_output):
-        self.contador=contador
-        self.estado=estado
-        self.ultimo_envio=ultimo_envio
-        self.fecha_ultimo_envio=fecha_ultimo_envio
-        self.test_output=test_output
+    ejercicio = db.relationship('Ejercicio', foreign_keys=[id_ejercicio], backref='ejercicios_asignados')
+    estudiante = db.relationship('Estudiante', backref='ejercicios_asignados_relacion')
+
+    def __init__(self, id_estudiante, id_ejercicio, contador=contador, estado=estado, ultimo_envio=ultimo_envio, fecha_ultimo_envio=fecha_ultimo_envio, test_output=test_output):
+        self.id_estudiante = id_estudiante
+        self.id_ejercicio = id_ejercicio
+        self.contador = contador
+        self.estado = estado
+        self.ultimo_envio = ultimo_envio
+        self.fecha_ultimo_envio = fecha_ultimo_envio
+        self.test_output = test_output

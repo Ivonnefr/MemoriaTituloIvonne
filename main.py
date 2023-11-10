@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import os
 from sqlite3 import IntegrityError
 from click import DateTime
@@ -8,23 +8,47 @@ from flask_sqlalchemy import SQLAlchemy
 from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators, FileField
 from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired, Length, ValidationError
-from funciones_archivo.compile_java import compilar_archivo_java
-from funciones_archivo.run_unit_test import ejecutar_test_unitario
-from funciones_archivo.manejoArchivosJava import eliminar_packages
-from funciones_archivo.manejoCarpetas import agregarCarpetaSerieEstudiante,crear_carpeta_serie, crear_carpeta_ejercicio, crearArchivadorEstudiante, agregarCarpetaEjercicioEstudiante
-from funciones_archivo.add_java_file import agregar_archivo_java
-from funciones_archivo.add_packages import agregar_package
-from funciones_archivo.manejoMaven import procesar_surefire_reports
+from funciones_archivo.manejoArchivosJava import eliminarPackages, agregarPackage
+from funciones_archivo.manejoCarpetas import agregarCarpetaSerieEstudiante,crearCarpetaSerie, crearCarpetaEjercicio, crearArchivadorEstudiante, agregarCarpetaEjercicioEstudiante
+from funciones_archivo.manejoMaven import procesarSurefireReports, ejecutarTestUnitario, compilarProyecto
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
 from pathlib import Path
 import markdown
 import csv
+import logging
+from logging.config import dictConfig
+
+dictConfig({
+    'version': 1,
+    'formatters': {
+        'default': {
+            'format': '[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': 'errores.log',
+            'formatter': 'default',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+})
+
 #inicializar la aplicacion
 app = Flask(__name__)
 init_app(app)
 app.config['SECRET_KEY'] = 'secret-key-goes-here'
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -303,7 +327,7 @@ def agregarSerie(supervisor_id):
         
         try:
             # Intentar crear carpeta de la serie con el ID y el nombre
-            crear_carpeta_serie(nueva_serie.id, nueva_serie.nombre)
+            crearCarpetaSerie(nueva_serie.id, nueva_serie.nombre)
             flash('Serie agregada con éxito', 'success')
             return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
@@ -344,7 +368,7 @@ def agregarEjercicio(supervisor_id):
         try:
             db.session.add(nuevo_ejercicio)
             db.session.flush()
-            rutaEjercicio,rutaEnunciadoEjercicios, mensaje = crear_carpeta_ejercicio(nuevo_ejercicio.id, id_serie, serie_actual.nombre)
+            rutaEjercicio,rutaEnunciadoEjercicios, mensaje = crearCarpetaEjercicio(nuevo_ejercicio.id, id_serie, serie_actual.nombre)
 
             if rutaEjercicio is None:
                 raise Exception(mensaje)
@@ -645,152 +669,120 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     if request.method == 'POST':
         archivos_java = request.files.getlist('archivo_java')
         # Crear la carpeta del estudiante con la serie y el ejercicio.
-        # LLamar a copy_maven_folder para copiar la carpeta maven en la carpeta del estudiante
         # La carpeta del ejercicio está guardada en ejerciciosPropuestos/numeroserie_nombredeserie/id_ejercicio
         rutaArchivador=None
         # Si es  la primera vez que un estudiante envía un archivo se crea su archivador con su numero de matricula
         try:
             rutaArchivador = crearArchivadorEstudiante(matricula)
+            #flash('Se creo exitosamente el archivador', 'success')
         except Exception as e:
-            flash(f'Ocurrió un error al crear el archivador: {str(e)}', 'danger')
             return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
         # Luego de crear la carpeta con la matricula del estudiante, se asigna el ejercicio a al estudiante en la bd
         
         if rutaArchivador:
             try:
                 # Revisar si ya existe un ejercicio asignado con el estudiante_id y ejercicio_id, si no existe crearlo en la bd
-                ejercicioAsignado = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio_id).first()
+                ejercicioAsignado = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio.id).first()
+                # flash(f'Ejercicio asignado: {ejercicioAsignado}', 'danger')
                 if not ejercicioAsignado:
                     nuevoEjercicioAsignado = Ejercicio_asignado(
                     id_estudiante=estudiante_id,
                     id_ejercicio=ejercicio_id,
-                    fecha_ultimo_envio=datetime.now(),
                     contador=0,
                     estado=False,
                     ultimo_envio=None,
+                    fecha_ultimo_envio=datetime.now(),
                     test_output=None)
                     db.session.add(nuevoEjercicioAsignado)
                     db.session.flush()
                     # Queda temporalmente dentro de la bd
-                    # Crear la carpeta de la serie si es que no existe ya antes
+                    # Crear la carpeta de la serie si es que no existe antes
                     rutaSerieEstudiante = agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
+
                     if rutaSerieEstudiante:
-                        # Crear la carpeta del ejercicio dentro de la carpeta de la serie
+                        # Si la ruta de la serie se creo exitosamente en la carpeta del estudiante
+                        # Se crea la carpeta del ejercicio dentro de la carpeta de la serie
                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.nombre, ejercicio.path_ejercicio)
                         if os.path.exists(rutaEjercicioEstudiante):
                             # Se creó exitosamente la carpeta con el ejercicio
-                            
                             # Ahora se añaden los archivos del estudiante a la carpeta
                             for archivo_java in archivos_java:
                                 rutaFinal = os.path.join(rutaEjercicioEstudiante, '/src/main/java/org/example')
                                 if archivo_java and archivo_java.filename.endswith('.java'):
                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
                                     # Eliminar packages usando funcion de eliminar_packages??
+                            # Hasta acá debería existir todas las carpetas y haber guardado los archivos del estudiante
+                            # Se debe compilar el archivo java
+                            compilarProyecto(rutaEjercicioEstudiante)
+                            # If la compilacion falló, se debe actualizar la base de datos y no ejecutar los test, volver a enviar y mostrar el resultado.
                             
+                            # Se debe ejecutar los test unitarios
+                            # Se debe actualizar la base de datos con la ruta del ejercicio
+                            # Se debe actualizar la base de datos con el resultado de los test unitarios
+                            # Se debe actualizar la base de datos con la fecha del ultimo envio
+
+
                             
                             # Compilar ???
                             # Ejecutar test unitarios!
 
                             # Actualizar la base de datos con la ruta del ejercicio
-                            nuevoEjercicioAsignado.ultimo_envio = rutaFinal
+                            #nuevoEjercicioAsignado.ultimo_envio = rutaFinal
 
                             # Se ejecutan los test unitarios en la rutaFinal
                             # Se obtiene el resultado de los test unitarios
                             # Se actualiza la base de datos con el resultado de los test unitarios
                             
-
-
                     # Despues de hacer las carpetas y operaciones se hace el commit
 
                     db.session.commit()
                 else:
                     # En caso de que ya exista la relacion en la base de datos
-                    # Se actualiza la subida con el archivo y algunos datos de la relacion
-                    ejercicioAsignado.fecha_ultimo_envio=datetime.now()
-                    # Faltan cosas ....
+                    # Se ocupan los datos asignados para encontrar la carpeta de la serie y ejercicio
+                    rutaSerieEstudiante= agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
+                    if rutaSerieEstudiante:
+                        # Si encuentro la ruta de la serie, creo la carpeta del ejercicio otra vez
+                        rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.path_ejercicio)
+                        if os.path.exists(rutaEjercicioEstudiante):
+                            
+                            # Ahora se añaden los archivos del estudiante a la carpeta
+                            for archivo_java in archivos_java:
+                                rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
+                                if archivo_java and archivo_java.filename.endswith('.java'):
+                                    archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
+                                    # Eliminar packages usando funcion de eliminar_packages??
 
+                            # Hasta acá debería existir todas las carpetas y haber guardado los archivos del estudiante
+                            # Se debe compilar el archivo java
+                            compilarProyecto(rutaEjercicioEstudiante)
+                            
+
+
+                    # Se actualiza la subida con el archivo y algunos datos de la relacion
+                    # Faltan cosas ....
+                            db.session.commit() 
             except Exception as e:
-                flash("Error al asignar ejercicio al estudiante", 'danger')
+                db.session.rollback()
+                flash(f'Error al asignar el ejercicio al estudiante {str(e)}', 'danger')
                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
             # Se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
-
-
-
-        for archivo_java in archivos_java:
-            if archivo_java and archivo_java.filename.endswith('.java'):
-                # Guarda el archivo en una ubicación deseada
-                ruta_destino = os.path.join('ruta_de_guardado', f'estudiante_{estudiante_id}', f'ejercicio_{ejercicio_id}')
-                os.makedirs(ruta_destino, exist_ok=True)
-                archivo_java.save(os.path.join(ruta_destino, archivo_java.filename))
 
     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
 
 
-
-# @app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>', methods=['GET', 'POST'])
+# # Ruta para ver el progreso de los estudiantes
+# @app.route('/dashDocente/<int:supervisor_id>/progresoSesion', methods=['GET', 'POST'])
 # @login_required
-# def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
-#     if not verify_estudiante(estudiante_id):
+# def progresoSesion(supervisor_id):
+#     # Ruta muestra el progreso de los estudiantes en la sesión
+#     # Usa la función de verificación
+#     if not verify_supervisor(supervisor_id):
 #         return redirect(url_for('login'))
-
-#     # Obtén el ejercicio y su ruta de enunciado desde la base de datos
-#     serie = Serie.query.get(serie_id)
-#     ejercicio = Ejercicio.query.get(ejercicio_id)
-
-#     # Asegúrate de que la ruta de enunciado del ejercicio no esté vacía
-#     if ejercicio and ejercicio.enunciado:
-#         # Lee el contenido del archivo de enunciado con Python-Markdown
-#         with open(ejercicio.enunciado, 'r') as enunciado_file:
-#             enunciado_markdown = enunciado_file.read()
-#             # Convierte el Markdown en HTML
-#             enunciado_html = markdown.markdown(enunciado_markdown)
-#     else:
-#         enunciado_html = "<p>El enunciado no está disponible.</p>"
-#     # ---> EN QUE PARTE DEBO CREAR LA CARPETA DEL ESTUDIANTE ??????????????
-#     # ---> Crearlas todas juntas de una serie cuando son asignadas por estudiante o cuando sube el archivo??
-
-#     if request.method == 'POST':
-#         # Recibo mas de un archivo...
-#         archivo_java = request.files['archivo_java']
-#         if archivo_java and archivo_java.filename.endswith('.java'):
-#             # Guarda el archivo en una ubicación deseada
-#             ruta_destino = os.path.join('ruta_de_guardado', f'estudiante_{estudiante_id}', f'ejercicio_{ejercicio_id}')
-#             os.makedirs(ruta_destino, exist_ok=True)
-#             archivo_java.save(os.path.join(ruta_destino, archivo_java.filename))
-#             # Compilar el archivo usando funcion de compilar_archivo_java
-#             compilar_archivo_java(os.path.join(ruta_destino, archivo_java.filename))
-#             # Eliminar packages usando funcion de eliminar_packages
-#             eliminar_packages(os.path.join(ruta_destino, archivo_java.filename))
-#             # Eliminar .java
-
-#             # Ejecutar test unitarios
-#     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
-
-# # Ruta para subir archivo java
-# @app.route('/upload_file', methods=['GET',"POST"])
-# def upload_file():  
-#     form = UploadFileForm()
-#     if form.validate_on_submit():
-#         file = form.file.data # Obtengo los datos del archivo
-        
-#         if file and file.filename.endswith('.java'): # Revisa si el archivo tiene la extesion .java
-#             filepath= os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))
-#             file.save(filepath)
-#             print(filepath)
-#             # Cuando se sube un archivo se compila y luego se quitan los packages
-#             # Revisar que el archivo compile exitosamente
-#             eliminar_packages(filepath)
-            
-#             compilar_archivo_java(filepath)
-#             # luego de esto debería redireccionarme a la siguiente página que sería algo como : /upload_file/<nombre_alumno>/<pregunta>
-#         else:
-#             # Hacer esto en la misma página y no como return
-#             return "Tipo de archivo invalido, enviar solo archivos .java ."
-
-#         file.save(os.path.join(os.path.abspath(os.path.dirname(__file__)),app.config['UPLOAD_FOLDER'],secure_filename(file.filename))) # Then save the file
-#         return "File has been uploaded."
     
-#     return render_template('upload_file.html', form=form)
+#     # Listar todos los estudiantes de la sesion
+#     estudiantes = Estudiante.query.all()
+
+#     return render_template('progresoSesion.html', supervisor_id=supervisor_id, estudiantes=estudiantes)
 
 
 #Funcion para ejecutar el script 404
@@ -855,5 +847,10 @@ if __name__ == '__main__':
 # mail5@udec.cl     
 
 # Guardar el mismo nombre para todo en ejercicio_numero_serie_numero
+
+
+
+
 # Viusalizacion de salida? con errores o no ?
-# Sistema de notas feedback
+
+# Sistema de notas feedback IMPORTANTEEE

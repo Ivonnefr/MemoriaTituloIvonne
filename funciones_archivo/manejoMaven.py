@@ -21,13 +21,35 @@ def procesarSurefireReports(rutaEstudiane, nombreTest):
         print(f'La prueba "{nombre_prueba}" {resultado_prueba}.')
 
 
-def ejecutarTestUnitario(matricula,ejercicio):
-    ruta_base = "ejerciciosEstudiantes"
-    ruta_alumno = os.path.join(ruta_base, str(matricula))
-    print('compilando...')
-    # Comando para ejecutar pruebas unitarias con maven
-    print(ruta_alumno)
+def ejecutarTestUnitario(matricula,rutaEjercicioEstudiante):
     comando = ['mvn','clean' ,'test']
+    rutaReports= os.path.join(rutaEjercicioEstudiante, 'target/surefire-reports')
     # Ejecutar el comando utilizando subprocess y especificar el directorio de trabajo actual
-    subprocess.run(comando, cwd=ruta_alumno)
-    print('El archivo se ejecuto los test unitarios exitosamente')
+    proceso = subprocess.Popen(comando, cwd=rutaEjercicioEstudiante, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proceso.wait()  # Esperar a que el proceso termine
+    return 'El archivo se ejecuto los test unitarios exitosamente'
+
+
+def compilarProyecto(rutaEjercicioEstudiante):
+    # Comando para ejecutar pruebas unitarias con Maven
+    comando = ['mvn','-l', './mvn.log','clean', 'compile']
+    
+    try:
+        # Ejecutar el comando utilizando subprocess y capturar la salida estándar y de error
+        resultado = subprocess.run(comando, cwd=rutaEjercicioEstudiante, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        salida_estandar = resultado.stdout 
+        salida_error = resultado.stderr # Ocupar esto para procesar los erroress
+
+        if resultado.returncode == 0:
+            # La compilación tuvo éxito
+            return f'La compilación se realizó exitosamente.\nSalida estándar:\n{salida_estandar}'
+        else:
+            # La compilación falló, devuelve la salida de error
+            return f'Error de compilación:\n{salida_error}'
+    except Exception as e:
+        # Manejar excepciones si ocurren problemas al ejecutar el comando
+        return f'Error al compilar: {str(e)}'
+    
+# Funcion para procesar los resultados de la compilacion
+#def procesarCompilacion():
