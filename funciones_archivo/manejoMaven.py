@@ -1,6 +1,51 @@
 import xml.etree.ElementTree as ET
 import subprocess,os, re
 
+def extraerInformacionError(linea):
+    # Expresión regular para extraer información específica de la línea de error
+    patron = re.compile(r'/src/main/java/org/example/([^:]+):(\[\d+,\d+\]) (.+)')
+    coincidencia = patron.search(linea)
+    
+    if coincidencia:
+        nombre_archivo = coincidencia.group(1)
+        fila_columna = coincidencia.group(2)
+        tipo_error = coincidencia.group(3)
+        return nombre_archivo, fila_columna, tipo_error
+    else:
+        return None
+
+def compilarProyecto(rutaEjercicioEstudiante):
+    comando = ['mvn', 'clean', 'compile']
+    resultado = subprocess.run(comando, cwd=rutaEjercicioEstudiante, capture_output=True, text=True)
+    
+    patron = re.compile(r'COMPILATION ERROR(.+?)BUILD FAILURE', re.DOTALL)
+    coincidencias = patron.finditer(resultado.stdout)
+    
+    if not any(coincidencias):
+        print("Compilación exitosa. No se encontraron errores.")
+        return
+    
+    for match in coincidencias:
+        lineas = match.group(0).split('\n')
+        
+        for linea in lineas:
+            if 'ERROR' in linea:
+                informacion_error = extraerInformacionError(linea)
+                if informacion_error:
+                    nombre_archivo, fila_columna, tipo_error = informacion_error
+                    print(f"Nombre del archivo: {nombre_archivo}")
+                    print(f"Fila y columna: {fila_columna}")
+                    print(f"Tipo de error: {tipo_error}")
+                    print("------")
+
+
+def ejecutarTestUnitario(rutaEjercicioEstudiante):
+    
+
+
+
+
+
 # Recibe los datos para encontrar la ruta del reporte de pruebas unitarias
 # Lee el archivo y procesa el xml, luego retorna esto en un formato entendible
 def procesarSurefireReports(rutaEstudiane, nombreTest):
@@ -29,57 +74,3 @@ def ejecutarTestUnitario(matricula,rutaEjercicioEstudiante):
     proceso.wait()  # Esperar a que el proceso termine
     return 'El archivo se ejecuto los test unitarios exitosamente'
 
-def compilarProyecto(rutaEjercicioEstudiante):
-    comando = ['mvn', '-l', './mvn.log', 'clean', 'compile']
-
-    try:
-        resultado = subprocess.run(comando, cwd=rutaEjercicioEstudiante, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        salida_estandar = resultado.stdout
-        salida_error = resultado.stderr
-
-        if resultado.returncode == 0:
-            log_hasta_success = leer_hasta_build_success(salida_estandar)
-            return f'La compilación se realizó exitosamente.\nDetalles:\n{log_hasta_success}'
-        else:
-            log_hasta_failure = leer_hasta_build_failure(salida_error)
-            errores_compilacion, info_errores = obtener_errores_compilacion(log_hasta_failure)
-            
-            return f'Error de compilación:\n{log_hasta_failure}\nDetalles:\n{errores_compilacion}\n{info_errores}'
-    except Exception as e:
-        return f'Error al compilar: {str(e)}'
-
-def leer_hasta_build_success(log):
-    patron = re.compile(r'([\s\S]*?)(?=\[INFO\] BUILD SUCCESS)')
-    coincidencia = patron.search(log)
-
-    if coincidencia:
-        return coincidencia.group(0)
-    else:
-        return "No se encontró 'BUILD SUCCESS' en el log."
-
-def leer_hasta_build_failure(log):
-    patron = re.compile(r'([\s\S]*?)(?=\[ERROR\] BUILD FAILURE)')
-    coincidencia = patron.search(log)
-
-    if coincidencia:
-        return coincidencia.group(0)
-    else:
-        return "No se encontró 'BUILD FAILURE' en el log."
-
-def obtener_errores_compilacion(log_hasta_failure):
-    # Patrón para extraer líneas entre COMPILATION ERROR y BUILD FAILURE
-    patron_errores = re.compile(r'\[ERROR\] COMPILATION ERROR(.+?)\[ERROR\] BUILD FAILURE', re.DOTALL)
-    coincidencia_errores = patron_errores.search(log_hasta_failure)
-
-    if coincidencia_errores:
-        errores_formateados = coincidencia_errores.group(1).strip()
-        
-        # Patrón para extraer la línea que contiene la cantidad de errores
-        patron_info_errores = re.compile(r'\[INFO\] (\d+) error')
-        coincidencia_info_errores = patron_info_errores.search(log_hasta_failure)
-        cantidad_errores = coincidencia_info_errores.group(1) if coincidencia_info_errores else "0"
-
-        return errores_formateados, f"Cantidad de errores: {cantidad_errores}"
-    else:
-        return "No se encontraron errores de compilación entre COMPILATION ERROR y BUILD FAILURE.", ""
- 

@@ -693,8 +693,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     ultimo_envio=None,
                     fecha_ultimo_envio=datetime.now(),
                     test_output=None)
-                    db.session.add(nuevoEjercicioAsignado)
-                    db.session.flush()
+                    
                     # Queda temporalmente dentro de la bd
                     # Crear la carpeta de la serie si es que no existe antes
                     rutaSerieEstudiante = agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
@@ -711,24 +710,29 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                 if archivo_java and archivo_java.filename.endswith('.java'):
                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
                                     # Eliminar packages usando funcion de eliminar_packages??
+                            
+
                             # Hasta acá debería existir todas las carpetas y haber guardado los archivos del estudiante
                             # Se debe compilar el archivo java
                             compilarProyecto(rutaEjercicioEstudiante)
                             # If la compilacion falló, se debe actualizar la base de datos y no ejecutar los test, volver a enviar y mostrar el resultado.
-                            
                             # Se debe ejecutar los test unitarios
                             # Se debe actualizar la base de datos con la ruta del ejercicio
                             # Se debe actualizar la base de datos con el resultado de los test unitarios
                             # Se debe actualizar la base de datos con la fecha del ultimo envio
-
+                            nuevoEjercicioAsignado.contador = nuevoEjercicioAsignado.contador + 1
+                            nuevoEjercicioAsignado.ultimo_envio = rutaFinal
+                            nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
+                            nuevoEjercicioAsignado.test_output = "Test output" # Se debe obtener el resultado de los test unitarios o compilacion
+                            nuevoEjercicioAsignado.estado=True
+                            db.session.add(nuevoEjercicioAsignado)
+                            db.session.flush()
 
                             
                             # Compilar ???
-                            # Ejecutar test unitarios!
-
+                            # Ejecutar test unitarios
                             # Actualizar la base de datos con la ruta del ejercicio
                             #nuevoEjercicioAsignado.ultimo_envio = rutaFinal
-
                             # Se ejecutan los test unitarios en la rutaFinal
                             # Se obtiene el resultado de los test unitarios
                             # Se actualiza la base de datos con el resultado de los test unitarios
@@ -754,9 +758,14 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
 
                             # Hasta acá debería existir todas las carpetas y haber guardado los archivos del estudiante
                             # Se debe compilar el archivo java
-                            compilarProyecto(rutaEjercicioEstudiante)
+                            resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
+                            flash(f'Resultados: {resultadoCompilacion}', 'info')
+                            ejercicioAsignado.contador = ejercicioAsignado.contador + 1
+                            ejercicioAsignado.ultimo_envio = rutaFinal
+                            ejercicioAsignado.fecha_ultimo_envio = datetime.now()
+                            ejercicioAsignado.test_output = "Test output" # Se debe obtener el resultado de los test unitarios o compilacion
+                            ejercicioAsignado.estado=True
                             
-
 
                     # Se actualiza la subida con el archivo y algunos datos de la relacion
                     # Faltan cosas ....
