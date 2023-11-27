@@ -29,6 +29,7 @@ Asignar Grupos
 </div>
 
 <div class="container mt-5">
+    <button type="button" class="btn btn-primary" id="selectAllBtn">Seleccionar Todos</button>
     <table class="table table-bordered">
         <thead class="thead-dark">
             <tr>
@@ -82,14 +83,24 @@ Asignar Grupos
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-    const cursoSelect = document.getElementById('curso');
-    const cursoForm = document.getElementById('cursoForm');
+        const cursoSelect = document.getElementById('curso');
+        const cursoForm = document.getElementById('cursoForm');
+        const estudiantesForm = document.getElementById('estudiantesForm');
+        const selectAllBtn = document.getElementById('selectAllBtn');
 
-    cursoSelect.addEventListener('change', function () {
-        // Simular el envío del formulario cuando cambia la selección
-        cursoForm.submit();
+        cursoSelect.addEventListener('change', function () {
+            // Simular el envío del formulario cuando cambia la selección
+            cursoForm.submit();
+        });
+
+        selectAllBtn.addEventListener('click', function () {
+            // Seleccionar todos los checkboxes de estudiantes
+            const checkboxes = document.getElementsByName('estudiantes[]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
     });
-});
-
 </script>
+
 {% endblock %}

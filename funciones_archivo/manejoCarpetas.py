@@ -1,13 +1,13 @@
 import os, shutil
 
-def agregarCarpetaEjercicioEstudiante(rutaArchivador, ejercicio_id, ejercicio_path):
+def agregarCarpetaEjercicioEstudiante(rutaSerie, ejercicio_id, ejercicio_path):
 
     # Validar parámetros
-    if not os.path.exists(rutaArchivador) or not os.path.exists(ejercicio_path):
+    if not os.path.exists(rutaSerie) or not os.path.exists(ejercicio_path):
         raise ValueError("Ruta de archivador o ejercicio no válida.")
 
     # Crear la ruta de la carpeta del ejercicio para el estudiante
-    rutaEjercicioEstudiante = os.path.join(rutaArchivador, f"Ejercicio_{ejercicio_id}")
+    rutaEjercicioEstudiante = os.path.join(rutaSerie, f"Ejercicio_{ejercicio_id}")
 
     # Verificar si la carpeta existe y eliminarla
     if os.path.exists(rutaEjercicioEstudiante):
@@ -29,15 +29,18 @@ def agregarCarpetaSerieEstudiante(matricula, serie_id, serie_nombre):
     except Exception as e:
         return f"Hubo un error al agregar la carpeta de la serie: {str(e)}"
 
+    # Si la carpeta ya existe, simplemente devolver la ruta existente
 def crearArchivadorEstudiante(matricula):
-# Funcion crea la carpeta del estudiante con la matricula para guardar sus archivos
-    rutaPrincipal= 'ejerciciosEstudiantes/'
+    # Función para crear la carpeta del estudiante con la matrícula para guardar sus archivos
+    rutaPrincipal = 'ejerciciosEstudiantes/'
     rutaEstudiante = os.path.join(rutaPrincipal, str(matricula))
+
+    # Verificar si la carpeta del estudiante ya existe
     if not os.path.exists(rutaEstudiante):
         os.makedirs(rutaEstudiante)
-    else:
-        return rutaEstudiante
+
     return rutaEstudiante
+
 
 # Funcion para crear la carpeta del ejercicio en la carpeta de su respectiva serie.
 def crearCarpetaEjercicio(id_ejercicio, id_serie, serie_nombre):

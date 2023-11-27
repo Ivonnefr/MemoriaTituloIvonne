@@ -1,5 +1,5 @@
 from datetime import datetime
-import os
+import os, shutil
 from sqlite3 import IntegrityError
 from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.manejoArchivosJava import eliminarPackages, agregarPackage
 from funciones_archivo.manejoCarpetas import agregarCarpetaSerieEstudiante,crearCarpetaSerie, crearCarpetaEjercicio, crearArchivadorEstudiante, agregarCarpetaEjercicioEstudiante
-from funciones_archivo.manejoMaven import procesarSurefireReports, ejecutarTestUnitario, compilarProyecto
+from funciones_archivo.manejoMaven import ejecutarTestUnitario, compilarProyecto
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
@@ -19,7 +19,8 @@ import markdown
 import csv
 import logging
 from logging.config import dictConfig
-
+from ansi2html import Ansi2HTMLConverter
+import json
 dictConfig({
     'version': 1,
     'formatters': {
@@ -343,7 +344,6 @@ def agregarEjercicio(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
     # --->Restringir la cantidad de caracteres del enunciado<---
-    # Falta agregar la opcion de recibir el archivo con el .java de los test unitarios
     # se debe guardar en: ./id_serie_nombre_serie/id_ejercicio/src/test/java/org/example
     series = Serie.query.all()
     
@@ -359,7 +359,6 @@ def agregarEjercicio(supervisor_id):
         if not any(allowed_file(file.filename, '.java') for file in unitTestFile):
             flash('Por favor, carga al menos un archivo .java.', 'danger')
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
-
 
         nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
         nuevoNombre= str(nuevo_ejercicio.id) + "ejercicio.md"
@@ -384,21 +383,26 @@ def agregarEjercicio(supervisor_id):
             # Itera a través de las imágenes y guárdalas en la misma carpeta
             for imagenFile in imagenesFiles:
                 imagen_filename = secure_filename(imagenFile.filename)
-                imagenFile.save(os.path.join(rutaEnunciadoEjercicios, imagen_filename))
+                if os.path.exists(rutaEnunciadoEjercicios):
+                    imagenFile.save(os.path.join(rutaEnunciadoEjercicios, imagen_filename))
+
 
             ubicacionTest = os.path.join(rutaEjercicio, "src/test/java/org/example")
-            for unitTest in unitTestFile:
-                nombre_archivo = secure_filename(unitTest.filename)
-                unitTest.save(os.path.join(ubicacionTest, nombre_archivo))
+            if os.path.exists(ubicacionTest):
+                for unitTest in unitTestFile:
+                    nombre_archivo = secure_filename(unitTest.filename)
+                    unitTest.save(os.path.join(ubicacionTest, nombre_archivo))
             db.session.commit()
         except Exception as e:
-            db.session.rollback()
 
-            if filepath_ejercicio and os.path.exists(filepath_ejercicio):
+            if os.path.exists(filepath_ejercicio) or os.path.exists(rutaEjercicio):
                 os.remove(filepath_ejercicio)
+            if os.path.exists(rutaEnunciadoEjercicios):
+                shutil.rmtree(rutaEnunciadoEjercicios)
 
             # Si se produce un error con la base de datos después de crear la carpeta, puedes eliminarla aquí
             flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
+            db.session.rollback()
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
         flash('Ejercicio agregado con éxito', 'success')
@@ -656,6 +660,17 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     serie = Serie.query.get(serie_id)
     ejercicio = Ejercicio.query.get(ejercicio_id)
     matricula= Estudiante.query.get(estudiante_id).matricula
+    # Consulta para obtener todos los ejercicios de un estudiante.
+    estudiante = db.session.get(Estudiante, int(estudiante_id))
+    # Consulta para obtener todos los ejercicios de serie
+    ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
+    # Consulta para obtener todos los ejercicios asignados al estudiante
+    ejercicios_asignados = (
+        Ejercicio_asignado.query
+        .filter_by(id_estudiante=estudiante_id)
+        .all()
+    )
+
     # Asegúrate de que la ruta de enunciado del ejercicio no esté vacía
     if ejercicio and ejercicio.enunciado:
         # Lee el contenido del archivo de enunciado con Python-Markdown
@@ -671,12 +686,15 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
         # Crear la carpeta del estudiante con la serie y el ejercicio.
         # La carpeta del ejercicio está guardada en ejerciciosPropuestos/numeroserie_nombredeserie/id_ejercicio
         rutaArchivador=None
-        # Si es  la primera vez que un estudiante envía un archivo se crea su archivador con su numero de matricula
+        # Si no suben archivos
+        if not archivos_java:
+            flash('Por favor, carga al menos un archivo .java.', 'danger')
+            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)        
         try:
             rutaArchivador = crearArchivadorEstudiante(matricula)
             #flash('Se creo exitosamente el archivador', 'success')
         except Exception as e:
-            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
+            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
         # Luego de crear la carpeta con la matricula del estudiante, se asigna el ejercicio a al estudiante en la bd
         
         if rutaArchivador:
@@ -693,11 +711,9 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     ultimo_envio=None,
                     fecha_ultimo_envio=datetime.now(),
                     test_output=None)
-                    
-                    # Queda temporalmente dentro de la bd
-                    # Crear la carpeta de la serie si es que no existe antes
-                    rutaSerieEstudiante = agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
-
+                    db.session.add(nuevoEjercicioAsignado)
+                    db.session.flush()
+                    rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
                     if rutaSerieEstudiante:
                         # Si la ruta de la serie se creo exitosamente en la carpeta del estudiante
                         # Se crea la carpeta del ejercicio dentro de la carpeta de la serie
@@ -709,74 +725,84 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                 rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
                                 if archivo_java and archivo_java.filename.endswith('.java'):
                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
-                                    # Eliminar packages usando funcion de eliminar_packages??
-                            
-
-                            # Hasta acá debería existir todas las carpetas y haber guardado los archivos del estudiante
-                            # Se debe compilar el archivo java
-                            compilarProyecto(rutaEjercicioEstudiante)
-                            # If la compilacion falló, se debe actualizar la base de datos y no ejecutar los test, volver a enviar y mostrar el resultado.
-                            # Se debe ejecutar los test unitarios
-                            # Se debe actualizar la base de datos con la ruta del ejercicio
-                            # Se debe actualizar la base de datos con el resultado de los test unitarios
-                            # Se debe actualizar la base de datos con la fecha del ultimo envio
-                            nuevoEjercicioAsignado.contador = nuevoEjercicioAsignado.contador + 1
-                            nuevoEjercicioAsignado.ultimo_envio = rutaFinal
-                            nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-                            nuevoEjercicioAsignado.test_output = "Test output" # Se debe obtener el resultado de los test unitarios o compilacion
-                            nuevoEjercicioAsignado.estado=True
-                            db.session.add(nuevoEjercicioAsignado)
-                            db.session.flush()
-
-                            
-                            # Compilar ???
-                            # Ejecutar test unitarios
-                            # Actualizar la base de datos con la ruta del ejercicio
-                            #nuevoEjercicioAsignado.ultimo_envio = rutaFinal
-                            # Se ejecutan los test unitarios en la rutaFinal
-                            # Se obtiene el resultado de los test unitarios
-                            # Se actualiza la base de datos con el resultado de los test unitarios
-                            
-                    # Despues de hacer las carpetas y operaciones se hace el commit
-
+                            resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
+                            if resultadoCompilacion:
+                                # Se compiló mal el archivo
+                                nuevoEjercicioAsignado.contador += 1
+                                nuevoEjercicioAsignado.ultimo_envio = rutaFinal
+                                nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                nuevoEjercicioAsignado.test_output = json.dumps(resultadoCompilacion) # Se debe obtener el resultado de los test unitarios o compilacion
+                                nuevoEjercicioAsignado.estado = False
+                                db.session.commit()
+                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                            else:
+                                resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
+                                if resultadoTest:
+                                    (f'Resultados: {resultadoTest}', 'info')
+                                    nuevoEjercicioAsignado.contador += 1
+                                    nuevoEjercicioAsignado.ultimo_envio = rutaFinal
+                                    nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                    nuevoEjercicioAsignado.test_output =  json.dumps(resultadoTest) # Se debe obtener el resultado de los test unitarios o compilacion
+                                    nuevoEjercicioAsignado.estado=False
+                                    db.session.commit()
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest,ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                elif resultadoTest is None:
+                                    nuevoEjercicioAsignado.contador += 1
+                                    nuevoEjercicioAsignado.ultimo_envio = rutaFinal
+                                    nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                    nuevoEjercicioAsignado.test_output = "Todos los Test aprobados" # Se debe obtener el resultado de los test unitarios o compilacion
+                                    nuevoEjercicioAsignado.estado=True
+                                    flash(f'Felicitaciones, aprobaste', 'success')
+                                    db.session.commit()
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=nuevoEjercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
                     db.session.commit()
                 else:
-                    # En caso de que ya exista la relacion en la base de datos
                     # Se ocupan los datos asignados para encontrar la carpeta de la serie y ejercicio
                     rutaSerieEstudiante= agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
                     if rutaSerieEstudiante:
                         # Si encuentro la ruta de la serie, creo la carpeta del ejercicio otra vez
                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.path_ejercicio)
                         if os.path.exists(rutaEjercicioEstudiante):
-                            
                             # Ahora se añaden los archivos del estudiante a la carpeta
                             for archivo_java in archivos_java:
                                 rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
                                 if archivo_java and archivo_java.filename.endswith('.java'):
                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
-                                    # Eliminar packages usando funcion de eliminar_packages??
 
-                            # Hasta acá debería existir todas las carpetas y haber guardado los archivos del estudiante
-                            # Se debe compilar el archivo java
                             resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
-                            flash(f'Resultados: {resultadoCompilacion}', 'info')
-                            ejercicioAsignado.contador = ejercicioAsignado.contador + 1
-                            ejercicioAsignado.ultimo_envio = rutaFinal
-                            ejercicioAsignado.fecha_ultimo_envio = datetime.now()
-                            ejercicioAsignado.test_output = "Test output" # Se debe obtener el resultado de los test unitarios o compilacion
-                            ejercicioAsignado.estado=True
-                            
-
-                    # Se actualiza la subida con el archivo y algunos datos de la relacion
-                    # Faltan cosas ....
-                            db.session.commit() 
+                            if resultadoCompilacion:
+                                ejercicioAsignado.contador += 1
+                                ejercicioAsignado.ultimo_envio = rutaFinal
+                                ejercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                ejercicioAsignado.test_output = json.dumps(resultadoCompilacion) # Se debe obtener el resultado de los test unitarios o compilacion
+                                ejercicioAsignado.estado = False
+                                db.session.commit()
+                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                            else:
+                                resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
+                                if resultadoTest:
+                                    ejercicioAsignado.contador += 1
+                                    ejercicioAsignado.ultimo_envio = rutaFinal
+                                    ejercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                    ejercicioAsignado.test_output = json.dumps(resultadoTest) # Se debe obtener el resultado de los test unitarios o compilacion
+                                    ejercicioAsignado.estado=False
+                                    db.session.commit()
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                elif resultadoTest is None:
+                                    ejercicioAsignado.contador += 1
+                                    ejercicioAsignado.ultimo_envio = rutaFinal
+                                    ejercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                    ejercicioAsignado.test_output = "Todos los test aprobados" # Se debe obtener el resultado de los test unitarios o compilacion
+                                    ejercicioAsignado.estado=True
+                                    db.session.commit()
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=ejercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                db.session.commit() 
             except Exception as e:
                 db.session.rollback()
-                flash(f'Error al asignar el ejercicio al estudiante {str(e)}', 'danger')
                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
             # Se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
 
-    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
+    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
 
 
 # # Ruta para ver el progreso de los estudiantes
@@ -807,59 +833,13 @@ if __name__ == '__main__':
 
 # #lsof -i:PUERTO //para revisar todos los procesos que estan usando el puerto
 # #kill -9 PID //para matar el proceso que esta usando el puerto
-#source /home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/venv/bin/activate
-
-
-#serie activa por grupos, asignar la serie a un grupo de estudiantes
-
-
-#Ruta donde debe quedar el archivo del alumno plantillaMaven/src/main/java/org/example/
+# source /home/ivonne/Documentos/GitHub/MemoriaTituloIvonne/venv/bin/activate
+# serie activa por grupos, asignar la serie a un grupo de estudiantes
+# Ruta donde debe quedar el archivo del alumno plantillaMaven/src/main/java/org/example/
 # Ruta donde debe quedar el archivo de los test del profesor plantillaMaven/src/test/java/org/example/
 
-# @app.route('/registerEstudiante', methods=['GET'])
-# def estudianteRegisterPage():
-#     return render_template('registerEstudiante.html')
-
-# @app.route('/registerEstudiante', methods=['POST'])
-# def registerEstudiante():
-#     matricula=request.form.get('matricula')
-#     nombres=request.form.get('nombres')
-#     apellidos=request.form.get('apellidos')
-#     correo=request.form.get('correo')
-#     password=request.form.get('password')
-#     carrera=request.form.get('carrera')
-#     if not nombres or not apellidos or not correo or not password or not matricula:
-#         return jsonify(message='Todos los campos son requeridos.'), 400
-#         # Verifica si ya existe un estudiante con ese correo
-    
-#     estudiante = Estudiante.query.filter_by(correo=correo).first()
-#     if estudiante:
-#         return jsonify(message='Ya existe un estudiante con ese correo.'), 400
-
-#     # Crea el nuevo esstudiante
-#     new_estudiante = Estudiante(
-#         matricula=matricula,
-#         nombres=nombres,
-#         apellidos=apellidos,
-#         correo=correo,
-#         password=generate_password_hash(password),  # Almacena la contraseña de forma segura
-#         carrera=carrera
-#     )
-
-#     # Añade el nuevo estudiante a la base de datos
-#     db.session.add(new_estudiante)
-#     db.session.commit()
-
-#     flash('Estudiante registrado exitosamente.', 'success')
-#     return redirect(url_for('home'))
 # ssh ivonne@pa3p2.inf.udec.cl
 # mail5@udec.cl     
-
 # Guardar el mismo nombre para todo en ejercicio_numero_serie_numero
-
-
-
-
-# Viusalizacion de salida? con errores o no ?
-
 # Sistema de notas feedback IMPORTANTEEE
+# formula para escala de notas al 50% exigencia

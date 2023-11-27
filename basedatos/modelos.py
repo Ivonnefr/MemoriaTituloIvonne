@@ -1,5 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from DBManager import db
+import json
+
 # Las tablas son para many-to-many
 
 # Tabla de asociación entre Cursos y Estudiantes
@@ -96,8 +98,8 @@ class Estudiante(db.Model):
     carrera = db.Column(db.String(100), nullable=False)
     cursos = db.relationship('Curso', secondary=inscripciones, back_populates='estudiantes')
     grupos = db.relationship('Grupo', secondary=estudiantes_grupos, back_populates='estudiantes')
-    ejercicios_asignados = db.relationship('Ejercicio_asignado', back_populates='estudiante')
-
+    ejercicios_asignados = db.relationship('Ejercicio_asignado', back_populates='estudiante', viewonly=True)
+    
     def __init__(self, matricula, nombres, apellidos, correo, password, carrera):
         self.matricula = matricula
         self.nombres = nombres
@@ -147,7 +149,7 @@ class Ejercicio_asignado(db.Model):
     test_output = db.Column(db.String(), nullable=True)
 
     ejercicio = db.relationship('Ejercicio', foreign_keys=[id_ejercicio], backref='ejercicios_asignados')
-    estudiante = db.relationship('Estudiante', backref='ejercicios_asignados_relacion')
+    estudiante = db.relationship('Estudiante', viewonly=True, lazy='joined')
 
     def __init__(self, id_estudiante, id_ejercicio, contador=contador, estado=estado, ultimo_envio=ultimo_envio, fecha_ultimo_envio=fecha_ultimo_envio, test_output=test_output):
         self.id_estudiante = id_estudiante
@@ -156,4 +158,4 @@ class Ejercicio_asignado(db.Model):
         self.estado = estado
         self.ultimo_envio = ultimo_envio
         self.fecha_ultimo_envio = fecha_ultimo_envio
-        self.test_output = test_output
+        self.test_output = json.dumps(test_output)
