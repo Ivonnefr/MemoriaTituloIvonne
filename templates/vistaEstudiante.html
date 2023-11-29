@@ -4,47 +4,47 @@
 
 {% block content %}
 
-<div class="row">
-  <div class="container mt-5">
-    <h1>Hola, {{estudiante.nombres}} {{estudiante.apellidos}}</h1>
-    <h2>Tu supervisor es: {%if supervisor%} {{supervisor.nombres}} {{supervisor.apellidos}}
-      {% else %}
-        No tienes supervisor asignado.
-      {% endif %}
-    </h2>
-  </div>
-</div>
 
 <div class="row">
-  <div class="container mt-5">
-    <h4>Tu curso asignado es: {{curso.nombre}}</h4>
-    {% if grupo %}
-      <h4>Tu grupo asignado es: {{grupo.nombre}}</h4>
-    {% else %}
-      <h4>No estás asignado a ningún grupo.</h4>
-    {% endif %}
+  <div class="col-md-12">
+    <div class="card border-dark">
+      <div class="card-body bg-dark text-white">
+        <h2 class="card-title">{{estudiante.nombres}} {{estudiante.apellidos}}</h2>
+        <h4 class="card-subtitle mb-2">{% if supervisor %}Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}{% else %}No tienes supervisor asignado.{% endif %}</h>
+      </div>
+      <div class="card-body bg-white">
+        <h4 class="card-title">Perteneces a {{curso.nombre}}</h4>
+        {% if grupo %}
+          <h4 class="card-title">Tu grupo asignado es: {{grupo.nombre}}</h4>
+        {% else %}
+          <h4 class="card-title">No estás asignado a ningún grupo.</h4>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="row">
   <div class="container mt-5">
     <h2>Series de ejercicios asignadas</h2>
-    <ul>
-      {% if seriesAsignadas %}
-              {% for serie in seriesAsignadas %}
-          <li>
-            <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" style="font-size:  2em;">{{serie.nombre}}</a>
+    {% if seriesAsignadas %}
+      <ol class="list-group list-group-numbered">
+        {% for serie in seriesAsignadas %}
+          <li class="list-group-item">
+            <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" style="font-size: 2em;">{{serie.nombre}}</a>
+            <ul>
+              {% for ejercicio in ejerciciosPorSerie[serie] %}
+                <li>
+                  <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
+                </li>
+              {% endfor %}
+            </ul>
           </li>
-          {% for ejercicio in ejerciciosPorSerie[serie] %}
-            <li>
-              <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size:  1em;">{{ejercicio.nombre}}</a>
-            </li>
-          {% endfor %}
         {% endfor %}
-      {% else %}
-        <li>No tienes series asignadas en este momento.</li>
-      {% endif %}
-    </ul>
+      </ol>
+    {% else %}
+      <p>No tienes series asignadas en este momento.</p>
+    {% endif %}
   </div>
 </div>
 

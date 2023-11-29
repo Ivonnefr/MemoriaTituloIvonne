@@ -1,11 +1,15 @@
 {% extends 'layout.html' %}
 
-{% block title %}
-Ejercicio {{ ejercicio.nombre }}
+{% block title %}{{ ejercicio.nombre }}
 {% endblock %}
 
 {% block content %}
-<h1>{{ejercicio.nombre}}</h1>
+<div class="card">
+    <div class="card-body bg-dark text-white rounded">
+        <h1>{{ ejercicio.nombre }}</h1>
+    </div>
+</div>
+
 
 <div class="row">
     <div class="container mt-5">
@@ -22,7 +26,7 @@ Ejercicio {{ ejercicio.nombre }}
                 <label for="archivo_java">Selecciona tus archivos .java (Proyecto/src/main/java/org/example)</label>
                 <input type="file" class="form-control-file" name="archivo_java" accept=".java" multiple>
             </div>
-            <button type="submit" class="btn btn-primary">Subir Solución</button>
+            <button type="submit" class="btn btn-secondary">Subir Solución</button>
         </form>              
     </div>
 </div>
@@ -58,20 +62,27 @@ Ejercicio {{ ejercicio.nombre }}
         {% endif %}
     </div>
 </div>
-
 <div class="row mt-5">
     <div class="container">
         <h2>Ejercicios Disponibles</h2>
-        <div class="card-deck">
-            {% for ejercicio_disponible in ejercicios %}
-                <div class="card {% if loop.index is even %}bg-info{% elif loop.index is divisibleby(3) %}bg-success{% else %}bg-danger{% endif %}">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ ejercicio_disponible.nombre }}</h5>
-                        <p class="card-text">{{ ejercicio_disponible.descripcion }}</p>
-                        <!-- Agrega más información si es necesario -->
+        <div class="d-flex flex-wrap justify-content-center align-items-start">
+            {% for ejercicio_info in colors_info %}
+                <a href="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio_info.id) }}" class="text-decoration-none">
+                    <div class="card bg-{{ ejercicio_info.color }} mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                        <div class="card-body text-center">
+                            <h5 class="card-title" style="color: white;">{{ ejercicio_info.nombre }}</h5>
+                        </div>
                     </div>
-                </div>
+                </a>
             {% endfor %}
+
+            <!-- Tarjeta de Calificación -->
+            <div class="card bg-secondary mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <div class="card-body text-center">
+                    <h5 class="card-title" style="color: white;">Calificación</h5>
+                    <p class="calificacion">{{ calificacion }}</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

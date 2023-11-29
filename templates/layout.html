@@ -10,7 +10,17 @@
     <link rel="icon" type="image/ico" href="{{ url_for('static', filename='images/code_icon_150718.ico') }}">
 
     <link href="{{ url_for('static', filename='css/layout.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha384-rzO3oYQxTKS7Dl3l3oVMWSktQOp6b7In1z9EE1lAM5RDI1x0UZRIhZ1bVOyJhi5S" crossorigin="anonymous">
 
+    <style>
+      a {
+          color: inherit;  /* Usa el color del texto heredado */
+      }
+  
+      a:hover {
+          color: gray;  /* Cambia el color del texto al pasar el ratón por encima (opcional) */
+      }
+    </style>
     <title>{% block title %}{% endblock %} - MT</title>
   </head>
   <body>
@@ -86,4 +96,3 @@
 
   </body>
 </html>
-

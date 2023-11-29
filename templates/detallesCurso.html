@@ -30,6 +30,12 @@
         </table>
     </div>
     <div class="col-md-6">
+        <div class="card mb-3">
+            <div class="card-body">
+                <a href="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="btn btn-secondary">Asignar nuevo grupo</a>
+                <a href="{{ url_for('progresoCurso', supervisor_id=supervisor_id, curso_id= curso.id)}}" class="btn btn-secondary">Ver progreso del curso</a> 
+            </div>
+        </div>
         <div class="card mb-3"> <!-- Agrega la clase mb-3 aquí -->
             <!-- Contenido de la tarjeta -->
             <div class="card-header">
@@ -44,16 +50,7 @@
                 {% endfor %}
             </div>            
         </div>
-        <div class="card">
-            <!-- Contenido de la tarjeta -->
-            <div class="card-header">
-                <h5>Asignar nuevo grupo</h5>
-            </div>
-            <div class="card-body">
-                <a href="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="btn btn-primary">Asignar nuevo grupo</a>
-                
-            </div>
-        </div>
+
     </div>
 </div>
 {% endblock %}

@@ -135,6 +135,20 @@ def procesar_archivo_csv(filename, curso_id):
                     flash(f'Error al inscribir a {nombres} {apellidos} en el curso.', 'warning')
                     continue
 
+def calcular_calificacion(total_puntos, puntos_obtenidos):
+    porcentaje = (puntos_obtenidos / total_puntos) * 100
+
+    if porcentaje >= 60:
+        # Calcular la calificación para el rango de 4 a 7
+        calificacion = 4 + (3 / 40) * (porcentaje - 60)
+    else:
+        # Calcular la calificación para el rango de 1 a 4
+        calificacion = 1 + (3 / 60) * porcentaje
+
+    calificacion = max(1, min(calificacion, 7))
+
+    return calificacion
+
 @login_manager.user_loader
 def load_user(user_id):
     if user_id.startswith("e"):
@@ -256,7 +270,7 @@ def dashDocente(supervisor_id):
     series = Serie.query.all()
     cursos = Curso.query.all()
     ejercicios = Ejercicio.query.all()
-    ejercicios_por_serie = {}  # Usaremos un diccionario vacío para llenarlo con los ejericios y pasarlo al template
+    ejercicios_por_serie = {}
 
     # Verificar si hay cursos, series y ejercicios
     curso_seleccionado_id=None
@@ -574,6 +588,92 @@ def asignarGrupos(supervisor_id, curso_id):
 def editarGrupos(supervisor_id):
     return render_template('editarGrupos.html', supervisor_id=supervisor_id)
 
+# Ruta para ver el progreso de los estudiantes de un curso
+@app.route('/dashDocente/<int:supervisor_id>/progresoCurso/<int:curso_id>', methods=['GET', 'POST'])
+@login_required
+def progresoCurso(supervisor_id, curso_id):
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+
+    curso = Curso.query.get(curso_id)
+
+    # Recuperar los estudiantes del curso
+    estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
+
+    # Recuperar los grupos del curso
+    grupos_curso = Grupo.query.filter_by(id_curso=curso_id).all()
+
+    # Recuperar todas las series asignadas de todos los grupos
+    series_asignadas = Serie.query.join(serie_asignada).filter(serie_asignada.c.id_grupo.in_([grupo.id for grupo in grupos_curso])).all()
+
+    if request.method == 'POST':
+        # Obtener el ID de la serie seleccionada desde el formulario
+        serie_seleccionada_id = request.form.get('serie')
+
+        # Filtrar ejercicios por la serie seleccionada
+        ejercicios = Ejercicio.query.filter_by(id_serie=serie_seleccionada_id).all()
+
+        # Filtrar ejercicios asignados por estudiante y ejercicios de la serie
+        ejercicios_asignados = Ejercicio_asignado.query.filter(
+            Ejercicio_asignado.id_estudiante.in_([estudiante.id for estudiante in estudiantes_curso]),
+            Ejercicio_asignado.id_ejercicio.in_([ejercicio.id for ejercicio in ejercicios])
+        ).all()
+
+        # Lógica para asignar colores a las celdas en la tabla
+        colores_info = []
+
+        for estudiante in estudiantes_curso:
+            estudiante_info = {'nombre': f'{estudiante.nombres} {estudiante.apellidos}', 'ejercicios': [], 'calificacion': None}
+
+            total_puntos = len(ejercicios)  # Total de puntos igual a la cantidad total de ejercicios
+            puntos_obtenidos = 0
+
+            for ejercicio in ejercicios:
+                ejercicio_asignado = next(
+                    (ea for ea in ejercicios_asignados if ea.id_estudiante == estudiante.id and ea.id_ejercicio == ejercicio.id), None
+                )
+
+                if ejercicio_asignado and ejercicio_asignado.estado:
+                    puntos_obtenidos += 1  # Sumar 1 punto por cada ejercicio aprobado
+
+                if ejercicio_asignado:
+                    intentos = ejercicio_asignado.contador
+                    if ejercicio_asignado.estado:
+                        estudiante_info['ejercicios'].append({'id': ejercicio.id, 'color': 'success', 'intentos': intentos})
+                    elif not ejercicio_asignado.estado and intentos > 0:
+                        estudiante_info['ejercicios'].append({'id': ejercicio.id, 'color': 'danger', 'intentos': intentos})
+                    else:
+                        estudiante_info['ejercicios'].append({'id': ejercicio.id, 'color': 'info', 'intentos': intentos})
+                else:
+                    estudiante_info['ejercicios'].append({'id': ejercicio.id, 'color': 'info', 'intentos': 0})
+
+            # Calcula la calificación usando la función calcular_calificacion
+            if puntos_obtenidos is not None:
+                estudiante_info['calificacion'] = calcular_calificacion(total_puntos, puntos_obtenidos)
+
+            colores_info.append(estudiante_info)
+
+
+        return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas, ejercicios=ejercicios, colores_info=colores_info)
+    return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas)
+
+# Ruta para ver el progreso de los estudiantes
+@app.route('/dashDocente/<int:supervisor_id>/progresoSesion', methods=['GET', 'POST'])
+@login_required
+def progresoSesion(supervisor_id):
+    # Ruta muestra el progreso de los estudiantes en la sesión
+    # Usa la función de verificación
+    if not verify_supervisor(supervisor_id):
+        return redirect(url_for('login'))
+    
+    # Listar todos los estudiantes de la sesion
+    estudiantes = Estudiante.query.all()
+
+    return render_template('progresoSesion.html', supervisor_id=supervisor_id, estudiantes=estudiantes)
+
+
+
 # DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas
 @app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET', 'POST'])
 @login_required
@@ -624,11 +724,12 @@ def dashEstudiante(estudiante_id):
     # Obtiene las series asignadas solo si grupo no es None
     if grupo:
         seriesAsignadas = (
-            Serie.query
-            .join(serie_asignada)
-            .filter(serie_asignada.c.id_grupo == grupo.id)
-            .all()
-        )
+        Serie.query
+        .join(serie_asignada)
+        .filter(serie_asignada.c.id_grupo == grupo.id)
+        .filter(Serie.activa)  # Filtrar por series activas
+        .all()
+    )
 
 
     # A continuación, puedes obtener los ejercicios para cada serie en series_asignadas
@@ -656,45 +757,57 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
 
-    # Obtén el ejercicio y su ruta de enunciado desde la base de datos
     serie = Serie.query.get(serie_id)
     ejercicio = Ejercicio.query.get(ejercicio_id)
     matricula= Estudiante.query.get(estudiante_id).matricula
-    # Consulta para obtener todos los ejercicios de un estudiante.
     estudiante = db.session.get(Estudiante, int(estudiante_id))
-    # Consulta para obtener todos los ejercicios de serie
     ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
-    # Consulta para obtener todos los ejercicios asignados al estudiante
     ejercicios_asignados = (
         Ejercicio_asignado.query
-        .filter_by(id_estudiante=estudiante_id)
+        .filter(Ejercicio_asignado.id_estudiante == estudiante_id)
+        .filter(Ejercicio_asignado.id_ejercicio.in_([ejercicio.id for ejercicio in ejercicios]))
         .all()
     )
 
-    # Asegúrate de que la ruta de enunciado del ejercicio no esté vacía
+    colors_info = []
+
+    for ejercicio_disponible in ejercicios:
+        ejercicio_info = {'nombre': ejercicio_disponible.nombre, 'id': ejercicio_disponible.id, 'color': 'info'}
+        
+        for ejercicio_asignado in ejercicios_asignados:
+            if ejercicio_disponible.id == ejercicio_asignado.id_ejercicio:
+                if ejercicio_asignado.estado:
+                    ejercicio_info['color'] = 'success'
+                elif not ejercicio_asignado.estado and ejercicio_asignado.contador > 0:
+                    ejercicio_info['color'] = 'danger'
+                
+        colors_info.append(ejercicio_info)
+
+    ejercicios_aprobados = sum(1 for ea in ejercicios_asignados if ea.estado)
+
+    total_ejercicios = len(ejercicios)
+    calificacion = calcular_calificacion(total_ejercicios, ejercicios_aprobados)
+
     if ejercicio and ejercicio.enunciado:
-        # Lee el contenido del archivo de enunciado con Python-Markdown
         with open(ejercicio.enunciado, 'r') as enunciado_file:
             enunciado_markdown = enunciado_file.read()
-            # Convierte el Markdown en HTML
             enunciado_html = markdown.markdown(enunciado_markdown)
     else:
         enunciado_html = "<p>El enunciado no está disponible.</p>"
 
     if request.method == 'POST':
         archivos_java = request.files.getlist('archivo_java')
-        # Crear la carpeta del estudiante con la serie y el ejercicio.
         # La carpeta del ejercicio está guardada en ejerciciosPropuestos/numeroserie_nombredeserie/id_ejercicio
         rutaArchivador=None
-        # Si no suben archivos
         if not archivos_java:
             flash('Por favor, carga al menos un archivo .java.', 'danger')
-            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)        
+            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)        
+        
         try:
             rutaArchivador = crearArchivadorEstudiante(matricula)
             #flash('Se creo exitosamente el archivador', 'success')
         except Exception as e:
-            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
         # Luego de crear la carpeta con la matricula del estudiante, se asigna el ejercicio a al estudiante en la bd
         
         if rutaArchivador:
@@ -734,7 +847,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                 nuevoEjercicioAsignado.test_output = json.dumps(resultadoCompilacion) # Se debe obtener el resultado de los test unitarios o compilacion
                                 nuevoEjercicioAsignado.estado = False
                                 db.session.commit()
-                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info,calificacion=calificacion)
                             else:
                                 resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
                                 if resultadoTest:
@@ -745,7 +858,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     nuevoEjercicioAsignado.test_output =  json.dumps(resultadoTest) # Se debe obtener el resultado de los test unitarios o compilacion
                                     nuevoEjercicioAsignado.estado=False
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest,ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest,ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
                                 elif resultadoTest is None:
                                     nuevoEjercicioAsignado.contador += 1
                                     nuevoEjercicioAsignado.ultimo_envio = rutaFinal
@@ -754,7 +867,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     nuevoEjercicioAsignado.estado=True
                                     flash(f'Felicitaciones, aprobaste', 'success')
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=nuevoEjercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=nuevoEjercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,calificacion=calificacion, colors_info=colors_info)
                     db.session.commit()
                 else:
                     # Se ocupan los datos asignados para encontrar la carpeta de la serie y ejercicio
@@ -777,7 +890,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                 ejercicioAsignado.test_output = json.dumps(resultadoCompilacion) # Se debe obtener el resultado de los test unitarios o compilacion
                                 ejercicioAsignado.estado = False
                                 db.session.commit()
-                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                             else:
                                 resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
                                 if resultadoTest:
@@ -787,7 +900,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     ejercicioAsignado.test_output = json.dumps(resultadoTest) # Se debe obtener el resultado de los test unitarios o compilacion
                                     ejercicioAsignado.estado=False
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                                 elif resultadoTest is None:
                                     ejercicioAsignado.contador += 1
                                     ejercicioAsignado.ultimo_envio = rutaFinal
@@ -795,29 +908,15 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     ejercicioAsignado.test_output = "Todos los test aprobados" # Se debe obtener el resultado de los test unitarios o compilacion
                                     ejercicioAsignado.estado=True
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=ejercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=ejercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
                 db.session.commit() 
             except Exception as e:
                 db.session.rollback()
                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
             # Se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
 
-    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados)
+    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info,calificacion=calificacion)
 
-
-# # Ruta para ver el progreso de los estudiantes
-# @app.route('/dashDocente/<int:supervisor_id>/progresoSesion', methods=['GET', 'POST'])
-# @login_required
-# def progresoSesion(supervisor_id):
-#     # Ruta muestra el progreso de los estudiantes en la sesión
-#     # Usa la función de verificación
-#     if not verify_supervisor(supervisor_id):
-#         return redirect(url_for('login'))
-    
-#     # Listar todos los estudiantes de la sesion
-#     estudiantes = Estudiante.query.all()
-
-#     return render_template('progresoSesion.html', supervisor_id=supervisor_id, estudiantes=estudiantes)
 
 
 #Funcion para ejecutar el script 404

@@ -81,6 +81,7 @@ class Ejercicio(db.Model):
 class Serie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50), nullable=False, unique=True)
+    activa = db.Column(db.Boolean(), nullable=False, default=True)
     ejercicios = db.relationship('Ejercicio', order_by=Ejercicio.id, back_populates='serie')
     
     def __init__(self, nombre, activa):
