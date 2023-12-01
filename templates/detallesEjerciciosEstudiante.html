@@ -34,7 +34,7 @@
 <div class="row">
     <div class="container mt-5">
         {% if errores_compilacion %}
-            <div class="alert alert-danger">
+            <div class="alert alert-danger">    
                 <h2>Output de compilación</h2>
                 <ul>
                     {% for error in errores_compilacion %}
@@ -59,8 +59,17 @@
                     </ul>
                 </div>
             {% endif %}
+        {%else%}
+            {% if mensaje_aprobacion %}
+            <div class="alert alert-success">
+                <h2>{{ mensaje_aprobacion }}</h2>
+            </div>
+            {% endif %}
+
+                
         {% endif %}
     </div>
+
 </div>
 <div class="row mt-5">
     <div class="container">

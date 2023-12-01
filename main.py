@@ -56,7 +56,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'  # Nombre de la vista para iniciar sesión
 
 UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
-ALLOWED_EXTENSIONS = {'md','xml','csv'}
+ALLOWED_EXTENSIONS = {'md','xml','csv','png','jpg', 'jpeg'}
 
 # Encuentra la ruta del directorio del archivo actual
 current_directory = os.path.dirname(os.path.abspath(__file__))
@@ -147,7 +147,11 @@ def calcular_calificacion(total_puntos, puntos_obtenidos):
 
     calificacion = max(1, min(calificacion, 7))
 
+    # Redondear a dos decimales
+    calificacion = round(calificacion, 2)
+
     return calificacion
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -353,76 +357,86 @@ def agregarSerie(supervisor_id):
     
     return render_template('agregarSerie.html', supervisor_id=supervisor_id)
 
-@app.route('/dashDocente/<int:supervisor_id>/agregarEjercicio', methods = ['GET', 'POST'])
+@app.route('/dashDocente/<int:supervisor_id>/agregarEjercicio', methods=['GET', 'POST'])
 def agregarEjercicio(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
-    # --->Restringir la cantidad de caracteres del enunciado<---
-    # se debe guardar en: ./id_serie_nombre_serie/id_ejercicio/src/test/java/org/example
+
     series = Serie.query.all()
-    
+    filepath_ejercicio = None
+    rutaEnunciadoEjercicios = None
     if request.method == 'POST':
-        nombreEjercicio = request.form.get('nombreEjercicio')
-        id_serie = request.form.get('id_serie')
-        enunciadoFile = request.files.get('enunciadoFile')
-        imagenesFiles = request.files.getlist('imagenesFiles')
-        unitTestFile = request.files.getlist('archivosJava')
-        serie_actual = db.session.get(Serie, int(id_serie))
-
-        # Recuperamos el nombre del archivo de test unitario
-        if not any(allowed_file(file.filename, '.java') for file in unitTestFile):
-            flash('Por favor, carga al menos un archivo .java.', 'danger')
-            return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
-
-        nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
-        nuevoNombre= str(nuevo_ejercicio.id) + "ejercicio.md"
-        filepath_ejercicio = None
-
         try:
+            nombreEjercicio = request.form.get('nombreEjercicio')
+            id_serie = request.form.get('id_serie')
+            enunciadoFile = request.files.get('enunciadoFile')
+            imagenesFiles = request.files.getlist('imagenesFiles')
+            unitTestFiles = request.files.getlist('archivosJava')
+            serie_actual = db.session.get(Serie, int(id_serie))
+
+            if not any(allowed_file(file.filename, '.java') for file in unitTestFiles):
+                flash('Por favor, carga al menos un archivo .java.', 'danger')
+                return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
+            
+            flash(f'{type(imagenesFiles)}', 'danger')
+            flash(f'{len(imagenesFiles)}', 'warning')
+            
+            if not imagenesFiles:
+                flash('Por favor, carga al menos una imagen.', 'danger')
+                imagenesFiles = None
+            if not imagenesFiles[0].filename:
+                flash('No hay imagenes cargadas', 'danger')
+
+            nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
             db.session.add(nuevo_ejercicio)
             db.session.flush()
-            rutaEjercicio,rutaEnunciadoEjercicios, mensaje = crearCarpetaEjercicio(nuevo_ejercicio.id, id_serie, serie_actual.nombre)
+
+            rutaEjercicio, rutaEnunciadoEjercicios, mensaje = crearCarpetaEjercicio(nuevo_ejercicio.id, id_serie,serie_actual.nombre)
 
             if rutaEjercicio is None:
                 raise Exception(mensaje)
 
             filepath_ejercicio = rutaEjercicio
+
+            # Guardar enunciado
             nuevoNombre = str(nuevo_ejercicio.id) + "_" + str(nuevo_ejercicio.nombre) + ".md"
-
             enunciadoFile.save(os.path.join(rutaEnunciadoEjercicios, nuevoNombre))
-
             nuevo_ejercicio.path_ejercicio = rutaEjercicio
             nuevo_ejercicio.enunciado = os.path.join(rutaEnunciadoEjercicios, nuevoNombre)
 
-            # Itera a través de las imágenes y guárdalas en la misma carpeta
-            for imagenFile in imagenesFiles:
-                imagen_filename = secure_filename(imagenFile.filename)
-                if os.path.exists(rutaEnunciadoEjercicios):
-                    imagenFile.save(os.path.join(rutaEnunciadoEjercicios, imagen_filename))
 
+            if imagenesFiles[0].filename:
+                for imagenFile in imagenesFiles:
+                    imagen_filename = secure_filename(imagenFile.filename)
+                    imagenFile.save(os.path.join(rutaEnunciadoEjercicios, imagen_filename))
+            else:
+                flash('No hay imagenes cargadas', 'warning')
 
             ubicacionTest = os.path.join(rutaEjercicio, "src/test/java/org/example")
-            if os.path.exists(ubicacionTest):
-                for unitTest in unitTestFile:
-                    nombre_archivo = secure_filename(unitTest.filename)
-                    unitTest.save(os.path.join(ubicacionTest, nombre_archivo))
+            os.makedirs(ubicacionTest, exist_ok=True)
+
+            # Guardar archivos .java en la carpeta
+            for unitTestFile in unitTestFiles:
+                nombre_archivo = secure_filename(unitTestFile.filename)
+                unitTestFile.save(os.path.join(ubicacionTest, nombre_archivo))
+
             db.session.commit()
+            flash('Ejercicio agregado con éxito', 'success')
+            return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+
         except Exception as e:
-
-            if os.path.exists(filepath_ejercicio) or os.path.exists(rutaEjercicio):
-                os.remove(filepath_ejercicio)
-            if os.path.exists(rutaEnunciadoEjercicios):
+            # Si se produce un error, revertir y eliminar carpetas
+            if filepath_ejercicio is not None and os.path.exists(filepath_ejercicio):
+                shutil.rmtree(filepath_ejercicio)
+            if rutaEnunciadoEjercicios is not None and os.path.exists(rutaEnunciadoEjercicios):
                 shutil.rmtree(rutaEnunciadoEjercicios)
-
-            # Si se produce un error con la base de datos después de crear la carpeta, puedes eliminarla aquí
             flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
             db.session.rollback()
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
-        flash('Ejercicio agregado con éxito', 'success')
-        return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
-
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
+
+
 
 @app.route('/dashDocente/<int:supervisor_id>/serie/<int:id>')
 @login_required
@@ -760,7 +774,6 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     serie = Serie.query.get(serie_id)
     ejercicio = Ejercicio.query.get(ejercicio_id)
     matricula= Estudiante.query.get(estudiante_id).matricula
-    estudiante = db.session.get(Estudiante, int(estudiante_id))
     ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
     ejercicios_asignados = (
         Ejercicio_asignado.query
@@ -795,26 +808,33 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     else:
         enunciado_html = "<p>El enunciado no está disponible.</p>"
 
+    # try:
+    #     ejercicioAsignado_est = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio_id).first()
+
+    #     if ejercicioAsignado_est and ejercicioAsignado_est.estado:
+    #         flash('Ya aprobaste este ejercicio', 'success')
+    #         return render_template('detallesEjerciciosEstudiante.html', estado=ejercicioAsignado_est.estado, serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
+
+    # except Exception as e:
+    #     flash('Error al obtener el estado del ejercicio', 'danger')
+    #     pass
+
     if request.method == 'POST':
         archivos_java = request.files.getlist('archivo_java')
-        # La carpeta del ejercicio está guardada en ejerciciosPropuestos/numeroserie_nombredeserie/id_ejercicio
         rutaArchivador=None
-        if not archivos_java:
-            flash('Por favor, carga al menos un archivo .java.', 'danger')
-            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)        
-        
         try:
             rutaArchivador = crearArchivadorEstudiante(matricula)
-            #flash('Se creo exitosamente el archivador', 'success')
+            flash('Se creo exitosamente el archivador', 'success')
         except Exception as e:
+            flash(f'Error al crear el archivador: {str(e)}', 'danger')
             return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
-        # Luego de crear la carpeta con la matricula del estudiante, se asigna el ejercicio a al estudiante en la bd
-        
-        if rutaArchivador:
+
+        if os.path.exists(rutaArchivador):
             try:
-                # Revisar si ya existe un ejercicio asignado con el estudiante_id y ejercicio_id, si no existe crearlo en la bd
                 ejercicioAsignado = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio.id).first()
-                # flash(f'Ejercicio asignado: {ejercicioAsignado}', 'danger')
+                #if(ejercicioAsignado.estado):
+                    #flash('Ya aprobaste este ejercicio', 'success')
+                    #return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=nuevoEjercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,calificacion=calificacion, colors_info=colors_info)
                 if not ejercicioAsignado:
                     nuevoEjercicioAsignado = Ejercicio_asignado(
                     id_estudiante=estudiante_id,
@@ -824,10 +844,11 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     ultimo_envio=None,
                     fecha_ultimo_envio=datetime.now(),
                     test_output=None)
+
                     db.session.add(nuevoEjercicioAsignado)
                     db.session.flush()
                     rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
-                    if rutaSerieEstudiante:
+                    if os.path.exists(rutaSerieEstudiante):
                         # Si la ruta de la serie se creo exitosamente en la carpeta del estudiante
                         # Se crea la carpeta del ejercicio dentro de la carpeta de la serie
                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id,  ejercicio.path_ejercicio)
@@ -844,79 +865,70 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                 nuevoEjercicioAsignado.contador += 1
                                 nuevoEjercicioAsignado.ultimo_envio = rutaFinal
                                 nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-                                nuevoEjercicioAsignado.test_output = json.dumps(resultadoCompilacion) # Se debe obtener el resultado de los test unitarios o compilacion
+                                nuevoEjercicioAsignado.test_output = json.dumps(resultadoCompilacion)
                                 nuevoEjercicioAsignado.estado = False
                                 db.session.commit()
                                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info,calificacion=calificacion)
                             else:
                                 resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
                                 if resultadoTest:
-                                    (f'Resultados: {resultadoTest}', 'info')
                                     nuevoEjercicioAsignado.contador += 1
                                     nuevoEjercicioAsignado.ultimo_envio = rutaFinal
                                     nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-                                    nuevoEjercicioAsignado.test_output =  json.dumps(resultadoTest) # Se debe obtener el resultado de los test unitarios o compilacion
-                                    nuevoEjercicioAsignado.estado=False
+                                    nuevoEjercicioAsignado.test_output = json.dumps(resultadoTest)
+                                    nuevoEjercicioAsignado.estado = False
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest,ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info,calificacion=calificacion)
                                 elif resultadoTest is None:
-                                    nuevoEjercicioAsignado.contador += 1
+                                    nuevoEjercicioAsignado.contador +=1
                                     nuevoEjercicioAsignado.ultimo_envio = rutaFinal
                                     nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-                                    nuevoEjercicioAsignado.test_output = "Todos los Test aprobados" # Se debe obtener el resultado de los test unitarios o compilacion
-                                    nuevoEjercicioAsignado.estado=True
-                                    flash(f'Felicitaciones, aprobaste', 'success')
+                                    nuevoEjercicioAsignado.test_output = "Todos los test Aprobados"
+                                    nuevoEjercicioAsignado.estado = True
+                                    mensaje_aprobacion = " Felicidades, aprobaste el ejercicio"
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=nuevoEjercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,calificacion=calificacion, colors_info=colors_info)
-                    db.session.commit()
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id,mensaje_aprobacion=mensaje_aprobacion, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
                 else:
-                    # Se ocupan los datos asignados para encontrar la carpeta de la serie y ejercicio
-                    rutaSerieEstudiante= agregarCarpetaSerieEstudiante(matricula, serie.id, serie.nombre)
-                    if rutaSerieEstudiante:
-                        # Si encuentro la ruta de la serie, creo la carpeta del ejercicio otra vez
+                    rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
+                    if os.path.exists(rutaSerieEstudiante):
                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.path_ejercicio)
                         if os.path.exists(rutaEjercicioEstudiante):
-                            # Ahora se añaden los archivos del estudiante a la carpeta
                             for archivo_java in archivos_java:
-                                rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
+                                rutaFinal= os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
                                 if archivo_java and archivo_java.filename.endswith('.java'):
                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
-
-                            resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
-                            if resultadoCompilacion:
-                                ejercicioAsignado.contador += 1
-                                ejercicioAsignado.ultimo_envio = rutaFinal
-                                ejercicioAsignado.fecha_ultimo_envio = datetime.now()
-                                ejercicioAsignado.test_output = json.dumps(resultadoCompilacion) # Se debe obtener el resultado de los test unitarios o compilacion
-                                ejercicioAsignado.estado = False
-                                db.session.commit()
-                                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
-                            else:
-                                resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
-                                if resultadoTest:
+                                resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
+                                if resultadoCompilacion:
                                     ejercicioAsignado.contador += 1
                                     ejercicioAsignado.ultimo_envio = rutaFinal
-                                    ejercicioAsignado.fecha_ultimo_envio = datetime.now()
-                                    ejercicioAsignado.test_output = json.dumps(resultadoTest) # Se debe obtener el resultado de los test unitarios o compilacion
-                                    ejercicioAsignado.estado=False
+                                    ejercicioAsignado.fecha_ultimo_envio= datetime.now()
+                                    ejercicioAsignado.test_output = json.dumps(resultadoCompilacion)
+                                    ejercicioAsignado.estado = False
                                     db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
-                                elif resultadoTest is None:
-                                    ejercicioAsignado.contador += 1
-                                    ejercicioAsignado.ultimo_envio = rutaFinal
-                                    ejercicioAsignado.fecha_ultimo_envio = datetime.now()
-                                    ejercicioAsignado.test_output = "Todos los test aprobados" # Se debe obtener el resultado de los test unitarios o compilacion
-                                    ejercicioAsignado.estado=True
-                                    db.session.commit()
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=ejercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-                db.session.commit() 
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
+                                else:
+                                    resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
+                                    if resultadoTest:
+                                        ejercicioAsignado.contador += 1
+                                        ejercicioAsignado.ultimo_envio = rutaFinal
+                                        ejercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                        ejercicioAsignado.test_output = json.dumps(resultadoTest)
+                                        ejercicioAsignado.estado = False
+                                        db.session.commit()
+                                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
+                                    elif resultadoTest is None:
+                                        ejercicioAsignado.contador += 1
+                                        ejercicioAsignado.ultimo_envio = rutaFinal
+                                        ejercicioAsignado.fecha_ultimo_envio = datetime.now()
+                                        ejercicioAsignado.test_output = "Todos los test Aprobados"
+                                        ejercicioAsignado.estado = True
+                                        mensaje_aprobacion = " Felicidades, aprobaste el ejercicio"
+                                        db.session.commit()
+                                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,mensaje_aprobacion=mensaje_aprobacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
             except Exception as e:
-                db.session.rollback()
-                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html)
-            # Se crea la carpeta de el ejercicio siguiendo el mismo formato que del enunciado
-
-    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info,calificacion=calificacion)
-
+                flash(f'Error al crear el ejercicio asignado: {str(e)}', 'danger')
+                return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
 
 
 #Funcion para ejecutar el script 404
