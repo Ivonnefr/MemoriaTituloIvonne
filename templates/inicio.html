@@ -5,26 +5,25 @@ Inicio
 {% endblock %}
 
 {% block content %}
-<h1>Bienvenido a la Plataforma Nombre</h1>
-<p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
+<div class="bg-dark text-light p-4 rounded mb-4">
+    <h1>Bienvenido a la Plataforma Nombre</h1>
+  </div>
+  <p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
 
-<!-- Resto del código de tu formulario ... -->
 
 <div class="row justify-content-center">
-  <div class="col-7">
-    <h2>Iniciar sesión</h2>
-    <!-- Asegúrate de especificar el método POST y la acción /login para el formulario -->
+  <div class="col-7 p-4 rounded shadow">
+    <h2 class="text-secondary">Iniciar sesión</h2>
     <form method="POST" action="{{ url_for('login') }}">
       <div class="form-group">
-        <label for="username">Correo electrónico</label>
-        <!-- Los campos input deben tener un atributo "name" que coincida con los parámetros que esperas en tu función de login -->
+        <label for="username" class="text-dark">Correo electrónico</label>
         <input type="email" class="form-control" id="correo" name="correo" placeholder="Ingresa tu correo">
       </div>
       <div class="form-group">
-        <label for="password">Contraseña</label>
+        <label for="password" class="text-dark">Contraseña</label>
         <input type="password" class="form-control" id="password" name="password" placeholder="Ingresa tu contraseña">
       </div>
-      <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+      <button type="submit" class="btn btn-secondary btn-block mt-3">Iniciar sesión</button>
     </form>
   </div>
 </div>

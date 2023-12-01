@@ -18,12 +18,12 @@ Registro de Estudiantes
             <input type="text" class="form-control" id="nombreCurso" name="nombreCurso" placeholder="Ingresa el nombre del curso" required>
         </div>
 
-        <div class="custom-control custom-switch">
+        <div class="custom-control custom-switch custom-switch-custom-color">
             <input type="checkbox" class="custom-control-input" id="activaSwitch" name="activa" checked>
             <label class="custom-control-label" for="activaSwitch">Activo</label>
-        </div>
+        </div>        
 
-        <button type="submit" class="btn btn-primary">Crear Curso</button>
+        <button type="submit" class="btn btn-secondary">Crear Curso</button>
     </form>
 </div>
 
@@ -45,7 +45,7 @@ Registro de Estudiantes
             <input type="file" class="form-control-file" id="listaClases" name="listaClases" accept=".csv" required>
         </div>
 
-        <button type="submit" class="btn btn-primary">Registrar Estudiantes</button>
+        <button type="submit" class="btn btn-secondary">Registrar Estudiantes</button>
     </form>
 </div>
 <div class="container mt-5">
@@ -56,5 +56,10 @@ Registro de Estudiantes
     </div>
 </div>
 
-
+<style>
+    .custom-switch-custom-color .custom-control-input:checked + .custom-control-label::before {
+        background-color: #424141; /* Reemplaza esto con el color deseado */
+    }
+    
+</style>
 {% endblock %}

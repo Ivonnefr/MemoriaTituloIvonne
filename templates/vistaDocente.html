@@ -5,35 +5,71 @@ Vista Docente -
 {% endblock %}
 
 {% block content %}
+<style>
+  .bg-custom-purple {
+    background-color: #3d314a; /* Puedes ajustar el código de color según tu preferencia */
+  }
+  .text-custom-champagne {
+    color: #eee0cb; /* Puedes ajustar el código de color según tu preferencia */
+  }
+</style>
+
 <div class="container mt-5">
   <h1>{% if curso_seleccionado %}{{ curso_seleccionado.nombre }}{% else %}Seleccione un curso{% endif %}</h1>
 </div>
 
 <div class="container mt-5">
-  <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" id="cursoForm" class="form-inline">
-     <input type="hidden" name="accion" value="seleccionarCurso">
-     <div class="form-group">
-       <label for="curso" class="mr-2">Selecciona un curso:</label>
-       <select name="curso" id="curso" class="form-control mr-2">
-         {% for curso in cursos %}
-           <option value="{{ curso.id }}">{{ curso.nombre }}</option>
-         {% endfor %}
-       </select>
-     </div>
-     <button type="submit" class="btn btn-primary">Seleccionar</button>
-  </form>
+  <div class="row">
+    <div class="col-12 mb-3">
+      <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary
+      ">Crear Curso</a>
+    </div>
+    
+<div class="container mt-5">
+  <div class="row">
+    {% for curso in cursos %}
+      <div class="col-md-6 mb-4">
+        <a href="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="card-link text-decoration-none">
+          <div class="card bg-custom-purple text-white">
+            <div class="card-body">
+              <h5 class="card-title text-lg text-custom-champagne">{{ curso.nombre }}</h5>
+              <p class="card-text">
+                {% if curso.activa%}
+                  Activo
+                {% endif %}
+                {% if not curso.activa%}
+                  Inactivo
+                {% endif %}
+                
+              </p>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
 </div>
 
-{% if grupos %}
 <div class="container mt-5">
-  <h2>Grupos Asociados al Curso</h2>
-  <ul>
-    {% for grupo in grupos %}
-      <li>{{ grupo.nombre }}</li>
+  <ul class="list-group">
+    {% for serie in series %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}" class="text-decoration-none">
+          {{ serie.nombre }}
+        </a>
+        <span class="badge {% if serie.activa %}badge-success{% else %}badge-danger{% endif %}">
+          {% if serie.activa %}
+            Activa
+          {% else %}
+            Inactiva
+          {% endif %}
+        </span>
+      </li>
     {% endfor %}
   </ul>
 </div>
-{% endif %}
+
+
 
 <div class="container mt-5">
   <h3>Asignar serie a grupo</h3>

@@ -326,6 +326,7 @@ def dashDocente(supervisor_id):
 
     return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos, curso_seleccionado_id=curso_seleccionado_id,series=series)
 
+
 @app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
 @login_required
 def agregarSerie(supervisor_id):
@@ -437,15 +438,14 @@ def agregarEjercicio(supervisor_id):
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
 
-
-@app.route('/dashDocente/<int:supervisor_id>/serie/<int:id>')
+@app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>')
 @login_required
-def detallesSeries(supervisor_id, id):
+def detallesSeries(supervisor_id, serie_id):
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
-    serie = Serie.query.get(id)
-    ejercicios = Ejercicio.query.filter_by(id_serie=id).all()
+    serie = Serie.query.get(serie_id)
+    ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
     return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id)
 
 @app.route('/dashDocente/<int:supervisor_id>/ejercicio/<int:id>')
@@ -808,17 +808,6 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     else:
         enunciado_html = "<p>El enunciado no está disponible.</p>"
 
-    # try:
-    #     ejercicioAsignado_est = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio_id).first()
-
-    #     if ejercicioAsignado_est and ejercicioAsignado_est.estado:
-    #         flash('Ya aprobaste este ejercicio', 'success')
-    #         return render_template('detallesEjerciciosEstudiante.html', estado=ejercicioAsignado_est.estado, serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-
-    # except Exception as e:
-    #     flash('Error al obtener el estado del ejercicio', 'danger')
-    #     pass
-
     if request.method == 'POST':
         archivos_java = request.files.getlist('archivo_java')
         rutaArchivador=None
@@ -889,6 +878,10 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     db.session.commit()
                                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id,mensaje_aprobacion=mensaje_aprobacion, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
                 else:
+                    if ejercicioAsignado.estado:
+                        flash('Ya aprobaste este ejercicio', 'success')
+                        mensaje_aprobacion= " Felicidades, aprobaste el ejercicio"
+                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,mensaje_aprobacion=mensaje_aprobacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
                     rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
                     if os.path.exists(rutaSerieEstudiante):
                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.path_ejercicio)
@@ -951,6 +944,3 @@ if __name__ == '__main__':
 
 # ssh ivonne@pa3p2.inf.udec.cl
 # mail5@udec.cl     
-# Guardar el mismo nombre para todo en ejercicio_numero_serie_numero
-# Sistema de notas feedback IMPORTANTEEE
-# formula para escala de notas al 50% exigencia
