@@ -524,8 +524,9 @@ def verCursos(supervisor_id):
 def detallesCurso(supervisor_id, curso_id):
     curso_actual=Curso.query.get(curso_id)
     grupos=Grupo.query.filter_by(id_curso=curso_id).all()
+    series=Serie.query.all()
     estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
-    return(render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, estudiantes_curso=estudiantes_curso))
+    return(render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, estudiantes_curso=estudiantes_curso, series=series))
 
 @app.route('/dashDocente/<int:supervisor_id>/asignarGrupos/<int:curso_id>', methods=['GET', 'POST'])
 @login_required

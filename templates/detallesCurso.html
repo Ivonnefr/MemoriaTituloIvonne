@@ -50,7 +50,40 @@
                 {% endfor %}
             </div>            
         </div>
-
+        <div class="container mt-5">
+            <h3>Asignar serie a grupo</h3>
+            <form method="post" action="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" id="asignarSeries" class="form-inline">
+              <input type="hidden" name="accion" value="asignarSeries">
+              
+              <div class="form-group">
+                <select name="series" id="series" class="form-control mr-2">
+                  {% if series %}
+                    {% for serie in series %}
+                      <option value="{{ serie.id }}">{{ serie.nombre }}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled selected >No hay series disponibles</option>
+                  {% endif %}
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <h3> a       </h3>
+                <select name="grupos" id="grupos" class="form-control mr-2">
+                  {% if grupos %}
+                    {% for grupo in grupos %}
+                      <option value="{{ grupo.id }}">{{ grupo.nombre }}</option>
+                    {% endfor %}
+                  {% else %}
+                    <option value="" disabled selected >No hay grupos disponibles</option>
+                  {% endif %}
+                </select>
+              </div>
+              
+              <button type="submit" class="btn btn-primary">Asignar</button>
+            </form>
+          </div>
+          
     </div>
 </div>
 {% endblock %}

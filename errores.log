@@ -1,0 +1,2 @@
+[2023-12-01 16:07:03,588] [ERROR] [_internal] 152.74.52.235 - - [01/Dec/2023 16:07:03] code 400, message Bad request version ('ÊÊ\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x01\x93\x9a\x9a\x00\x00\x00')
+[2023-12-01 16:07:03,591] [ERROR] [_internal] 152.74.52.235 - - [01/Dec/2023 16:07:03] code 400, message Bad request version ('t\x88ÝJ5')
