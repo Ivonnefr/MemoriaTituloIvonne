@@ -11,45 +11,79 @@
 
 <div class="container mt-5">
   <div class="row">
-      <div class="col md-6">
-        <table class="table table-bordered">
-          <thead class="thead-dark">
-              <tr>
-                  <th>Lista de clases</th>
-              </tr>
-          </thead>
-          <tbody>
-              {% for estudiante in estudiantes_curso %}
-                  <tr>
-                      <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
-                  </tr>
-              {% endfor %}
-          </tbody>
+    <div class="col-md-6">
+      <table class="table table-bordered">
+        <thead class="thead-dark">
+          <tr>
+            <th>Lista de clases</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for estudiante in estudiantes_curso %}
+          <tr>
+            <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
-      </div>
-    <div class="col md-6" >
+    </div>
+    <div class="col-md-6">
       <div class="card mb-3">
         <div class="card-body">
-            <a href="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="btn btn-secondary">Asignar nuevo grupo</a>
-            <a href="{{ url_for('progresoCurso', supervisor_id=supervisor_id, curso_id= curso.id)}}" class="btn btn-secondary">Ver progreso del curso</a> 
+          <a href="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="btn btn-secondary">Asignar nuevo grupo</a>
+          <a href="{{ url_for('progresoCurso', supervisor_id=supervisor_id, curso_id=curso.id)}}" class="btn btn-secondary">Ver progreso del curso</a>
         </div>
       </div>
-      <div class="card mb-3"> <!-- Agrega la clase mb-3 aquí -->
-        <!-- Contenido de la tarjeta -->
+      <div class="card mb-3">
         <div class="card-header">
-            <h5>Grupos del curso</h5>
+          <h5>Grupos del curso</h5>
         </div>
         <div class="card-body">
-            {% if grupos|length == 0 %}
-            <p class="card-text">No hay grupos</p>
-            {% endif %}
-            {% for grupo in grupos %}
-            
-            <p class="card-text"><a class="card-text" href="{{url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso.id, grupo_id=grupo.id)}}"> {{grupo.nombre}}</a></p>
-            {% endfor %}
+          {% if grupos|length == 0 %}
+          <p class="card-text">No hay grupos</p>
+          {% endif %}
+          {% for grupo in grupos %}
+          <p class="card-text"><a class="card-text" href="{{url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso.id, grupo_id=grupo.id)}}"> {{grupo.nombre}}</a></p>
+          {% endfor %}
         </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-body">
+          <h3>Asignar serie a grupo</h3>
+          <form method="post" action="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}" id="asignarSeries" class="form-inline">
+            <input type="hidden" name="accion" value="asignarSeries">
+
+            <div class="form-group">
+              <select name="series" id="series" class="form-control mr-2">
+                {% if series %}
+                {% for serie in series %}
+                <option value="{{ serie.id }}">{{ serie.nombre }}</option>
+                {% endfor %}
+                {% else %}
+                <option value="" disabled selected>No hay series disponibles</option>
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <h3> a </h3>
+              <select name="grupos" id="grupos" class="form-control mr-2">
+                {% if grupos %}
+                {% for grupo in grupos %}
+                <option value="{{ grupo.id }}">{{ grupo.nombre }}</option>
+                {% endfor %}
+                {% else %}
+                <option value="" disabled selected>No hay grupos disponibles</option>
+                {% endif %}
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Asignar</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
-
 </div>
 {% endblock %}

@@ -537,7 +537,27 @@ def detallesCurso(supervisor_id, curso_id):
     grupos=Grupo.query.filter_by(id_curso=curso_id).all()
     series=Serie.query.all()
     estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
+
+    if request.method == 'POST':
+        serie_seleccionada= request.form.get('series')
+        grupo_seleccionado = request.form.get('grupos')
+        try:
+            if serie_seleccionada and grupo_seleccionado: 
+                    db.session.execute(serie_asignada.insert().values(id_serie=serie_seleccionada, id_grupo=grupo_seleccionado))
+                    db.session.commit()
+                    flash('Serie asignada con éxito', 'success')
+                    grupos = Grupo.query.filter_by(id_curso=curso_actual.id).all()
+                    series = Serie.query.all()
+                    return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+        except Exception as e:
+            db.session.rollback()
+            
+            flash('Error al asignar la serie', 'danger')
+            return redirect(url_for('dashDocente', supervisor_id=supervisor_id))    
+
+
     return(render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, estudiantes_curso=estudiantes_curso, series=series))
+
 
 @app.route('/dashDocente/<int:supervisor_id>/asignarGrupos/<int:curso_id>', methods=['GET', 'POST'])
 @login_required
