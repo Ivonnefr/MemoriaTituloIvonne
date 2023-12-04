@@ -3,49 +3,51 @@
 {% block title %}Dashboard Estudiante{% endblock %}
 
 {% block content %}
-
-
-<div class="row">
-  <div class="col-md-12">
-    <div class="card border-dark">
-      <div class="card-body bg-dark text-white">
-        <h2 class="card-title">{{estudiante.nombres}} {{estudiante.apellidos}}</h2>
-        <h4 class="card-subtitle mb-2">{% if supervisor %}Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}{% else %}No tienes supervisor asignado.{% endif %}</h>
-      </div>
-      <div class="card-body bg-white">
-        <h4 class="card-title">Perteneces a {{curso.nombre}}</h4>
+<br>
+<br>
+<div class=" container mt-5 bg-dark text-light p-4 rounded mb-4">
+  <h2>Bienvenido, {{estudiante.nombres }} {{estudiante.apellidos}}</h2>
+  <h4>{% if supervisor %}Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}{% else %}No tienes supervisor asignado.{% endif %}</h4>
+  <div class="container mt-5 bg-light text-dark p-4 ronded mb-4">
+    <h4>Perteneces a {{curso.nombre}}</h4>
         {% if grupo %}
           <h4 class="card-title">Tu grupo asignado es: {{grupo.nombre}}</h4>
         {% else %}
           <h4 class="card-title">No estás asignado a ningún grupo.</h4>
         {% endif %}
-      </div>
-    </div>
   </div>
 </div>
 
-<div class="row">
-  <div class="container mt-5">
-    <h2>Series de ejercicios asignadas</h2>
-    {% if seriesAsignadas %}
-      <ol class="list-group list-group-numbered">
-        {% for serie in seriesAsignadas %}
-          <li class="list-group-item">
-            <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" style="font-size: 2em;">{{serie.nombre}}</a>
-            <ul>
-              {% for ejercicio in ejerciciosPorSerie[serie] %}
-                <li>
-                  <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
-                </li>
-              {% endfor %}
-            </ul>
-          </li>
-        {% endfor %}
-      </ol>
-    {% else %}
-      <p>No tienes series asignadas en este momento.</p>
-    {% endif %}
-  </div>
+<div class="container mt-5 bg-light text-dark p-4 ronded mb-4">
+  <h4>Perteneces a {{curso.nombre}}</h4>
+      {% if grupo %}
+        <h4 class="card-title">Tu grupo asignado es: {{grupo.nombre}}</h4>
+      {% else %}
+        <h4 class="card-title">No estás asignado a ningún grupo.</h4>
+      {% endif %}
+</div>
+
+<div class="container mt-5">
+  <h2>Series de ejercicios asignadas</h2>
+  {% if seriesAsignadas %}
+    <ol class="list-group list-group-numbered">
+      {% for serie in seriesAsignadas %}
+        <li class="list-group-item">
+          <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" style="font-size: 2em;">{{serie.nombre}}</a>
+          <ol>
+            {% for ejercicio in ejerciciosPorSerie[serie] %}
+              <li>
+                <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
+              </li>
+            {% endfor %}
+          </ol>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p>No tienes series asignadas en este momento.</p>
+  {% endif %}
+  <br>
 </div>
 
 

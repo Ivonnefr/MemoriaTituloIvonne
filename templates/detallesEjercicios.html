@@ -3,9 +3,21 @@
 {% block title %}Detalle del Ejercicio{% endblock %}
 
 {% block content %}
-<h1>{{ ejercicio.nombre }}</h1>
-<p>Enunciado: {{ ejercicio.enunciado }}</p>
-<p>Ruta del Ejercicio: {{ ejercicio.path_ejercicio }}</p>
+ 
+<div class="container mt-5">
+    <a href="{{ url_for('detallesSeries',supervisor_id=supervisor_id,serie_id=ejercicio.id_serie) }}">Volver a la serie</a>
+</div>
+<div class="container mt-5 " >
+    <h1>{{ejercicio.nombre}}</h1>
 
-<a href="{{ url_for('detallesSeries',supervisor_id=supervisor_id, id=ejercicio.serie.id) }}">Volver a la serie</a>
+</div>
+
+<div class="row">
+    <div class="container mt-5">
+        <div class="enunciado-ejercicio">
+            {{ enunciado|safe }}
+        </div>
+    </div>
+</div>
+
 {% endblock %}

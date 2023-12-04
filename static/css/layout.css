@@ -1,14 +1,48 @@
+:root {
+  /* Original colors */
+  --silver: #ceccccff;
+  --china-rose: #9d6381ff;
+  --lavender-blush: #fdecefff;
+  --night: #0f110cff;
+  --persian-indigo: #340068ff;
+  --secondary: #6c757d;
+  --silver-opaco: rgba(206, 204, 204, 0.5);
+  --persian-indigo-opaco: rgba(52, 0, 104, 0.5); 
+}
+
 .navbar{
-    transition: 0.5s;  /* Añade una transición suave al cambiar el tamaño */
-    font-size: 1.5em;
-    padding: 20px 0;
-    background-color: #6A4C93;
-  }
-  
-  .navbar-shrink {
-    font-size: 1.2em;
-    padding: 10px 0;
-  }
-  body {
-    background-color: #f8f4e3; /* Cambia el color de fondo según tu preferencia */
+  transition: 0.5s;  /* Añade una transición suave al cambiar el tamaño */
+  font-size: 1.5em;
+  padding: 10px 0;
+  background-color: #340068;
+}
+
+.navbar-shrink {
+  font-size: 1.2em;
+  padding: 10px 0;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ceccccff;
+}
+
+main {
+  flex: 1;
+}
+a {
+    color: white;  /* Usa el color del texto heredado */
+}
+
+a:hover {
+    color: #0F110C  /* Cambia el color del texto al pasar el ratón por encima (opcional) */
+}
+
+.footer{
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  background-color: #FDECEF;
 }

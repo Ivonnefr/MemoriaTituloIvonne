@@ -6,29 +6,31 @@
 
 
 {% block content %}
-<a href="{{url_for('dashEstudiante', estudiante_id = estudiante_id)}}">Volver</a>
-
-<div class="row">
-
-    <div class="container mt-5">
-        <ol style="font-size: 2em;">
-            {% for ejercicio in ejercicios %}
-            
-                <li>
-                    {% if serie and serie.id %}
-                        <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
-                        {% else %}
-                        <!-- Manejo del caso en que serie es None -->
-                        <span>No se pudo cargar la serie</span>
-                    {% endif %}
-                </li>
-
-            {% endfor %}
-        </ol>
 
 
+<div class="container mt-5">
+    <a href="{{url_for('dashEstudiante', estudiante_id = estudiante_id)}}">Volver</a>
+</div>
 
-    </div>
+<div class="container mt-5 bg-dark text-light p-4 rounded mb-4">
+    <h1>Series Disponibles</h1>
+</div>
+<div class="container mt-5">
+    <ol style="font-size: 2em;">
+        {% for ejercicio in ejercicios %}
+        
+            <li>
+                {% if serie and serie.id %}
+                    <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
+                    {% else %}
+                    <!-- Manejo del caso en que serie es None -->
+                    <span>No se pudo cargar la serie</span>
+                {% endif %}
+            </li>
+
+        {% endfor %}
+    </ol>
+
 </div>
 
 {% endblock %}

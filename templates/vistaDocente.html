@@ -5,14 +5,7 @@ Vista Docente -
 {% endblock %}
 
 {% block content %}
-<style>
-  .bg-custom-purple {
-    background-color: #3d314a; /* Puedes ajustar el código de color según tu preferencia */
-  }
-  .text-custom-champagne {
-    color: #eee0cb; /* Puedes ajustar el código de color según tu preferencia */
-  }
-</style>
+
 
 <div class="container mt-5">
   <h1>{% if curso_seleccionado %}{{ curso_seleccionado.nombre }}{% else %}Seleccione un curso{% endif %}</h1>
@@ -33,14 +26,14 @@ Vista Docente -
           <div class="card bg-custom-purple text-white">
             <div class="card-body">
               <h5 class="card-title text-lg text-custom-champagne">{{ curso.nombre }}</h5>
-              <p class="card-text">
-                {% if curso.activa%}
-                  Activo
-                {% endif %}
-                {% if not curso.activa%}
-                  Inactivo
-                {% endif %}
-                
+              <p class="card-text text-custom-champagne">
+                <span class="badge {% if curso.activa %}badge-success{% else %}badge-danger{% endif %}">
+                  {% if curso.activa %}
+                    Activo
+                  {% else %}
+                    Inactivo
+                  {% endif %}
+                </span>
               </p>
             </div>
           </div>
@@ -50,23 +43,53 @@ Vista Docente -
   </div>
 </div>
 
+
 <div class="container mt-5">
-  <ul class="list-group">
+  <h2></h2>
+  <ul class="list-group list-group-flush">
     {% for serie in series %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}" class="text-decoration-none">
-          {{ serie.nombre }}
-        </a>
-        <span class="badge {% if serie.activa %}badge-success{% else %}badge-danger{% endif %}">
-          {% if serie.activa %}
-            Activa
-          {% else %}
-            Inactiva
-          {% endif %}
-        </span>
-      </li>
+      <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}" class="list-group-item list-group-item-action">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center">
+          <span>{{ serie.nombre }}</span>
+          <span class="badge {% if serie.activa %}badge-success{% else %}badge-danger{% endif %}">
+            {% if serie.activa %}
+              Activa
+            {% else %}
+              Inactiva
+            {% endif %}
+          </span>
+        </div>
+      </a>
     {% endfor %}
   </ul>
 </div>
 
+
+<style>
+  .card {
+    transition: box-shadow 0.3s ease-in-out;
+    border: 1px solid #ddd; /* Color del borde normal */
+  }
+
+  .card.selected {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Cambia la opacidad de la sombra cuando está seleccionado */
+  }
+
+  .card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Cambia la opacidad de la sombra al pasar el ratón */
+    border-color: #340068; /* Cambia el color del borde al pasar el ratón */
+    transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  }
+
+  .bg-custom-purple {
+    background-color: #FDECEF; /* Puedes ajustar el código de color según tu preferencia */
+  }
+  .text-custom-champagne {
+    color: #340068  ; /* Puedes ajustar el código de color según tu preferencia */
+  }
+  a{
+    color: #340068;
+  }
+
+</style>
 {% endblock %}

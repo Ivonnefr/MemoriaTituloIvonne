@@ -1,47 +1,37 @@
 <!doctype html>
 <html lang="es">
   <head>
-    <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- Bootstrap CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
+    
     <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
     <link rel="icon" type="image/ico" href="{{ url_for('static', filename='images/code_icon_150718.ico') }}">
 
     <link href="{{ url_for('static', filename='css/layout.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha384-rzO3oYQxTKS7Dl3l3oVMWSktQOp6b7In1z9EE1lAM5RDI1x0UZRIhZ1bVOyJhi5S" crossorigin="anonymous">
 
-    <style>
-      a {
-          color: inherit;  /* Usa el color del texto heredado */
-      }
-  
-      a:hover {
-          color: gray;  /* Cambia el color del texto al pasar el ratón por encima (opcional) */
-      }
-    </style>
     <title>{% block title %}{% endblock %} - MT</title>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg ">
-      <a class="navbar-brand" href="#">Plataforma Nombre</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item active">
-            <a class="nav-link" href="#">Cuenta<span class="sr-only">(current)</span></a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Ejercicios</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Profesor</a>
-        </ul>
-      </div>
+    <nav class="navbar navbar-expand-sm justify-content-center fixed-top">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('login') }}">Plataforma JavaPoro Evaluator</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+        </li>
+        <li class="nav-item">
+          
+        </li>
+      </ul>
     </nav>
+    
+
+
     <!-- Bloque para mostrar mensajes flash -->
     <div class="container mt-3">
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -54,6 +44,7 @@
           {% endif %}
       {% endwith %}
     </div>
+    
     <main class="container mt-4">
       {% block content %}
       <!-- El contenido de las vistas individuales irá aquí -->
@@ -61,38 +52,33 @@
     </main>
 
 
-
-    <footer class="footer mt-auto py-3 bg-light">
-      <div class="container">
-          <div class="row">
-              <div class="col-md-4">
-                  <h5>Información de contacto</h5>
-                  <p>Información
-                  </p>
-              </div>
-              <div class="col-md-4">
-                  <h5>Enlaces útiles</h5>
-                  <ul class="list-unstyled">
-                      <li><a href="#">Política de privacidad</a></li>
-                  </ul>
-              </div>
-              <div class="col-md-4">
-          </div>
-          <div class="row">
-              <div class="col-12 text-center">
-                  <p class="mb-0">&copy; 2023 Udec, departamento de informática. Todos los derechos reservados.</p>
-              </div>
-          </div>
-      </div>
-    </footer>
-    
-    <!-- JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
-    
+  <footer class="footer py-4 fixed-bottom">
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-md-4">
+                <h5>Información de contacto</h5>
+                <p>Información
+                </p>
+            </div>
+            <div class="col-md-4">
+                <h5>Enlaces útiles</h5>
+                <ul class="list-unstyled">
+                    <li><a href="#">Política de privacidad</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+        </div>
+        <div class="row">
+            <div class="col-12 text-center">
+                <p class="mb-0">&copy; 2023 Udec, departamento de informática. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </div>
+  </footer>
 
 
   </body>
-</html>
+
+
+  
+  </html>

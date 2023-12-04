@@ -29,11 +29,11 @@ Asignar Grupos
 </div>
 
 <div class="container mt-5">
-    <button type="button" class="btn btn-secondary" id="selectAllBtn">Seleccionar Todos</button>
-    <table class="table table-bordered">
+    <table class="table table-bordered rounded">
         <thead class="thead-dark">
             <tr>
-                <th>Seleccionar</th>
+                <th>    <button type="button" class="btn btn-secondary" id="selectAllBtn">Seleccionar Todos</button>
+                </th>
                 <th>Lista de Clases</th>
                 <th>Grupo Actual</th>
             </tr>
@@ -95,13 +95,18 @@ Asignar Grupos
         });
 
         selectAllBtn.addEventListener('click', function () {
-            // Seleccionar todos los checkboxes de estudiantes
+            // Obtener todos los checkboxes de estudiantes
             const checkboxes = document.getElementsByName('estudiantes[]');
+
+            // Verificar si al menos uno está desmarcado, y cambiar todos según sea necesario
+            const alMenosUnoDesmarcado = Array.from(checkboxes).some(checkbox => !checkbox.checked);
+
             checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
+                checkbox.checked = alMenosUnoDesmarcado;
             });
         });
     });
 </script>
+
 
 {% endblock %}

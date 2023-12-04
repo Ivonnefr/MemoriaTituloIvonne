@@ -5,16 +5,14 @@ Inicio
 {% endblock %}
 
 {% block content %}
-<div class="bg-dark text-light p-4 rounded mb-4">
-    <h1>Bienvenido a la Plataforma Nombre</h1>
-  </div>
-  <p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
-
+<div class=" container mt-5 bg-dark text-light p-3 rounded mb-4">
+    <h3>Bienvenido a la Plataforma Nombre</h3>
+</div>
+<p>Este es un espacio para mejorar tus habilidades en la programación en Java. Aquí puedes realizar ejercicios y recibir retroalimentación instantánea.</p>
+<br>
 
 <div class="row justify-content-center">
-  
-
-  <div class="col-7 p-4 rounded shadow">
+  <div class="col-5 p-4 rounded shadow custom-login-box">
     <h2 class="text-secondary">Iniciar sesión</h2>
     <form method="POST" action="{{ url_for('login') }}">
       <div class="form-group">
@@ -26,9 +24,19 @@ Inicio
         <input type="password" class="form-control" id="password" name="password" placeholder="Ingresa tu contraseña">
       </div>
       <button type="submit" class="btn btn-secondary btn-block mt-3">Iniciar sesión</button>
+      <p class="justify-content-center" >Si no tienes cuenta, comunícate con tu profesor.</p>
+
     </form>
   </div>
 </div>
+<br>
 
-<p>Si no tienes cuenta, comunícate con tu profesor.</p>
+<style>
+  .custom-login-box {
+    background-color: white; /* Cambia el color de fondo a blanco */
+    color: black; /* Cambia el color del texto a negro o el color deseado */
+    /* Otros estilos personalizados según sea necesario */
+  }
+  
+</style>
 {% endblock %}

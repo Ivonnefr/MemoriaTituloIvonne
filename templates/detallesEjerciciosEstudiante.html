@@ -4,98 +4,122 @@
 {% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body bg-dark text-white rounded">
-        <h1>{{ ejercicio.nombre }}</h1>
+
+<div class="container mt-5">
+    <br>
+    <a href="{{ url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id) }}">
+        <svg width="35px" height="35px" viewBox="0 0 1024 1024" fill="#000000" class="icon"  version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M669.6 849.6c8.8 8 22.4 7.2 30.4-1.6s7.2-22.4-1.6-30.4l-309.6-280c-8-7.2-8-17.6 0-24.8l309.6-270.4c8.8-8 9.6-21.6 2.4-30.4-8-8.8-21.6-9.6-30.4-2.4L360.8 480.8c-27.2 24-28 64-0.8 88.8l309.6 280z" fill="" /></svg>   
+    </a>
+</div>
+
+<div class="container mt-5 bg-dark text-light p-4 rounded mb-4">
+    <h1>{{ejercicio.nombre}}</h1>
+
+</div>
+
+<div class="container mt-5">
+    <div class="enunciado-ejercicio">
+        {{ enunciado|safe }}
+
     </div>
 </div>
 
 
-<div class="row">
-    <div class="container mt-5">
-        <div class="enunciado-ejercicio">
-            {{ enunciado|safe }}
+<div class="container mt-5">
+    <form id="ejercicioForm" method="POST" action="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id) }}" enctype="multipart/form-data" onsubmit="return validateForm()">
+        <div class="form-group">
+            <label for="archivo_java">Selecciona tus archivos .java (Proyecto/src/main/java/org/example)</label>
+            <input type="file" class="form-control-file" name="archivo_java" accept=".java" multiple>
         </div>
-    </div>
+        <button type="submit" class="btn btn-secondary">Subir Solución</button>
+    </form>              
 </div>
 
-<div class="row">
-    <div class="container mt-5">
-        <form id="ejercicioForm" method="POST" action="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id) }}" enctype="multipart/form-data" onsubmit="return validateForm()">
-            <div class="form-group">
-                <label for="archivo_java">Selecciona tus archivos .java (Proyecto/src/main/java/org/example)</label>
-                <input type="file" class="form-control-file" name="archivo_java" accept=".java" multiple>
+
+<div class="container mt-5">
+    {% if errores_compilacion %}
+        <div class="alert alert-danger">    
+            <h2>Output de compilación</h2>
+            <ul>
+                {% for error in errores_compilacion %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if errores_test %}
+        {% if errores_test == "Todos los test aprobados" %}
+            <div class="alert alert-success">
+                <h2>¡Felicitaciones, aprobaste!</h2>
             </div>
-            <button type="submit" class="btn btn-secondary">Subir Solución</button>
-        </form>              
-    </div>
-</div>
-
-<div class="row">
-    <div class="container mt-5">
-        {% if errores_compilacion %}
-            <div class="alert alert-danger">    
-                <h2>Output de compilación</h2>
+        {% else %}
+            <div class="alert alert-danger">
+                <h2>Errores de prueba unitaria</h2>
                 <ul>
-                    {% for error in errores_compilacion %}
-                        <li>{{ error }}</li>
+                    {% for error in errores_test[:-1] %} {# Excluye la última línea #}
+                        <li>{{ error|safe }}</li>
                     {% endfor %}
                 </ul>
             </div>
         {% endif %}
-
-        {% if errores_test %}
-            {% if errores_test == "Todos los test aprobados" %}
-                <div class="alert alert-success">
-                    <h2>¡Felicitaciones, aprobaste!</h2>
-                </div>
-            {% else %}
-                <div class="alert alert-danger">
-                    <h2>Errores de prueba unitaria</h2>
-                    <ul>
-                        {% for error in errores_test[:-1] %} {# Excluye la última línea #}
-                            <li>{{ error|safe }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-        {%else%}
-            {% if mensaje_aprobacion %}
-            <div class="alert alert-success">
-                <h2>{{ mensaje_aprobacion }}</h2>
-            </div>
-            {% endif %}
-
-                
+    {%else%}
+        {% if mensaje_aprobacion %}
+        <div class="alert alert-success">
+            <h2>{{ mensaje_aprobacion }}</h2>
+        </div>
         {% endif %}
-    </div>
 
+            
+    {% endif %}
 </div>
+
+
 <div class="row mt-5">
     <div class="container">
         <h2>Ejercicios Disponibles</h2>
         <div class="d-flex flex-wrap justify-content-center align-items-start">
             {% for ejercicio_info in colors_info %}
                 <a href="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio_info.id) }}" class="text-decoration-none">
-                    <div class="card bg-{{ ejercicio_info.color }} mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                    <div class="card {{ ejercicio_info.color }} mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                         <div class="card-body text-center">
-                            <h5 class="card-title" style="color: white;">{{ ejercicio_info.nombre }}</h5>
+                            <h5 class="card-title" style="color: black;">{{ ejercicio_info.nombre }}</h5>
                         </div>
                     </div>
                 </a>
             {% endfor %}
 
             <!-- Tarjeta de Calificación -->
-            <div class="card bg-secondary mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <div class="card bg-white mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                 <div class="card-body text-center">
-                    <h5 class="card-title" style="color: white;">Calificación</h5>
-                    <p class="calificacion">{{ calificacion }}</p>
+                    <h5 class="card-title" style="color: black;">Calificación</h5>
+                    <p class="calificacion" style="color: black">{{ calificacion }}</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    :root {
+        --persian-indigo-opaco: rgba(52, 0, 104, 0.5);
+        --success-color: #28a745;  /* Puedes ajustar este color según tus preferencias */
+        --danger-color: #dc3545;   /* Puedes ajustar este color según tus preferencias */
+      }
+      
+      .bg-persian-indigo-opaco {
+        background-color: var(--persian-indigo-opaco);
+      }
+      
+      .bg-success-custom {
+        background-color: var(--success-color);
+      }
+      
+      .bg-danger-custom {
+        background-color: var(--danger-color);
+      }
+      
+</style>
 <script>
     function validateForm() {
         var inputFile = document.querySelector('input[type="file"]');

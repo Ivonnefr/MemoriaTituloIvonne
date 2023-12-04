@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import os, shutil
 from sqlite3 import IntegrityError
 from click import DateTime
 from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators, FileField
 from werkzeug.utils import secure_filename
@@ -21,6 +21,7 @@ import logging
 from logging.config import dictConfig
 from ansi2html import Ansi2HTMLConverter
 import json
+
 dictConfig({
     'version': 1,
     'formatters': {
@@ -54,6 +55,8 @@ app.config['SECRET_KEY'] = 'secret-key-goes-here'
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'  # Nombre de la vista para iniciar sesión
+
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=120)
 
 UPLOAD_FOLDER = 'uploads' #Ruta donde se guardan los archivos subidos para los ejercicios
 ALLOWED_EXTENSIONS = {'md','xml','csv','png','jpg', 'jpeg'}
@@ -218,9 +221,10 @@ def login():
     return render_template('inicio.html')
 
 @app.route('/logout')
+@login_required
 def logout():
-    logout_user()  # Cierra la sesión del usuario actual.
-    return redirect(url_for('login'))  # Redirige al usuario a la página de inicio de sesión.
+    logout_user()
+    return redirect(url_for('login'))
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -448,14 +452,21 @@ def detallesSeries(supervisor_id, serie_id):
     ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
     return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id)
 
-@app.route('/dashDocente/<int:supervisor_id>/ejercicio/<int:id>')
+@app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>')
 @login_required
-def detallesEjercicio(supervisor_id, id):
+def detallesEjercicio(supervisor_id, serie_id, ejercicio_id):
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
-    ejercicio = Ejercicio.query.get(id)
-    return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id)
+    ejercicio = Ejercicio.query.get(serie_id)
+    if ejercicio and ejercicio.enunciado:
+        with open(ejercicio.enunciado, 'r') as enunciado_file:
+            enunciado_markdown = enunciado_file.read()
+            enunciado_html = markdown.markdown(enunciado_markdown)
+    else:
+        enunciado_html = "<p>El enunciado no está disponible.</p>"
+
+    return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id, enunciado=enunciado_html)
 
 @app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
 @login_required
@@ -596,7 +607,19 @@ def asignarGrupos(supervisor_id, curso_id):
 
     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, curso_seleccionado=curso_id,estudiantes_curso=estudiantes_curso)
 
-# boton de seleccionar todo los estudiantes 
+@app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>/detalleGrupo/<int:grupo_id>', methods=['GET', 'POST'])
+@login_required
+def detallesGrupo(supervisor_id, curso_id, grupo_id):
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    grupo=Grupo.query.get(grupo_id)
+    estudiantes = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
+    # Obtener todos los estudiantes que pertenecen al grupo usando tabla asociacion estudiantes_grupos
+    estudiantes_grupo = Estudiante.query.join(estudiantes_grupos).filter(estudiantes_grupos.c.id_grupo == grupo_id).all()
+    
+    return render_template('detallesGrupo.html', supervisor_id=supervisor_id, grupo=grupo, estudiantes_grupo=estudiantes_grupo)
+
 @app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
 @login_required
 # Falta por implementar **
@@ -786,15 +809,15 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     colors_info = []
 
     for ejercicio_disponible in ejercicios:
-        ejercicio_info = {'nombre': ejercicio_disponible.nombre, 'id': ejercicio_disponible.id, 'color': 'info'}
-        
+        ejercicio_info = {'nombre': ejercicio_disponible.nombre, 'id': ejercicio_disponible.id, 'color': 'bg-persian-indigo-opaco'}
+            
         for ejercicio_asignado in ejercicios_asignados:
             if ejercicio_disponible.id == ejercicio_asignado.id_ejercicio:
                 if ejercicio_asignado.estado:
-                    ejercicio_info['color'] = 'success'
+                    ejercicio_info['color'] = 'bg-success-custom'
                 elif not ejercicio_asignado.estado and ejercicio_asignado.contador > 0:
-                    ejercicio_info['color'] = 'danger'
-                
+                    ejercicio_info['color'] = 'bg-danger-custom'
+                    
         colors_info.append(ejercicio_info)
 
     ejercicios_aprobados = sum(1 for ea in ejercicios_asignados if ea.estado)
