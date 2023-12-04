@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import os, shutil
 from sqlite3 import IntegrityError
 from click import DateTime
-from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash
+from flask import Flask, make_response, render_template, request, url_for, redirect, jsonify, session, flash, current_app
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from wtforms import FileField, SubmitField, PasswordField, StringField, DateField, BooleanField, validators, FileField
@@ -36,15 +36,21 @@ dictConfig({
             'filename': 'errores.log',
             'formatter': 'default',
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'default',
+        },
     },
     'loggers': {
         '': {
-            'handlers': ['file'],
-            'level': 'ERROR',
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',  # Puedes ajustar este nivel según tus necesidades
             'propagate': True,
         },
     },
 })
+
 
 #inicializar la aplicacion
 app = Flask(__name__)
@@ -192,6 +198,15 @@ def verify_estudiante(estudiante_id):
         flash('No tienes permiso para acceder a este dashboard.', 'danger')
         return False
     return True
+
+def verify_ayudante(supervisor_id):
+
+    if not isinstance(current_user, Supervisor):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return False
+    if current_user.id != supervisor_id:
+        flash('No tienes permiso para acceder a este dashboard.', 'danger')
+        return False
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -357,7 +372,7 @@ def agregarSerie(supervisor_id):
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al agregar la serie: {str(e)}', 'danger')
+            current_app.logger.error(f'Ocurrió un error al agregar la serie: {str(e)}')
             return render_template('agregarSerie.html', supervisor_id=supervisor_id)
     
     return render_template('agregarSerie.html', supervisor_id=supervisor_id)
@@ -430,12 +445,12 @@ def agregarEjercicio(supervisor_id):
             return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
         except Exception as e:
+            current_app.logger.error(f'Ocurrió un error al agregar el ejercicio: {str(e)}')
             # Si se produce un error, revertir y eliminar carpetas
             if filepath_ejercicio is not None and os.path.exists(filepath_ejercicio):
                 shutil.rmtree(filepath_ejercicio)
             if rutaEnunciadoEjercicios is not None and os.path.exists(rutaEnunciadoEjercicios):
                 shutil.rmtree(rutaEnunciadoEjercicios)
-            flash(f'Ocurrió un error al agregar el ejercicio: {str(e)}', 'danger')
             db.session.rollback()
             return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
@@ -550,8 +565,8 @@ def detallesCurso(supervisor_id, curso_id):
                     series = Serie.query.all()
                     return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
         except Exception as e:
+            current_app.logger.error(f'Ocurrió un error al agregar el ejercicio: {str(e)}')
             db.session.rollback()
-            
             flash('Error al asignar la serie', 'danger')
             return redirect(url_for('dashDocente', supervisor_id=supervisor_id))    
 
@@ -600,9 +615,8 @@ def asignarGrupos(supervisor_id, curso_id):
                 flash('Grupo creado con éxito', 'success')
 
             except Exception as e:
+                current_app.logger.error(f'Ocurrió un error al agregar el grupo: {str(e)}')
                 db.session.rollback()
-                flash('Error al crear el grupo', 'danger')
-
             if nuevo_grupo:
                 # Con los estudiantes que se seleccionaron, se asocian al grupo creado utilizando tabla asociacion estudiantes_grupos
                 for estudiante_id in estudiantes_seleccionados_ids:
@@ -612,8 +626,8 @@ def asignarGrupos(supervisor_id, curso_id):
                         db.session.commit()
                         flash('Estudiantes asignados con éxito', 'success')
                     except Exception as e:
+                        current_app.logger.error(f'Ocurrió un error al asignar estudiantes: {str(e)}')
                         db.session.rollback()
-                        flash('Error al asignar estudiantes', 'danger')
                 try:
                     nuevo_registro= supervisores_grupos.insert().values(
                         id_supervisor=supervisor_id,
@@ -622,8 +636,8 @@ def asignarGrupos(supervisor_id, curso_id):
                     db.session.execute(nuevo_registro)
                     db.session.commit()
                 except Exception as e:
+                    current_app.logger.error(f'Ocurrió un error al asignar el supervisor al grupo: {str(e)}')
                     db.session.rollback()
-                    flash('Error al asignar el supervisor al grupo','danger')
 
     return render_template('asignarGrupos.html', supervisor_id=supervisor_id, cursos=cursos, curso_seleccionado=curso_id,estudiantes_curso=estudiantes_curso)
 
@@ -859,7 +873,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
             rutaArchivador = crearArchivadorEstudiante(matricula)
             flash('Se creo exitosamente el archivador', 'success')
         except Exception as e:
-            flash(f'Error al crear el archivador: {str(e)}', 'danger')
+            current_app.logger.error(f'Ocurrió un error al crear el archivador: {str(e)}')
             return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
 
         if os.path.exists(rutaArchivador):
@@ -963,7 +977,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                         db.session.commit()
                                         return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,mensaje_aprobacion=mensaje_aprobacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
             except Exception as e:
-                flash(f'Error al crear el ejercicio asignado: {str(e)}', 'danger')
+                current_app.logger.error(f'Ocurrió un error al crear el ejercicio asignado: {str(e)}')
                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
 
