@@ -6,12 +6,16 @@ Agregar Serie
 
 {% block content %}
 
+<div class="container mt-5">
+    <a href="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" class="btn btn-secondary">Volver</a>
+</div>
 
 <div class="container mt-5 " >
     <h1>Agregar Nueva Serie</h1>
 </div>
 
 <div class="container mt-5">
+    
     <form method="post" action="{{ url_for('agregarSerie', supervisor_id=supervisor_id) }}">
         <div class="form-group">
             <label for="nombreSerie">Nombre de la serie</label>

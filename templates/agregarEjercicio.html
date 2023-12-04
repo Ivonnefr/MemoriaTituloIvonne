@@ -1,46 +1,53 @@
-    {% extends "layout.html" %}
+{% extends "layout.html" %}
 
-    {% block title %}Agregar Ejercicio{% endblock %}
+{% block title %}Agregar Ejercicio{% endblock %}
 
-    {% block content %}
-    <div class="row">
-        <div class="container mt-5">
-            <h1>Agregar nuevo ejercicio</h1>
-            <h4>El nombre no puede contener más de 50 caracteres.</h4>
-        
-            <form method="post" action="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="nombreEjercicio" class="font-weight-bold" >Nombre del Ejercicio: </label>
-                    <input type="text" class="form-control" id="nombreEjercicio" name="nombreEjercicio" placeholder="Ingresa el nombre del ejercicio" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="enunciadoFile" class="font-weight-bold">Cargar enunciado (.md): </label>
-                    <input type="file" class="form-control-file" id="enunciadoFile" name="enunciadoFile" accept=".md" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="imagenesFiles" class="font-weight-bold" >Cargar imágenes para el enunciado (Múltiples): </label>
-                    <input type="file" class="form-control-file" id="imagenesFiles" name="imagenesFiles" accept="image/*" multiple>
-                </div>            
-                
-                <div class="form-group">
-                    <label for="id_serie"class="font-weight-bold" >Seleccionar Serie: </label>
-                    <select class="form-control" id="id_serie" name="id_serie" required>
-                        {% for serie in series %}
-                        <option value="{{ serie.id }}">{{ serie.nombre }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+{% block content %}
+<div class="container mt-5">
+    <a href="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" class="btn btn-secondary">Volver</a>
+</div>
+<div class="container mt-5">
+    <h1>Agregar nuevo ejercicio</h1>
 
-                <div class="form-group">
-                    <label for="archivosJava" class="font-weight-bold" >Cargar archivos test unitarios .java (Múltiples): </label>
-                    <input type="file" class="form-control-file" id="archivosJava" name="archivosJava" accept=".java" multiple required>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">Agregar Ejercicio</button>
-            </form>
-        </div>
-    </div>
+</div>
 
-    {% endblock %}
+<div class="container mt-5">
+
+    <h4>El nombre no puede contener más de 50 caracteres.</h4>
+    
+        <form method="post" action="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="nombreEjercicio" class="font-weight-bold" >Nombre del Ejercicio: </label>
+                <input type="text" class="form-control" id="nombreEjercicio" name="nombreEjercicio" placeholder="Ingresa el nombre del ejercicio" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="enunciadoFile" class="font-weight-bold">Cargar enunciado (.md): </label>
+                <input type="file" class="form-control-file" id="enunciadoFile" name="enunciadoFile" accept=".md" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="imagenesFiles" class="font-weight-bold" >Cargar imágenes para el enunciado (Múltiples): </label>
+                <input type="file" class="form-control-file" id="imagenesFiles" name="imagenesFiles" accept="image/*" multiple>
+            </div>            
+            
+            <div class="form-group">
+                <label for="id_serie"class="font-weight-bold" >Seleccionar Serie: </label>
+                <select class="form-control" id="id_serie" name="id_serie" required>
+                    {% for serie in series %}
+                    <option value="{{ serie.id }}">{{ serie.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="archivosJava" class="font-weight-bold" >Cargar archivos test unitarios .java (Múltiples): </label>
+                <input type="file" class="form-control-file" id="archivosJava" name="archivosJava" accept=".java" multiple required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Agregar Ejercicio</button>
+        </form>
+</div>
+
+
+{% endblock %}

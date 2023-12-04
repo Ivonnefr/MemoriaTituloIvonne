@@ -397,15 +397,9 @@ def agregarEjercicio(supervisor_id):
             if not any(allowed_file(file.filename, '.java') for file in unitTestFiles):
                 flash('Por favor, carga al menos un archivo .java.', 'danger')
                 return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
-            
-            flash(f'{type(imagenesFiles)}', 'danger')
-            flash(f'{len(imagenesFiles)}', 'warning')
-            
+
             if not imagenesFiles:
-                flash('Por favor, carga al menos una imagen.', 'danger')
                 imagenesFiles = None
-            if not imagenesFiles[0].filename:
-                flash('No hay imagenes cargadas', 'danger')
 
             nuevo_ejercicio = Ejercicio(nombre=nombreEjercicio, path_ejercicio="", enunciado="", id_serie=id_serie)
             db.session.add(nuevo_ejercicio)
@@ -430,7 +424,7 @@ def agregarEjercicio(supervisor_id):
                     imagen_filename = secure_filename(imagenFile.filename)
                     imagenFile.save(os.path.join(rutaEnunciadoEjercicios, imagen_filename))
             else:
-                flash('No hay imagenes cargadas', 'warning')
+                current_app.logger.warning('No se encontraron imágenes en el enunciado.')
 
             ubicacionTest = os.path.join(rutaEjercicio, "src/test/java/org/example")
             os.makedirs(ubicacionTest, exist_ok=True)
@@ -442,7 +436,7 @@ def agregarEjercicio(supervisor_id):
 
             db.session.commit()
             flash('Ejercicio agregado con éxito', 'success')
-            return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+            return redirect(url_for('agregarEjercicio', supervisor_id=supervisor_id))
 
         except Exception as e:
             current_app.logger.error(f'Ocurrió un error al agregar el ejercicio: {str(e)}')

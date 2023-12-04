@@ -6,9 +6,11 @@ Vista Docente -
 
 {% block content %}
 
-
 <div class="container mt-5">
-  <h1>{% if curso_seleccionado %}{{ curso_seleccionado.nombre }}{% else %}Seleccione un curso{% endif %}</h1>
+  <h3>a</h3>
+</div>
+<div class="container mt-5">
+  <h1>{% if curso_seleccionado %}{{ curso_seleccionado.nombre }}{% else %}Cursos disponibles{% endif %}</h1>
 </div>
 
 <div class="container mt-5">
@@ -16,6 +18,12 @@ Vista Docente -
     <div class="col-12 mb-3">
       <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary
       ">Crear Curso</a>
+      <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary
+      ">Registrar Estudiantes</a>
+      <a href="{{ url_for('agregarSerie', supervisor_id=supervisor_id) }}" class="btn btn-secondary
+      ">Agregar Serie de ejercicios</a>
+      <a href="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" class="btn btn-secondary
+      ">Agregar Ejercicios</a>
     </div>
     
 <div class="container mt-5">
@@ -45,10 +53,9 @@ Vista Docente -
 
 
 <div class="container mt-5">
-  <h2></h2>
   <ul class="list-group list-group-flush">
     {% for serie in series %}
-      <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}" class="list-group-item list-group-item-action">
+      <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}" class="list-group-item list-group-item-action"> 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center">
           <span>{{ serie.nombre }}</span>
           <span class="badge {% if serie.activa %}badge-success{% else %}badge-danger{% endif %}">
