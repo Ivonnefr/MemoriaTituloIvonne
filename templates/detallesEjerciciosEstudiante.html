@@ -14,13 +14,11 @@
 
 <div class="container mt-5 bg-dark text-light p-4 rounded mb-4">
     <h1>{{ejercicio.nombre}}</h1>
-
 </div>
 
 <div class="container mt-5">
     <div class="enunciado-ejercicio">
         {{ enunciado|safe }}
-
     </div>
 </div>
 
@@ -75,26 +73,30 @@
 </div>
 
 
-<div class="row mt-5">
-    <div class="container">
-        <h2>Ejercicios Disponibles</h2>
-        <div class="d-flex flex-wrap justify-content-center align-items-start">
-            {% for ejercicio_info in colors_info %}
-                <a href="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio_info.id) }}" class="text-decoration-none">
-                    <div class="card {{ ejercicio_info.color }} mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-                        <div class="card-body text-center">
-                            <h5 class="card-title" style="color: black;">{{ ejercicio_info.nombre }}</h5>
+
+<div class="container mt-5">
+    <!-- Sección de ejercicios disponibles -->
+    <div class="row">
+        {% for ejercicio_info in colors_info %}
+            <div class="col-md-3 mb-4">
+                <a href="{{ url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio_info.id) }}" class="card-link text-decoration-none">
+                    <div class="card {{ejercicio_info.color}} text-white">
+                        <div class="card-body">
+                            <p class="card-text text-custom-white">
+                                {{ ejercicio_info.nombre }}
+                            </p>
                         </div>
                     </div>
                 </a>
-            {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
 
-            <!-- Tarjeta de Calificación -->
-            <div class="card bg-white mx-2 mb-2" style="width: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-                <div class="card-body text-center">
-                    <h5 class="card-title" style="color: black;">Calificación</h5>
-                    <p class="calificacion" style="color: black">{{ calificacion }}</p>
-                </div>
+    <div class="col-md-4 mb-4 mx-auto">
+        <div class="card bg-white calificacion-card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <div class="card-body text-center">
+                <h3 class="card-title" style="color: black;">Calificación Total </h3>
+                <h3 class="calificacion" style="color: black">{{ calificacion }}</h3>
             </div>
         </div>
     </div>
@@ -103,21 +105,46 @@
 <style>
     :root {
         --persian-indigo-opaco: rgba(52, 0, 104, 0.5);
-        --success-color: #28a745;  /* Puedes ajustar este color según tus preferencias */
-        --danger-color: #dc3545;   /* Puedes ajustar este color según tus preferencias */
+        --success-color: #218838;  /* Puedes ajustar este color según tus preferencias */
+        --danger-color: #c82333;   /* Puedes ajustar este color según tus preferencias */
+    }
+    .card{
+        transition: box-shadow 0.3s ease-in-out;
+    }
+    .card.selected{
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+    .card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Cambia la opacidad de la sombra al pasar el ratón */
+        border-color: #340068; /* Cambia el color del borde al pasar el ratón */
+        transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
       }
-      
-      .bg-persian-indigo-opaco {
-        background-color: var(--persian-indigo-opaco);
-      }
-      
-      .bg-success-custom {
-        background-color: var(--success-color);
-      }
-      
-      .bg-danger-custom {
-        background-color: var(--danger-color);
-      }
+    .truncate-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .calificacion-card {
+        transition: none; /* Anula la transición de la sombra y el borde */
+        border-color: white ;
+    }
+    
+    .calificacion-card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Puedes ajustar la sombra según tus preferencias */
+        border-color: white; /* Restaura el color del borde al estado inicial */
+        transition: none; /* Anula la transición de la sombra y el borde */
+    }
+    .bg-persian-indigo-opaco {
+    background-color: var(--persian-indigo-opaco);
+    }
+    
+    .bg-success-custom {
+    background-color: var(--success-color);
+    }
+    
+    .bg-danger-custom {
+    background-color: var(--danger-color);
+    }
       
 </style>
 <script>
@@ -130,5 +157,10 @@
         return true;
     }
 </script>
-
+<script>
+    // Inicializa el plugin de tooltip de Bootstrap
+    $(document).ready(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
 {% endblock %}

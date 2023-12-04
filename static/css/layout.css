@@ -41,7 +41,7 @@ main {
   flex: 1;
 }
 a {
-    color: #fdecefff;  /* Usa el color del texto heredado */
+    color: #340068;  /* Usa el color del texto heredado */
 }
 
 a:hover {

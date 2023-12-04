@@ -3,53 +3,52 @@
 {% block title %}Dashboard Estudiante{% endblock %}
 
 {% block content %}
-<br>
-<br>
+
+
+
 <div class=" container mt-5 bg-dark text-light p-4 rounded mb-4">
   <h2>Bienvenido, {{estudiante.nombres }} {{estudiante.apellidos}}</h2>
   <h4>{% if supervisor %}Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}{% else %}No tienes supervisor asignado.{% endif %}</h4>
-  <div class="container mt-5 bg-light text-dark p-4 ronded mb-4">
-    <h4>Perteneces a {{curso.nombre}}</h4>
+    <h5>Perteneces a {{curso.nombre}}</h5>
         {% if grupo %}
-          <h4 class="card-title">Tu grupo asignado es: {{grupo.nombre}}</h4>
+          <h5 class="card-title">Estás asignado al: {{grupo.nombre}}</h5>
         {% else %}
-          <h4 class="card-title">No estás asignado a ningún grupo.</h4>
+          <h5 class="card-title">No estás asignado a ningún grupo.</h5>
         {% endif %}
-  </div>
+
 </div>
 
-<div class="container mt-5 bg-light text-dark p-4 ronded mb-4">
-  <h4>Perteneces a {{curso.nombre}}</h4>
-      {% if grupo %}
-        <h4 class="card-title">Tu grupo asignado es: {{grupo.nombre}}</h4>
-      {% else %}
-        <h4 class="card-title">No estás asignado a ningún grupo.</h4>
-      {% endif %}
-</div>
+
 
 <div class="container mt-5">
+  <div class="row">
+
+  </div>
   <h2>Series de ejercicios asignadas</h2>
   {% if seriesAsignadas %}
-    <ol class="list-group list-group-numbered">
+    <div class="list-group">
       {% for serie in seriesAsignadas %}
-        <li class="list-group-item">
-          <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" style="font-size: 2em;">{{serie.nombre}}</a>
-          <ol>
-            {% for ejercicio in ejerciciosPorSerie[serie] %}
-              <li>
-                <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
-              </li>
-            {% endfor %}
-          </ol>
-        </li>
+        <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" class="list-group-item list-group-item-action" style="font-size: 2em;">{{serie.nombre}}</a>
+        <div class="list-group">
+          {% for ejercicio in ejerciciosPorSerie[serie] %}
+            <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" class="list-group-item list-group-item-action" style="font-size: 1em;">
+              {{ loop.index }}. {{ejercicio.nombre}}
+            </a>
+          {% endfor %}
+        </div>
       {% endfor %}
-    </ol>
+    </div>
   {% else %}
     <p>No tienes series asignadas en este momento.</p>
   {% endif %}
   <br>
 </div>
 
+<style>
+  .border-bottom-same-size {
+    border-bottom: 2px solid #000; /* Puedes ajustar el grosor y el color del borde según tus preferencias */
+  }
+</style>
 
 
 {% endblock %}

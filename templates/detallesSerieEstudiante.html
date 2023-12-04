@@ -1,36 +1,33 @@
 {% extends 'layout.html' %}
 
-
 {% block title %}
 {% endblock %}
 
-
 {% block content %}
-
-
 <div class="container mt-5">
-    <a href="{{url_for('dashEstudiante', estudiante_id = estudiante_id)}}">Volver</a>
+    <br>
+    <a href="{{url_for('dashEstudiante', estudiante_id=estudiante_id)}}">
+        <svg width="35px" height="35px" viewBox="0 0 1024 1024" fill="#000000" class="icon"  version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M669.6 849.6c8.8 8 22.4 7.2 30.4-1.6s7.2-22.4-1.6-30.4l-309.6-280c-8-7.2-8-17.6 0-24.8l309.6-270.4c8.8-8 9.6-21.6 2.4-30.4-8-8.8-21.6-9.6-30.4-2.4L360.8 480.8c-27.2 24-28 64-0.8 88.8l309.6 280z" fill="" /></svg>   
+
+    </a>
 </div>
 
 <div class="container mt-5 bg-dark text-light p-4 rounded mb-4">
-    <h1>Series Disponibles</h1>
+    <h1>Ejercicios Disponibles</h1>
 </div>
+
 <div class="container mt-5">
-    <ol style="font-size: 2em;">
-        {% for ejercicio in ejercicios %}
-        
-            <li>
-                {% if serie and serie.id %}
-                    <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" style="font-size: 1em;">{{ejercicio.nombre}}</a>
-                    {% else %}
-                    <!-- Manejo del caso en que serie es None -->
-                    <span>No se pudo cargar la serie</span>
-                {% endif %}
-            </li>
-
-        {% endfor %}
-    </ol>
-
+    {% if ejercicios %}
+        <div class="list-group list-group-numbered">
+            {% for ejercicio in ejercicios %}
+                <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" class="list-group-item list-group-item-action" style="font-size: 1em;">
+                    {{ loop.index }}. {{ejercicio.nombre}}
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No tienes ejercicios disponibles en este momento.</p>
+    {% endif %}
 </div>
 
 {% endblock %}
