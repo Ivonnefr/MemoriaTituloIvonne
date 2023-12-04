@@ -9,6 +9,14 @@
   --silver-opaco: rgba(206, 204, 204, 0.5);
   --persian-indigo-opaco: rgba(52, 0, 104, 0.5); 
 }
+.navbar-nav a {
+  color: white; /* Color específico para los enlaces del navbar */
+}
+
+/* Cambia el color del texto al pasar el ratón por encima (opcional) */
+.navbar-nav a:hover {
+  color: black; /* Cambia el color al pasar el ratón por encima en el navbar */
+}
 
 .navbar{
   transition: 0.5s;  /* Añade una transición suave al cambiar el tamaño */
@@ -33,7 +41,7 @@ main {
   flex: 1;
 }
 a {
-    color: white;  /* Usa el color del texto heredado */
+    color: #fdecefff;  /* Usa el color del texto heredado */
 }
 
 a:hover {
