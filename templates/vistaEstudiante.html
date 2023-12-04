@@ -24,7 +24,7 @@
         {% if seriesAsignadas %}
           <div class="list-group">
             {% for serie in seriesAsignadas %}
-              <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" class="list-group-item list-group-item-action" style="font-size: 2em;">{{serie.nombre}}</a>
+              <a href="{{url_for('detallesSeriesEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id)}}" class="list-group-item list-group-item-action serie-item" style="font-size: 2em;">{{serie.nombre}}</a>
               <div class="list-group">
                 {% for ejercicio in ejerciciosPorSerie[serie] %}
                   <a href="{{url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id)}}" class="list-group-item list-group-item-action" style="font-size: 1em;">
@@ -50,6 +50,14 @@
   .border-bottom-same-size {
     border-bottom: 2px solid #000; /* Puedes ajustar el grosor y el color del borde según tus preferencias */
   }
+  .serie-item {
+    background-color: #340068; /* Ejemplo de color de fondo amarillo */
+    color: white; /* Ejemplo de color de texto azul oscuro */
+  }
+  .serie-item:hover {
+    background-color: rgba(52, 0, 104, 0.5); /* Color de fondo cuando el mouse está encima */
+  }
+
 </style>
 
 
