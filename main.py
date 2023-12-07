@@ -493,16 +493,15 @@ def registrarEstudiantes(supervisor_id):
         return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id, cursos=cursos)
     
     if request.method == 'POST':
-        accion = request.form['accion']
-    
-    if accion == 'crearCurso':
-        # Procesar el formulario y agregarlo a la base de datos
-        nombre_curso = request.form['nombreCurso']
-        activa_value = request.form.get('activa') == "on"  # Verifica si el checkbox está marcado
-
-        if not nombre_curso:
-            flash('Por favor, complete todos los campos.', 'danger')
-            nuevo_curso = Curso(
+        accion= request.form['accion']
+        
+        if accion == 'crearCurso':
+            #Procesar el formulario y agregarlo a la base de datos
+            nombre_curso = request.form['nombreCurso']
+            activa_value = True if request.form.get('activa') == "True" else False
+            if not nombre_curso :
+                flash('Por favor, complete todos los campos.', 'danger')
+            nuevo_curso= Curso(
                 nombre=nombre_curso,
                 activa=activa_value
             )
@@ -510,7 +509,6 @@ def registrarEstudiantes(supervisor_id):
             db.session.commit()
             flash('Has creado exitosamente un nuevo Curso', 'success')
             return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
-
         
         elif accion == 'registrarEstudiantes':
             id_curso=request.form['curso']
