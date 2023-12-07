@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.manejoArchivosJava import eliminarPackages, agregarPackage
 from funciones_archivo.manejoCarpetas import agregarCarpetaSerieEstudiante,crearCarpetaSerie, crearCarpetaEjercicio, crearArchivadorEstudiante, agregarCarpetaEjercicioEstudiante
-from funciones_archivo.manejoMaven import ejecutarTestUnitario, compilarProyecto
+from funciones_archivo.manejoMaven import ejecutarTestUnitario
 from werkzeug.security import check_password_hash, generate_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
@@ -812,10 +812,20 @@ def detallesSeriesEstudiantes(estudiante_id, serie_id):
 
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
-    
     serie = db.session.get(Serie, serie_id)
     ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
-    return render_template('detallesSerieEstudiante.html', serie=serie, ejercicios=ejercicios, estudiante_id=estudiante_id)
+    ejercicios_asignados = (
+        Ejercicio_asignado.query
+        .filter(Ejercicio_asignado.id_estudiante == estudiante_id)
+        .filter(Ejercicio_asignado.id_ejercicio.in_([ejercicio.id for ejercicio in ejercicios]))
+        .all()
+    )
+    ejercicios_aprobados = sum(1 for ea in ejercicios_asignados if ea.estado)
+
+    total_ejercicios = len(ejercicios)
+    calificacion = calcular_calificacion(total_ejercicios, ejercicios_aprobados)
+
+    return render_template('detallesSerieEstudiante.html', serie=serie, ejercicios=ejercicios, estudiante_id=estudiante_id,calificacion=calificacion)
 
 @app.route('/dashEstudiante/<int:estudiante_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>', methods=['GET', 'POST'])
 @login_required
@@ -902,7 +912,8 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                         nuevoEjercicioAsignado.test_output = json.dumps(resultadoTest)
                                         nuevoEjercicioAsignado.estado = True
                                         db.session.commit()
-                                        flash('Ejercicio aprobado', 'success')
+                                        errores = {"tipo": "success", "titulo": "Todos los test aprobados", "mensaje": resultadoTest}
+                                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                                     else:
                                         nuevoEjercicioAsignado.contador += 1
                                         nuevoEjercicioAsignado.ultimo_envio = rutaFinal
@@ -910,17 +921,20 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                         nuevoEjercicioAsignado.test_output = json.dumps(resultadoTest)
                                         nuevoEjercicioAsignado.estado = False
                                         db.session.commit()
-                                        flash('Ejercicio reprobado', 'danger')
+                                        errores= {"tipo": "danger", "titulo": "Errores en la ejecución de pruebas unitarias", "mensaje": resultadoTest}
+                                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                             except Exception as e:
                                 current_app.logger.error(f'Ocurrió un error al agregar la carpeta del ejercicio: {str(e)}')
-                                # Agregar la eliminación de la carpeta??
+                                db.session.rollback()
                                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                     except Exception as e:
                         current_app.logger.error(f'Ocurrió un error al agregar la carpeta de la serie: {str(e)}')
+                        db.session.rollback()
                         # Agregar la eliminación de la carpeta??
                         return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                 except Exception as e:
                     current_app.logger.error(f'Ocurrió un error al agregar el ejercicio asignado: {str(e)}')
+                    db.session.rollback()
                     # Agregar la eliminación de la carpeta??
                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
             else:
@@ -942,7 +956,8 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     ejercicioAsignado.test_output = json.dumps(resultadoTest)
                                     ejercicioAsignado.estado = True
                                     db.session.commit()
-                                    flash('Ejercicio aprobado', 'success')
+                                    errores = {"tipo": "success", "titulo": "Todos los test aprobados", "mensaje": resultadoTest}
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                                 else:
                                     ejercicioAsignado.contador += 1
                                     ejercicioAsignado.ultimo_envio = rutaFinal
@@ -950,13 +965,15 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     ejercicioAsignado.test_output = json.dumps(resultadoTest)
                                     ejercicioAsignado.estado = False
                                     db.session.commit()
-                                    flash('Ejercicio reprobado', 'danger')
+                                    errores= {"tipo": "danger", "titulo": "Errores en la ejecución de pruebas unitarias", "mensaje": resultadoTest}
+                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                         except Exception as e:
+                            db.session.rollback()
                             current_app.logger.error(f'Ocurrió un error al agregar la carpeta del ejercicio: {str(e)}')
-                            # Agregar la eliminación de la carpeta??
-                            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+                            return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=resultadoTest, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                 except Exception as e:
                     current_app.logger.error(f'Ocurrió un error al agregar la carpeta de la serie: {str(e)}')
+                    db.session.rollback()
     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
 
 
