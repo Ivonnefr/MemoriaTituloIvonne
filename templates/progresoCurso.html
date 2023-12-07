@@ -6,16 +6,22 @@
 
 {% block content %}
 <div class="container mt-5">
-    
-    <h1>{{curso.nombre}}</h1>
-    
+    <br>
+    <a href="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="btn btn-secondary">Volver</a>
 </div>
+
+<div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+      <h3>{{curso.nombre}}</h3>
+    </div>
+</div>
+
 <div class="container mt-5">
     <div class="row">
         <div class="col-md-12">
             <div class="card border-dark mb-3">
                 <div class="card-header bg-dark text-white">
-                    Selección de Serie
+                    Selecciona una serie de ejercicios
                 </div>
                 <div class="card-body">
                     <form method="post" action="{{url_for('progresoCurso', supervisor_id=supervisor_id, curso_id=curso.id)}}">
@@ -36,7 +42,7 @@
     
     <div class="row">
         <div class="col-md-12">
-            <table class="table table-bordered">
+            <table class="table custom-table">
                 <thead class="thead-dark">
                     <tr>
                         <th>Apellidos Nombres</th>
@@ -72,5 +78,22 @@
     
 </div>
 
+<style>
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 5px;
+        overflow: hidden;
+        background-color: white;
+    }
+
+    .custom-table th,
+    .custom-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px; /* Ajusta el relleno según sea necesario */
+    }
+    
+
+</style>
 
 {% endblock %}

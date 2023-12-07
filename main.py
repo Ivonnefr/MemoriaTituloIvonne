@@ -493,15 +493,16 @@ def registrarEstudiantes(supervisor_id):
         return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id, cursos=cursos)
     
     if request.method == 'POST':
-        accion= request.form['accion']
-        
-        if accion == 'crearCurso':
-            #Procesar el formulario y agregarlo a la base de datos
-            nombre_curso = request.form['nombreCurso']
-            activa_value = True if request.form.get('activa') == "true" else False
-            if not nombre_curso :
-                flash('Por favor, complete todos los campos.', 'danger')
-            nuevo_curso= Curso(
+        accion = request.form['accion']
+    
+    if accion == 'crearCurso':
+        # Procesar el formulario y agregarlo a la base de datos
+        nombre_curso = request.form['nombreCurso']
+        activa_value = request.form.get('activa') == "on"  # Verifica si el checkbox está marcado
+
+        if not nombre_curso:
+            flash('Por favor, complete todos los campos.', 'danger')
+            nuevo_curso = Curso(
                 nombre=nombre_curso,
                 activa=activa_value
             )
@@ -509,6 +510,7 @@ def registrarEstudiantes(supervisor_id):
             db.session.commit()
             flash('Has creado exitosamente un nuevo Curso', 'success')
             return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
+
         
         elif accion == 'registrarEstudiantes':
             id_curso=request.form['curso']
@@ -523,21 +525,6 @@ def registrarEstudiantes(supervisor_id):
                 return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
             
     return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
-
-@app.route('/dashDocente/<int:supervisor_id>/verCursos', methods=['GET','POST'])
-@login_required
-def verCursos(supervisor_id):
-    # Usar la funcion de verificación
-    if not verify_supervisor(supervisor_id):
-        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
-        return redirect(url_for('login'))
-    cursos = Curso.query.all()
-    grupos=Grupo.query.all()
-    if not cursos:
-        flash('No existen cursos, por favor crear un curso', 'danger')
-        return redirect(url_for('dashDocente',supervisor_id=supervisor_id))
-    
-    return render_template('verCursos.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos)
 
 @app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>', methods=['GET','POST'])
 @login_required
@@ -720,24 +707,8 @@ def progresoCurso(supervisor_id, curso_id):
 
             colores_info.append(estudiante_info)
 
-
         return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas, ejercicios=ejercicios, colores_info=colores_info)
     return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas)
-
-# Ruta para ver el progreso de los estudiantes
-@app.route('/dashDocente/<int:supervisor_id>/progresoSesion', methods=['GET', 'POST'])
-@login_required
-def progresoSesion(supervisor_id):
-    # Ruta muestra el progreso de los estudiantes en la sesión
-    # Usa la función de verificación
-    if not verify_supervisor(supervisor_id):
-        return redirect(url_for('login'))
-    
-    # Listar todos los estudiantes de la sesion
-    estudiantes = Estudiante.query.all()
-
-    return render_template('progresoSesion.html', supervisor_id=supervisor_id, estudiantes=estudiantes)
-
 
 
 # DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas

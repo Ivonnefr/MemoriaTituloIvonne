@@ -6,7 +6,10 @@ Vista Docente -
 
 {% block content %}
 <div class="container mt-5">
-  <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+  <br>
+  <br>
+  
+  <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect border-dark">
     <h3>{% if curso_seleccionado %}{{ curso_seleccionado.nombre }}{% else %}Cursos disponibles{% endif %}</h3>
   </div>
 </div>
@@ -14,15 +17,25 @@ Vista Docente -
 <div class="container mt-5">
   <div class="row">
     <div class="col-12 mb-3">
-      <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary
-      ">Crear Curso</a>
-      <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary
-      ">Registrar Estudiantes</a>
-      <a href="{{ url_for('agregarSerie', supervisor_id=supervisor_id) }}" class="btn btn-secondary
-      ">Agregar Serie de ejercicios</a>
-      <a href="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" class="btn btn-secondary
-      ">Agregar Ejercicios</a>
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary btn-block">Crear Curso</a>
+        </div>
+        <div class="col-md-3 mb-3">
+          <a href="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" class="btn btn-secondary btn-block">Registrar Estudiantes</a>
+        </div>
+        <div class="col-md-3 mb-3">
+          <a href="{{ url_for('agregarSerie', supervisor_id=supervisor_id) }}" class="btn btn-secondary btn-block">Agregar Serie de ejercicios</a>
+        </div>
+        <div class="col-md-3 mb-3">
+          <a href="{{ url_for('agregarEjercicio', supervisor_id=supervisor_id) }}" class="btn btn-secondary btn-block">Agregar Ejercicios</a>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
+
+
     
 <div class="container mt-5">
   <div class="row">
@@ -73,7 +86,7 @@ Vista Docente -
 <style>
   .card {
     transition: box-shadow 0.3s ease-in-out;
-    border: 1px solid #ddd; /* Color del borde normal */
+    border: 1px solid #9d6381ff; /* Color del borde normal */
   }
 
   .card.selected {
@@ -83,15 +96,22 @@ Vista Docente -
   .card:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Cambia la opacidad de la sombra al pasar el ratón */
     border-color: #340068; /* Cambia el color del borde al pasar el ratón */
-    transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
+    background-color: rgba(253, 236, 239, 0.9); /* Cambia el color de fondo al pasar el ratón */
+    transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out, background-color 0.3s ease-in-out;
+  }
+  .no-hover-effect:hover {
+    box-shadow: none; /* Desactiva la sombra al pasar el ratón */
+    border-color: #ddd; /* Restaura el color del borde normal al pasar el ratón */
   }
 
   .bg-custom-purple {
     background-color: #FDECEF; /* Puedes ajustar el código de color según tu preferencia */
   }
+
   .text-custom-champagne {
     color: #340068  ; /* Puedes ajustar el código de color según tu preferencia */
   }
+
   a{
     color: #340068;
   }

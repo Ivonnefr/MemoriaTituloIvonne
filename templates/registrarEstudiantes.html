@@ -5,8 +5,16 @@ Registro de Estudiantes
 {% endblock %}
 
 {% block content %}
+
 <div class="container mt-5">
-    <h1>Registro de Estudiantes</h1>
+    <br>
+    <a href="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}" class="btn btn-secondary">Volver</a>
+</div>
+
+<div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+      <h3>Crear nuevo curso</h3>
+    </div>
 </div>
 
 <div class="container mt-5">
@@ -27,11 +35,14 @@ Registro de Estudiantes
     </form>
 </div>
 
-
 <div class="container mt-5">
-    <h3>Registrar Estudiantes con la lista de clases</h2>
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+      <h3>Registrar Estudiantes con la lista de clases</h3>
+    </div>
     <p>Si ya tienes un curso creado selecciona el curso y carga un archivo (.csv) con la lista de clases:</p>
 
+</div>
+<div class="container mt-5">
     <form method="post" action="{{ url_for('registrarEstudiantes', supervisor_id=supervisor_id) }}" enctype="multipart/form-data">
         <input type="hidden" name="accion" value="registrarEstudiantes"> <!-- Agrega un campo oculto para identificar el formulario -->
         <div class="form-group">
@@ -47,13 +58,8 @@ Registro de Estudiantes
 
         <button type="submit" class="btn btn-secondary">Registrar Estudiantes</button>
     </form>
-</div>
-<div class="container mt-5">
-    <div id="enlace-descarga" style="display: none;">
-        <h3>Estudiantes Repetidos</h3>
-        <p>Puedes descargar la lista de estudiantes repetidos haciendo clic en el siguiente enlace:</p>
-        <a id="descargar-enlace" href="#">Descargar Estudiantes Repetidos</a>
-    </div>
+    <br>
+    <br>
 </div>
 
 <style>
