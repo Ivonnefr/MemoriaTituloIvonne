@@ -3,23 +3,36 @@
 {% block title %}Detalles de la serie{% endblock %}
 
 {% block content %}
+<div class="container mt-5">
+    <br>
+    <a href="{{url_for('dashDocente', supervisor_id=supervisor_id)}}" class="btn btn-secondary">Volver</a>
+</div>
 
 <div class="container mt-5">
-    <h1>{{ serie.nombre }}</h1>
-
-<p>Activa: {{ serie.activa }}</p>
-<h2>Ejercicios</h2>
-<ol>
-    {% for ejercicio in ejercicios %}
-        <li>
-            <a href="{{ url_for('detallesEjercicio', supervisor_id=supervisor_id, serie_id=serie.id,ejercicio_id=ejercicio.id) }}">{{ ejercicio.nombre }}</a>
-
-        </li>
-    {% endfor %}
-    </ol>
-<a href="{{ url_for('dashDocente', supervisor_id=supervisor_id) }}">Volver al supervisor</a>
-    
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+        <h3>{{serie.nombre}}</h3>
+    </div>
 </div>
+
+<div class="container mt-5">
+{%if serie.activa%}
+    <h4>Estado: Activa</h4>
+{%else%}
+    <h4>Estado: Inactiva</h4>
+{%endif%}
+
+{%if ejercicios %}
+    <div class="list-group list-group-numbered">
+        {%for ejercicio in ejercicios%}
+            <a href="{{url_for('detallesEjercicio', supervisor_id=supervisor_id, serie_id=serie.id,ejercicio_id=ejercicio.id)}}" class="list-group-item list-group-item-action" style="font-size: 1em;">
+                {{loop.index}}. {{ejercicio.nombre}}
+            </a>
+        {%endfor%}
+    </div>
+{%else%}
+    <p>Esta serie no tiene ejercicios.</p>
+{%endif%}
+</div> 
 
 
 {% endblock %}

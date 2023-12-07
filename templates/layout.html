@@ -23,16 +23,13 @@
         </li>
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-        </li>
-        <li class="nav-item">
-          
-        </li>
+        </li> 
       </ul>
-    </nav>
-    
+    </nav>  
 
 
-    <!-- Bloque para mostrar mensajes flash -->
+
+    <!-- Bloque para mostrar mensajes flash
     <div class="container mt-3">
       {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -43,7 +40,7 @@
               {% endfor %}
           {% endif %}
       {% endwith %}
-    </div>
+    </div> -->
     
     <main class="container mt-4">
       {% block content %}

@@ -14,11 +14,11 @@
 
 
 <div class="container mt-5">
-    <div class="card text-light bg-dark p-4 rounded mb-4">
-        <h1>{{ejercicio.nombre}}</h1>
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+        <h3>{{ejercicio.nombre}}</h3>
     </div>
-  </div>
-  
+</div>
+
 
 <div class="container mt-5">
     <div class="enunciado-ejercicio">
@@ -39,43 +39,17 @@
 
 
 <div class="container mt-5">
-    {% if errores_compilacion %}
-        <div class="alert alert-danger">    
-            <h2>Output de compilación</h2>
+    {% if errores %}
+        <div class="alert custom-alert custom-background-{{ errores.tipo }} custom-border-{{ errores.tipo }} custom-text-{{ errores.tipo }}">
+            <h2>{{ errores.titulo }}</h2>
             <ul>
-                {% for error in errores_compilacion %}
-                    <li>{{ error }}</li>
+                {% for error in errores.mensaje[:-1] %}
+                    <li>{{ error|replace('/home/ivonne/Documentos/MemoriaTituloIvonne/ejerciciosEstudiantes/2017425857/', '')|safe }}</li>
                 {% endfor %}
             </ul>
         </div>
     {% endif %}
-
-    {% if errores_test %}
-        {% if errores_test == "Todos los test aprobados" %}
-            <div class="alert alert-success">
-                <h2>¡Felicitaciones, aprobaste!</h2>
-            </div>
-        {% else %}
-            <div class="alert alert-danger">
-                <h2>Errores de prueba unitaria</h2>
-                <ul>
-                    {% for error in errores_test[:-1] %} {# Excluye la última línea #}
-                        <li>{{ error|safe }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-    {%else%}
-        {% if mensaje_aprobacion %}
-        <div class="alert alert-success">
-            <h2>{{ mensaje_aprobacion }}</h2>
-        </div>
-        {% endif %}
-
-            
-    {% endif %}
 </div>
-
 
 
 <div class="container mt-5">
@@ -149,7 +123,34 @@
     .bg-danger-custom {
     background-color: var(--danger-color);
     }
-      
+    .no-hover-effect:hover {
+        box-shadow: none;
+        border-color: transparent;
+        transition: none;
+    }
+    .custom-background-danger {
+        background-color: #FFEBEB; /* Color de fondo tenue para errores */
+    }
+
+    .custom-border-danger {
+        border: 1px solid #DC3545; /* Color de borde normal para errores */
+    }
+
+    .custom-text-danger {
+        color: #DC3545; /* Color de texto para errores */
+    }
+
+    .custom-background-success {
+        background-color: #E8F8E5; /* Color de fondo tenue para éxito */
+    }
+
+    .custom-border-success {
+        border: 1px solid #28A745; /* Color de borde normal para éxito */
+    }
+
+    .custom-text-success {
+        color: #28A745; /* Color de texto para éxito */
+    }
 </style>
 <script>
     function validateForm() {

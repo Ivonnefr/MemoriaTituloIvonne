@@ -5,18 +5,23 @@
 Asignar Grupos
 {% endblock %}
 
-
 {% block content %}
+
 <div class="container mt-5">
-    <h1>Asignar Grupos</h1>
+    <a href="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_seleccionado) }}" class="btn btn-secondary">Volver</a>
 </div>
 
 <div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+      <h3>Asignar Grupos</h3>
+    </div>
+</div>
 
+<div class="container mt-5">
     <form method="post" action="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso_seleccionado) }}" id="cursoForm">
         <input type="hidden" name="accion" value="seleccionarCurso">
         <div class="form-group">
-            <label for="curso">Curso:</label>
+            <label for="curso">Selecciona un curso</label>
             <select class="form-control" id="curso" name="curso" required>
                 {% for curso in cursos %}
                 <option value="{{ curso.id }}" {% if curso.id == curso_seleccionado %}selected{% endif %}>
@@ -26,10 +31,8 @@ Asignar Grupos
             </select>
         </div>
     </form>
-</div>
-
-<div class="container mt-5">
-    <table class="table table-bordered rounded">
+    
+    <table class="table custom-table">
         <thead class="thead-dark">
             <tr>
                 <th>    <button type="button" class="btn btn-secondary" id="selectAllBtn">Seleccionar Todos</button>
@@ -108,5 +111,23 @@ Asignar Grupos
     });
 </script>
 
+<style>
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid #340068ff;
+        border-radius: 5px;
+        overflow: hidden;
+        background-color: white;
+    }
+
+    .custom-table th,
+    .custom-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px; /* Ajusta el relleno según sea necesario */
+    }
+    
+
+</style>
 
 {% endblock %}

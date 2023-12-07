@@ -5,18 +5,50 @@
 {% endblock %}
 
 {% block content %}
-
 <div class="container mt-5">
-    <h1>{{grupo.nombre}}</h1>
-    <h2>Integrantes</h2>
-    <ul>
-        {% for estudiante in estudiantes_grupo %}
-            <li>
-                {{estudiante.nombres}} {{estudiante.apellidos}}
-            </li>
-        {% endfor %}
-    </ul>
-    <a href="{{url_for('dashDocente', supervisor_id=supervisor_id)}}">Volver al supervisor</a>
+    <br>
+    <a href="{{url_for('dashDocente', supervisor_id=supervisor_id)}}" class="btn btn-secondary">Volver</a>
 </div>
 
+<div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+        <h3>{{grupo.nombre}}</h3>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <table class="table custom-table">
+        <thead class="thead-dark">
+          <tr>
+            <th>Integrantes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for estudiante in estudiantes_grupo %}
+          <tr>
+            <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+<style>
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+  
+        border-radius: 5px;
+        overflow: hidden;
+        background-color: white;
+    }
+  
+    .custom-table th,
+    .custom-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px; /* Ajusta el relleno según sea necesario */
+    }
+    
+  
+  </style>
+  
 {% endblock %}

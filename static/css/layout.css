@@ -19,16 +19,12 @@
 }
 
 .navbar{
-  transition: 0.5s;  /* Añade una transición suave al cambiar el tamaño */
+ 
   font-size: 1.5em;
   padding: 10px 0;
   background-color: #340068;
 }
 
-.navbar-shrink {
-  font-size: 1.2em;
-  padding: 10px 0;
-}
 
 body {
   min-height: 100vh;
