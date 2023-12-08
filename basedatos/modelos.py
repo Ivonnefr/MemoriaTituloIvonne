@@ -130,11 +130,9 @@ class Curso(db.Model):
     estudiantes = db.relationship('Estudiante', secondary=inscripciones, back_populates='cursos')
     grupos = db.relationship('Grupo', order_by=Grupo.id, back_populates='curso')
     
-    def __init__(self, nombre, activa=True):
+    def __init__(self, nombre, activa=activa):
         self.nombre = nombre
         self.activa = activa
-
-
 
 class Ejercicio_asignado(db.Model):
     __table_args__ = (

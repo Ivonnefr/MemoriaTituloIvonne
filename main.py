@@ -11,7 +11,7 @@ from wtforms.validators import InputRequired, Length, ValidationError
 from funciones_archivo.manejoArchivosJava import eliminarPackages, agregarPackage
 from funciones_archivo.manejoCarpetas import agregarCarpetaSerieEstudiante,crearCarpetaSerie, crearCarpetaEjercicio, crearArchivadorEstudiante, agregarCarpetaEjercicioEstudiante
 from funciones_archivo.manejoMaven import ejecutarTestUnitario
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash, check_password_hash
 from DBManager import db, init_app
 from basedatos.modelos import Supervisor, Grupo, Serie, Estudiante, Ejercicio, Ejercicio_asignado, Curso, serie_asignada, inscripciones, estudiantes_grupos, supervisores_grupos
 from pathlib import Path
@@ -359,15 +359,17 @@ def agregarSerie(supervisor_id):
         if not (nombreSerie):
             flash('Por favor, complete todos los campos.', 'danger')
             return redirect(url_for('agregarSerie', supervisor_id=supervisor_id))
-        
-        nueva_serie = Serie(nombre=nombreSerie, activa=activa_value)
-        db.session.add(nueva_serie)
-        db.session.commit()  # Primero confirmamos en la base de datos para obtener el ID
-        
+        try:
+            nueva_serie = Serie(nombre=nombreSerie, activa=activa_value)
+            db.session.add(nueva_serie)
+        except Exception as e:
+            db.session.rollback()
         try:
             # Intentar crear carpeta de la serie con el ID y el nombre
             crearCarpetaSerie(nueva_serie.id, nueva_serie.nombre)
             flash('Serie agregada con éxito', 'success')
+            db.session.commit()  # Primero confirmamos en la base de datos para obtener el ID
+
             return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
 
         except Exception as e:
@@ -498,8 +500,8 @@ def registrarEstudiantes(supervisor_id):
         if accion == 'crearCurso':
             #Procesar el formulario y agregarlo a la base de datos
             nombre_curso = request.form['nombreCurso']
-            activa_value = True if request.form.get('activa') == "True" else False
-            if not nombre_curso :
+            activa_value = True if request.form.get('activa') == "true" else False
+            if not (nombre_curso) :
                 flash('Por favor, complete todos los campos.', 'danger')
             nuevo_curso= Curso(
                 nombre=nombre_curso,
@@ -945,6 +947,33 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     db.session.rollback()
     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
 
+@app.route('/dashEstudiante/<int:estudiante_id>/cuentaEstudiante', methods=['GET', 'POST'])
+@login_required
+def cuentaEstudiante(estudiante_id):
+    if not verify_estudiante(estudiante_id):
+        return redirect(url_for('login'))
+    
+    estudiante = Estudiante.query.get(estudiante_id)
+
+    if request.method == 'POST':
+        contraseña_actual = request.form.get('contraseña_actual')
+        nueva_contraseña = request.form.get('nueva_contraseña')
+        confirmar_nueva_contraseña = request.form.get('confirmar_nueva_contraseña')
+
+        # Validaciones
+        if not check_password_hash(estudiante.password, contraseña_actual):
+            flash('Contraseña actual incorrecta', 'danger')
+        elif len(nueva_contraseña) < 10:
+            flash('La nueva contraseña debe tener al menos 6 caracteres', 'danger')
+        elif nueva_contraseña != confirmar_nueva_contraseña:
+            flash('Las nuevas contraseñas no coinciden', 'danger')
+        else:
+            # Cambiar la contraseña
+            estudiante.password = generate_password_hash(nueva_contraseña)
+            db.session.commit()
+            flash('Contraseña actualizada correctamente', 'success')
+
+    return render_template('cuentaEstudiante.html', estudiante=estudiante, estudiante_id=estudiante_id)
 
 #Funcion para ejecutar el script 404
 def pagina_no_encontrada(error):

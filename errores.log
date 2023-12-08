@@ -3,4 +3,9 @@
 [2023-12-06 14:54:46,744] [ERROR] [main] Ocurrió un error al agregar la carpeta del ejercicio: integer division or modulo by zero
 [2023-12-06 14:54:46,771] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: integer division or modulo by zero
 [2023-12-06 14:54:57,388] [ERROR] [main] Ocurrió un error al agregar la carpeta del ejercicio: integer division or modulo by zero
-[2023-12-06 14:54:57,395] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: integer division or modulo by zero
+[2023-12-06 14:54:57,395] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: integer division or modulo by zero[2023-12-07 13:42:00,204] [ERROR] [__init__] Error: Path doesn't exist: '/home/ivonne/Documentos/MemoriaTituloIvonne/migrations'.  Please use the 'init' command to create a new scripts folder.
+[2023-12-07 13:43:00,134] [ERROR] [__init__] Error: Path doesn't exist: '/home/ivonne/Documentos/MemoriaTituloIvonne/migrations'.  Please use the 'init' command to create a new scripts folder.
+[2023-12-07 14:28:05,995] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: serie_asignada.id_serie, serie_asignada.id_grupo
+[SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
+[parameters: ('1', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
