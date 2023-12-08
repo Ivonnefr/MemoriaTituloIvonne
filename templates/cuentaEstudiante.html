@@ -1,0 +1,127 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+    {{ estudiante.nombres }} {{ estudiante.apellidos }}
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect border-dark">
+        <h3>Cuenta</h3>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <table class="table custom-table">
+        <tbody>
+            <tr>
+                <th>Nombre</th>
+                <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+            </tr>
+            <tr>
+                <th>Matrícula:</th>
+                <td>{{ estudiante.matricula }}</td>
+            </tr>
+            <tr>
+                <th>Correo:</th>
+                <td>{{ estudiante.correo }}</td>
+            </tr>
+            <tr>
+                <th>Carrera:</th>
+                <td>{{ estudiante.carrera }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-3 mb-3">
+            <a href="#" class="btn btn-secondary btn-block" data-toggle="modal" data-target="#modalCambiarContraseña">Actualizar Contraseña</a>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalCambiarContraseña" tabindex="-1" role="dialog" aria-labelledby="modalCambiarContraseñaLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCambiarContraseñaLabel">Actualizar Contraseña</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="" class="needs-validation" novalidate>
+                    <div class="form-group">
+                        <label for="contraseña_actual">Contraseña Actual:</label>
+                        <input type="password" name="contraseña_actual" class="form-control" required>
+                        <div class="invalid-feedback">
+                            Por favor, ingresa tu contraseña actual.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nueva_contraseña">Nueva Contraseña:</label>
+                        <input type="password" name="nueva_contraseña" class="form-control" required>
+                        <div class="invalid-feedback">
+                            La nueva contraseña es requerida.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmar_nueva_contraseña">Confirmar Nueva Contraseña:</label>
+                        <input type="password" name="confirmar_nueva_contraseña" class="form-control" required>
+                        <div class="invalid-feedback">
+                            Por favor, confirma tu nueva contraseña.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Cerrar el modal al enviar el formulario
+    document.getElementById('modalCambiarContraseñaForm').addEventListener('submit', function() {
+        $('#modalCambiarContraseña').modal('hide');
+    });
+
+    // Mostrar el modal al hacer clic en el botón
+    document.getElementById('btnCambiarContraseña').addEventListener('click', function() {
+        $('#modalCambiarContraseña').modal('show');
+    });
+
+    // Mostrar el modal si hay un mensaje de éxito
+    var successMessage = "{{ get_flashed_messages(category_filter=['success'])[0] }}";
+    if (successMessage) {
+        $('#modalExito').modal('show');
+    }
+</script>
+
+<style>
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 5px;
+        overflow: hidden;
+        background-color: white;
+    }
+
+    .custom-table th,
+    .custom-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px; /* Ajusta el relleno según sea necesario */
+    }
+
+    .custom-table th:first-child,
+    .custom-table td:first-child {
+        background-color: #343a40;
+        color: white; /* Cambia el color del texto según sea necesario */
+    }
+</style>
+
+{% endblock %}

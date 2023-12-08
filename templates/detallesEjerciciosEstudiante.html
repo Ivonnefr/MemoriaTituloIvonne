@@ -33,9 +33,14 @@
             <label for="archivo_java">Selecciona tus archivos .java (Proyecto/src/main/java/org/example)</label>
             <input type="file" class="form-control-file" name="archivo_java" accept=".java" multiple>
         </div>
-        <button type="submit" class="btn btn-secondary">Subir Solución</button>
+        <button type="button" class="btn btn-secondary" id="btnSubmit" onclick="submitForm()">Subir Solución</button>
+        <button type="button" class="btn btn-secondary d-none" id="btnLoading" disabled>
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Cargando...
+        </button>
     </form>              
 </div>
+
 
 
 <div class="container mt-5">
