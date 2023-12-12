@@ -173,4 +173,23 @@
         $('[data-toggle="tooltip"]').tooltip();
     });
 </script>
+
+<script>
+    function submitForm() {
+        var inputFile = document.querySelector('input[type="file"]');
+        if (inputFile.files.length === 0) {
+            alert("Por favor, carga al menos un archivo .java.");
+            return;
+        }
+
+        // Mostrar el botón de carga y ocultar el botón de enviar
+        document.getElementById('btnSubmit').classList.add('d-none');
+        document.getElementById('btnLoading').classList.remove('d-none');
+
+        // Deshabilitar el formulario para evitar clics adicionales
+        document.getElementById('ejercicioForm').submit();
+        document.getElementById('ejercicioForm').setAttribute('disabled', 'true');
+    }
+</script>
+
 {% endblock %}
