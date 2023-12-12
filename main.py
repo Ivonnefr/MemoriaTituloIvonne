@@ -362,21 +362,17 @@ def agregarSerie(supervisor_id):
         try:
             nueva_serie = Serie(nombre=nombreSerie, activa=activa_value)
             db.session.add(nueva_serie)
+            db.session.flush()
+            try:
+                crearCarpetaSerie(nueva_serie.id, nueva_serie.nombre)
+                current_app.logger.info(f'Se creó la carpeta de la serie {nueva_serie.nombre} con éxito.')
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                current_app.logger.error(f'Ocurrió un error al crear la carpeta de la serie: {str(e)}')
+                return render_template('agregarSerie.html', supervisor_id=supervisor_id)
         except Exception as e:
             db.session.rollback()
-        try:
-            # Intentar crear carpeta de la serie con el ID y el nombre
-            crearCarpetaSerie(nueva_serie.id, nueva_serie.nombre)
-            flash('Serie agregada con éxito', 'success')
-            db.session.commit()  # Primero confirmamos en la base de datos para obtener el ID
-
-            return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
-
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f'Ocurrió un error al agregar la serie: {str(e)}')
-            return render_template('agregarSerie.html', supervisor_id=supervisor_id)
-    
     return render_template('agregarSerie.html', supervisor_id=supervisor_id)
 
 @app.route('/dashDocente/<int:supervisor_id>/agregarEjercicio', methods=['GET', 'POST'])
@@ -867,16 +863,21 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     db.session.flush()
                     try:
                         rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
+                        current_app.logger.info(f'Ruta serie estudiante: {rutaSerieEstudiante}')
                         if os.path.exists(rutaSerieEstudiante):
                             try:
                                 rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id,  ejercicio.path_ejercicio)
+                                current_app.logger.info(f'Ruta ejercicio estudiante: {rutaEjercicioEstudiante}')
                                 if os.path.exists(rutaEjercicioEstudiante):
                                     for archivo_java in archivos_java:
                                         rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
                                         if archivo_java and archivo_java.filename.endswith('.java'):
                                             archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
+                                            current_app.logger.info(f'Archivo guardado en: {rutaFinal}')
                                     resultadoTest= ejecutarTestUnitario(rutaEjercicioEstudiante)
+                                    current_app.logger.info(f'Resultado test: {resultadoTest}')
                                     if resultadoTest == 'BUILD SUCCESS':
+                                        current_app.logger.info(f'El test fue exitoso')
                                         nuevoEjercicioAsignado.contador += 1
                                         nuevoEjercicioAsignado.ultimo_envio = rutaFinal
                                         nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
@@ -886,6 +887,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                         errores = {"tipo": "success", "titulo": "Todos los test aprobados", "mensaje": resultadoTest}
                                         return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                                     else:
+                                        current_app.logger.info(f'El test no fue exitoso')
                                         nuevoEjercicioAsignado.contador += 1
                                         nuevoEjercicioAsignado.ultimo_envio = rutaFinal
                                         nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()

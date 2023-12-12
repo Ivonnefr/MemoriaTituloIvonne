@@ -49,7 +49,7 @@
             <h2>{{ errores.titulo }}</h2>
             <ul>
                 {% for error in errores.mensaje[:-1] %}
-                    <li>{{ error|replace('/home/ivonne/Documentos/MemoriaTituloIvonne/ejerciciosEstudiantes/2017425857/', '')|safe }}</li>
+                    <li>{{ error|replace('MemoriaTituloIvonne/ejerciciosEstudiantes/', '')|safe }}</li>
                 {% endfor %}
             </ul>
         </div>

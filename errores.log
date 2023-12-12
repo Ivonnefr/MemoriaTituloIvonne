@@ -9,3 +9,7 @@
 [SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
 [parameters: ('1', '1')]
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2023-12-11 23:30:26,274] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: ejercicio.nombre
+[SQL: INSERT INTO ejercicio (nombre, path_ejercicio, enunciado, id_serie) VALUES (?, ?, ?, ?)]
+[parameters: ('Tienda mágica', '', '', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
