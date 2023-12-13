@@ -22,6 +22,7 @@ from logging.config import dictConfig
 from ansi2html import Ansi2HTMLConverter
 import json
 
+
 dictConfig({
     'version': 1,
     'formatters': {
