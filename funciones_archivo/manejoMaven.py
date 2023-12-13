@@ -1,4 +1,4 @@
-import re,os,subprocess
+import re, os, subprocess
 from ansi2html import Ansi2HTMLConverter
 
 def ejecutarTestUnitario(rutaEjercicioEstudiante):
@@ -9,7 +9,8 @@ def ejecutarTestUnitario(rutaEjercicioEstudiante):
     patron_failures = re.compile(r'Failures:(.+?)BUILD FAILURE', re.DOTALL)
     patron_comp = re.compile(r'COMPILATION ERROR(.+?)BUILD FAILURE', re.DOTALL)
     patron_compile = re.compile(r'BUILD FAILURE(.+?)Help 1', re.DOTALL)
-    coincidencias=patron_success.search(resultado.stdout)
+    
+    coincidencias = patron_success.search(resultado.stdout)
     if coincidencias:
         return 'BUILD SUCCESS'
     else:
@@ -36,4 +37,6 @@ def ejecutarTestUnitario(rutaEjercicioEstudiante):
                             # Filtra los códigos ANSI y agrega la línea limpia
                             linea_limpia = converter.convert(linea, full=False)
                             errores.append(linea_limpia)
-            return errores
+                    return errores
+            # Si no se cumplen ninguno de los patrones anteriores, retorna el mensaje de error
+            return "Error al ejecutar pruebas unitarias"
