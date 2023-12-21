@@ -1,7 +1,7 @@
-{% extends 'layoutE.html' %}
+{% extends 'layout.html' %}
 
 {% block title %}
-    {{ estudiante.nombres }} {{ estudiante.apellidos }}
+    {{ supervisor.nombres }} {{ supervisor.apellidos }}
 {% endblock %}
 
 {% block content %}
@@ -17,19 +17,11 @@
         <tbody>
             <tr>
                 <th>Nombre</th>
-                <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
-            </tr>
-            <tr>
-                <th>Matrícula:</th>
-                <td>{{ estudiante.matricula }}</td>
+                <td>{{ supervisor.nombres }} {{ supervisor.apellidos }}</td>
             </tr>
             <tr>
                 <th>Correo:</th>
-                <td>{{ estudiante.correo }}</td>
-            </tr>
-            <tr>
-                <th>Carrera:</th>
-                <td>{{ estudiante.carrera }}</td>
+                <td>{{ supervisor.correo }}</td>
             </tr>
         </tbody>
     </table>
@@ -78,7 +70,7 @@
                             Por favor, confirma tu nueva contraseña.
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                    <button type="submit" class="btn btn-secondary">Cambiar Contraseña</button>
                 </form>
             </div>
         </div>

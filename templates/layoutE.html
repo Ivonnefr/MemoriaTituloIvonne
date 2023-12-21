@@ -18,16 +18,19 @@
   <body>
     <nav class="navbar navbar-expand-sm justify-content-center fixed-top">
       <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('dashDocente',supervisor_id=supervisor_id) }}">Nueva plataforma DIICC</a>
-        </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('cuentaDocente', supervisor_id=supervisor_id) }}">Cuenta</a>
-        </li> 
+          <a class="nav-link" href="{{ url_for('dashEstudiante', estudiante_id=estudiante_id) }}">Nueva Plataforma DIICC</a>
+        </li>
+
+
+        <li class="nav-item">
+          <a class="nav-link" href="{{url_for('cuentaEstudiante', estudiante_id=estudiante_id)}}">Cuenta</a>
+        </li>
         <li class="nav-item">
           <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
         </li> 
+
       </ul>
     </nav>  
 

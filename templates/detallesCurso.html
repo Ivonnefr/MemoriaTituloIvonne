@@ -21,6 +21,16 @@
     <div class="col-12 mb-3">
       <div class="row">
         <div class="col-md-3 mb-3">
+          <form method="post" action="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}">
+
+          {% if curso.activa %}
+              <button type="submit" name="activar_inactivar" value="desactivar" class="btn btn-success btn-block">Activo</button>
+          {% else %}
+              <button type="submit" name="activar_inactivar" value="activar" class="btn btn-danger btn-block">Inactivo</button>
+          {% endif %}
+        </form>
+      </div>
+        <div class="col-md-3 mb-3">
           <a href="{{ url_for('asignarGrupos', supervisor_id=supervisor_id, curso_id=curso.id) }}" class="btn btn-secondary btn-block">Asignar nuevo grupo</a>
         </div>
         <div class="col-md-3 mb-3">
@@ -110,6 +120,26 @@
         
         </div>
       </div>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5>Series en este curso</h5>
+        </div>
+        <div class="card-body">
+          {% if series_asignadas|length == 0 %}
+            <p class="card-text">No hay series asignadas</p>
+          {% endif %}
+          {% for serie in series_asignadas %}
+            <p class="card-text">
+              <a class="card-text" href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}">
+                {{ serie.nombre }}
+              </a>
+            </p>
+          {% endfor %}
+        </div>
+      </div>
+      
+
+
     </div>
   </div>
 </div>

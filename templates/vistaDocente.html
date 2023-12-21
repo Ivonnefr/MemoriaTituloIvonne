@@ -64,7 +64,8 @@ Vista Docente
 
 
 <div class="container mt-5">
-  <ul class="list-group list-group-flush">
+  <div class="list-group"> <!-- Agregar la clase list-group -->
+    <h4 class="list-group-item serie-item">Series de ejercicios</h4>
     {% for serie in series %}
       <a href="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}" class="list-group-item list-group-item-action"> 
         <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center">
@@ -79,12 +80,16 @@ Vista Docente
         </div>
       </a>
     {% endfor %}
-  </ul>
+  </div>
   <br>
 </div>
 
 
 <style>
+  .serie-item {
+    background-color: #340068; /* Ejemplo de color de fondo amarillo */
+    color: white; /* Ejemplo de color de texto azul oscuro */
+  }
   .card {
     transition: box-shadow 0.3s ease-in-out;
     border: 1px solid #9d6381ff; /* Color del borde normal */

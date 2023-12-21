@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "layoutE.html" %}
 
 {% block title %}Dashboard Estudiante{% endblock %}
 
@@ -10,7 +10,7 @@
     <div class="card-body p-4 rounded">
       <h2 class="card-title">Bienvenido, {{estudiante.nombres }} {{estudiante.apellidos}}</h2>
       <h4 class="card-text">{% if supervisor %}Tu supervisor es: {{supervisor.nombres}} {{supervisor.apellidos}}{% else %}No tienes supervisor asignado.{% endif %}</h4>
-      <h5 class="card-text">Perteneces a {{curso.nombre}}</h5>
+      <h5 class="card-text">{%if curso %} Perteneces a {{curso.nombre}} {%else%} No estás en ningun curso {%endif%}</h5>
 
       {% if grupo %}
         <h5 class="card-title">Estás asignado al: {{grupo.nombre}}</h5>

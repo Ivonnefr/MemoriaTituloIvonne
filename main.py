@@ -346,6 +346,34 @@ def dashDocente(supervisor_id):
 
     return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos, curso_seleccionado_id=curso_seleccionado_id,series=series)
 
+@app.route('/dashDocente/<int:supervisor_id>/cuentaDocente', methods=['GET', 'POST'])
+@login_required
+def cuentaDocente(supervisor_id):
+    if not verify_supervisor(supervisor_id):
+        return redirect(url_for('login'))
+    
+    supervisor = Supervisor.query.get(supervisor_id)
+
+    if request.method == 'POST':
+        contraseña_actual = request.form.get('contraseña_actual')
+        nueva_contraseña = request.form.get('nueva_contraseña')
+        confirmar_nueva_contraseña = request.form.get('confirmar_nueva_contraseña')
+
+        # Validaciones
+        if not check_password_hash(supervisor.password, contraseña_actual):
+            flash('Contraseña actual incorrecta', 'danger')
+        elif len(nueva_contraseña) < 10:
+            flash('La nueva contraseña debe tener al menos 6 caracteres', 'danger')
+        elif nueva_contraseña != confirmar_nueva_contraseña:
+            flash('Las nuevas contraseñas no coinciden', 'danger')
+        else:
+            # Cambiar la contraseña
+            supervisor.password = generate_password_hash(nueva_contraseña)
+            db.session.commit()
+            flash('Contraseña actualizada correctamente', 'success')
+
+    return render_template('cuentaDocente.html', supervisor=supervisor, supervisor_id=supervisor_id)
+
 
 @app.route('/dashDocente/<int:supervisor_id>/agregarSerie', methods=['GET', 'POST'])
 @login_required
@@ -375,8 +403,9 @@ def agregarSerie(supervisor_id):
         except Exception as e:
             db.session.rollback()
     return render_template('agregarSerie.html', supervisor_id=supervisor_id)
-
+    
 @app.route('/dashDocente/<int:supervisor_id>/agregarEjercicio', methods=['GET', 'POST'])
+@login_required
 def agregarEjercicio(supervisor_id):
     if not verify_supervisor(supervisor_id):
         return redirect(url_for('login'))
@@ -450,17 +479,37 @@ def agregarEjercicio(supervisor_id):
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
 
-@app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>')
+@app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>', methods=['GET', 'POST'])
 @login_required
 def detallesSeries(supervisor_id, serie_id):
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
+
     serie = Serie.query.get(serie_id)
     ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
-    return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id)
+    grupos_asociados = Grupo.query.join(serie_asignada).filter(serie_asignada.c.id_serie == serie.id).all()
+    
+    if request.method == 'POST':
+        if 'activar_desactivar' in request.form:
+            serie.activa = not serie.activa
+            db.session.commit()
+            return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
+        elif 'eliminar' in request.form:
+            # Manejar la lógica para eliminar la serie
+            db.session.commit()
+            flash('Serie eliminada correctamente.', 'success')
+            return redirect(url_for('nombre_de_tu_vista', supervisor_id=supervisor_id))
+        elif 'editar' in request.form:
+            # Manejar la lógica para editar la serie
+            serie.nombre = request.form.get('nombre')  # Ejemplo, actualiza el nombre desde el formulario
+            serie.descripcion = request.form.get('descripcion')  # Actualiza otros campos según sea necesario
+            db.session.commit()
+            flash('Serie editada correctamente.', 'success')
 
-@app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>')
+    return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id, grupos_asociados=grupos_asociados)
+
+@app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>', methods=['GET','POST'])
 @login_required
 def detallesEjercicio(supervisor_id, serie_id, ejercicio_id):
     if not verify_supervisor(supervisor_id):
@@ -530,26 +579,36 @@ def detallesCurso(supervisor_id, curso_id):
     grupos=Grupo.query.filter_by(id_curso=curso_id).all()
     series=Serie.query.all()
     estudiantes_curso = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
+    
+    series_asignadas = Serie.query.join(serie_asignada).filter(serie_asignada.c.id_grupo.in_([grupo.id for grupo in grupos])).all()
 
     if request.method == 'POST':
-        serie_seleccionada= request.form.get('series')
-        grupo_seleccionado = request.form.get('grupos')
-        try:
-            if serie_seleccionada and grupo_seleccionado: 
-                    db.session.execute(serie_asignada.insert().values(id_serie=serie_seleccionada, id_grupo=grupo_seleccionado))
-                    db.session.commit()
-                    flash('Serie asignada con éxito', 'success')
-                    grupos = Grupo.query.filter_by(id_curso=curso_actual.id).all()
-                    series = Serie.query.all()
-                    return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
-        except Exception as e:
-            current_app.logger.error(f'Ocurrió un error al agregar el ejercicio: {str(e)}')
-            db.session.rollback()
-            flash('Error al asignar la serie', 'danger')
-            return redirect(url_for('dashDocente', supervisor_id=supervisor_id))    
-
-
-    return(render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, estudiantes_curso=estudiantes_curso, series=series))
+        if 'activar_inactivar' in request.form:
+            accion = request.form['activar_inactivar']
+            if accion == 'activar':
+                curso_actual.activa = True
+            elif accion == 'desactivar':
+                curso_actual.activa = False
+            db.session.commit()
+            return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))
+        else:
+            serie_seleccionada= request.form.get('series')
+            grupo_seleccionado = request.form.get('grupos')
+            try:
+                if serie_seleccionada and grupo_seleccionado: 
+                        db.session.execute(serie_asignada.insert().values(id_serie=serie_seleccionada, id_grupo=grupo_seleccionado))
+                        db.session.commit()
+                        flash('Serie asignada con éxito', 'success')
+                        grupos = Grupo.query.filter_by(id_curso=curso_actual.id).all()
+                        series = Serie.query.all()
+                        return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+            except Exception as e:
+                current_app.logger.error(f'Ocurrió un error al agregar el ejercicio: {str(e)}')
+                db.session.rollback()
+                flash('Error al asignar la serie', 'danger')
+                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))    
+            
+    return render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, series_asignadas=series_asignadas, estudiantes_curso=estudiantes_curso, series=series)
 
 
 @app.route('/dashDocente/<int:supervisor_id>/asignarGrupos/<int:curso_id>', methods=['GET', 'POST'])
@@ -708,25 +767,24 @@ def progresoCurso(supervisor_id, curso_id):
     return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas)
 
 
-# DashBoard del estudiante. Aquí se muestran las series activas y las que ya han sido completadas
 @app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET', 'POST'])
 @login_required
 def dashEstudiante(estudiante_id):
-    # Uso la funcion de verificacion
+
     if not verify_estudiante(estudiante_id):
         return redirect(url_for('login'))
-    # Si el método es get muestra el dashBoard del Estudiante
-    # estudiante= Estudiante.query.get(estudiante_id)
+
     estudiante = db.session.get(Estudiante, int(estudiante_id))
 
-    # Obtiene el curso asignado al estudiante
     curso = (
         Curso.query
-        .join(inscripciones)  # Join con la tabla inscripciones
-        .filter(inscripciones.c.id_curso == Curso.id)
+        .join(inscripciones)
         .filter(inscripciones.c.id_estudiante == estudiante_id)
+        .filter(Curso.activa == True)
         .first()
     )
+    if not curso:
+        return render_template('vistaEstudiante.html', estudiante_id=estudiante_id, estudiante=estudiante, curso=None, grupo=None, supervisor=None, seriesAsignadas=None, ejerciciosPorSerie=None)
     # Obtiene el grupo asociado al estudiante
     grupo = (
         Grupo.query
@@ -940,6 +998,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     ejercicioAsignado.estado = False
                                     db.session.commit()
                                     errores= {"tipo": "danger", "titulo": "Errores en la ejecución de pruebas unitarias", "mensaje": resultadoTest}
+                                    current_app.logger.info(f'resultadoTest: {resultadoTest}')
                                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
                         except Exception as e:
                             db.session.rollback()
@@ -998,107 +1057,4 @@ if __name__ == '__main__':
 
 # ssh ivonne@pa3p2.inf.udec.cl
 # mail5@udec.cl
-
-
-# try:
-#                 ejercicioAsignado = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio.id).first()
-#                 #if(ejercicioAsignado.estado):
-#                     #flash('Ya aprobaste este ejercicio', 'success')
-#                     #return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=nuevoEjercicioAsignado.test_output, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,calificacion=calificacion, colors_info=colors_info)
-#                 if not ejercicioAsignado:
-#                     nuevoEjercicioAsignado = Ejercicio_asignado(
-#                     id_estudiante=estudiante_id,
-#                     id_ejercicio=ejercicio_id,
-#                     contador=0,
-#                     estado=False,
-#                     ultimo_envio=None,
-#                     fecha_ultimo_envio=datetime.now(),
-#                     test_output=None)
-#                     db.session.add(nuevoEjercicioAsignado)
-#                     db.session.flush()
-#                     rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
-#                     if os.path.exists(rutaSerieEstudiante):
-#                         # Si la ruta de la serie se creo exitosamente en la carpeta del estudiante
-#                         # Se crea la carpeta del ejercicio dentro de la carpeta de la serie
-#                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id,  ejercicio.path_ejercicio)
-#                         if os.path.exists(rutaEjercicioEstudiante):
-#                             # Se creó exitosamente la carpeta con el ejercicio
-#                             # Ahora se añaden los archivos del estudiante a la carpeta
-#                             for archivo_java in archivos_java:
-#                                 rutaFinal = os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
-#                                 if archivo_java and archivo_java.filename.endswith('.java'):
-#                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
-#                             resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
-#                             if resultadoCompilacion:
-#                                 # Se compiló mal el archivo
-#                                 nuevoEjercicioAsignado.contador += 1
-#                                 nuevoEjercicioAsignado.ultimo_envio = rutaFinal
-#                                 nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-#                                 nuevoEjercicioAsignado.test_output = json.dumps(resultadoCompilacion)
-#                                 nuevoEjercicioAsignado.estado = False
-#                                 db.session.commit()
-#                                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info,calificacion=calificacion)
-#                             else:
-#                                 resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
-#                                 if resultadoTest:
-#                                     nuevoEjercicioAsignado.contador += 1
-#                                     nuevoEjercicioAsignado.ultimo_envio = rutaFinal
-#                                     nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-#                                     nuevoEjercicioAsignado.test_output = json.dumps(resultadoTest)
-#                                     nuevoEjercicioAsignado.estado = False
-#                                     db.session.commit()
-#                                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info,calificacion=calificacion)
-#                                 elif resultadoTest is None:
-#                                     nuevoEjercicioAsignado.contador +=1
-#                                     nuevoEjercicioAsignado.ultimo_envio = rutaFinal
-#                                     nuevoEjercicioAsignado.fecha_ultimo_envio = datetime.now()
-#                                     nuevoEjercicioAsignado.test_output = "Todos los test Aprobados"
-#                                     nuevoEjercicioAsignado.estado = True
-#                                     mensaje_aprobacion = " Felicidades, aprobaste el ejercicio"
-#                                     db.session.commit()
-#                                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id,mensaje_aprobacion=mensaje_aprobacion, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-#                 else:
-#                     if ejercicioAsignado.estado:
-#                         flash('Ya aprobaste este ejercicio', 'success')
-#                         mensaje_aprobacion= " Felicidades, aprobaste el ejercicio"
-#                         return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,mensaje_aprobacion=mensaje_aprobacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-#                     rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
-#                     if os.path.exists(rutaSerieEstudiante):
-#                         rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id, ejercicio.path_ejercicio)
-#                         if os.path.exists(rutaEjercicioEstudiante):
-#                             for archivo_java in archivos_java:
-#                                 rutaFinal= os.path.join(rutaEjercicioEstudiante, 'src/main/java/org/example')
-#                                 if archivo_java and archivo_java.filename.endswith('.java'):
-#                                     archivo_java.save(os.path.join(rutaFinal, archivo_java.filename))
-#                                 resultadoCompilacion = compilarProyecto(rutaEjercicioEstudiante)
-#                                 if resultadoCompilacion:
-#                                     ejercicioAsignado.contador += 1
-#                                     ejercicioAsignado.ultimo_envio = rutaFinal
-#                                     ejercicioAsignado.fecha_ultimo_envio= datetime.now()
-#                                     ejercicioAsignado.test_output = json.dumps(resultadoCompilacion)
-#                                     ejercicioAsignado.estado = False
-#                                     db.session.commit()
-#                                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, errores_compilacion=resultadoCompilacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-#                                 else:
-#                                     resultadoTest = ejecutarTestUnitario(rutaEjercicioEstudiante)
-#                                     if resultadoTest:
-#                                         ejercicioAsignado.contador += 1
-#                                         ejercicioAsignado.ultimo_envio = rutaFinal
-#                                         ejercicioAsignado.fecha_ultimo_envio = datetime.now()
-#                                         ejercicioAsignado.test_output = json.dumps(resultadoTest)
-#                                         ejercicioAsignado.estado = False
-#                                         db.session.commit()
-#                                         return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, errores_test=resultadoTest, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-#                                     elif resultadoTest is None:
-#                                         ejercicioAsignado.contador += 1
-#                                         ejercicioAsignado.ultimo_envio = rutaFinal
-#                                         ejercicioAsignado.fecha_ultimo_envio = datetime.now()
-#                                         ejercicioAsignado.test_output = "Todos los test Aprobados"
-#                                         ejercicioAsignado.estado = True
-#                                         mensaje_aprobacion = " Felicidades, aprobaste el ejercicio"
-#                                         db.session.commit()
-#                                         return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html,mensaje_aprobacion=mensaje_aprobacion, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados, colors_info=colors_info, calificacion=calificacion)
-#             except Exception as e:
-
-#                 current_app.logger.error(f'Ocurrió un error al crear el ejercicio asignado: {str(e)}')
-#                 return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+#gunicorn -w 2 -b 0.0.0.0:3000 main:app
