@@ -267,7 +267,7 @@ def register():
     supervisor = Supervisor.query.filter_by(correo=correo).first()
     if supervisor:
         flash('Ya existe un supervisor con ese correo.', 'warning')
-        return render_template('registersupervisor.html')
+        return render_template('register.html')
     
     # Crea el nuevo supervisor
     new_supervisor = Supervisor(
