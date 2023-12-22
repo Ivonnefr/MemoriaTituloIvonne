@@ -323,7 +323,7 @@ def dashDocente(supervisor_id):
             grupos = Grupo.query.filter_by(id_curso=curso_seleccionado_id).all()
             series = Serie.query.all()
             return render_template('vistaDocente.html', supervisor_id=supervisor_id, cursos=cursos, grupos=grupos, id_curso_seleccionado=curso_seleccionado_id,series=series)
-        if request.form['accion']=='asignarSeries':
+        if request.form['accion']=='asignarSeri189410.pts-0.pa3p2es':
             serie_seleccionada= request.form.get('series')
             grupo_seleccionado= request.form.get('grupos')
             try:
@@ -515,7 +515,7 @@ def detallesEjercicio(supervisor_id, serie_id, ejercicio_id):
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
-    ejercicio = Ejercicio.query.get(serie_id)
+    ejercicio = Ejercicio.query.get(ejercicio_id)
     if ejercicio and ejercicio.enunciado:
         with open(ejercicio.enunciado, 'r') as enunciado_file:
             enunciado_markdown = enunciado_file.read()
