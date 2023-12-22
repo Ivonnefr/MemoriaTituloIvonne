@@ -28,7 +28,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
+            <groupId>org.apache.commons</groupId>   
             <artifactId>commons-lang3</artifactId>
             <version>3.14.0</version>
         </dependency>
@@ -53,6 +53,11 @@
                             <groupId>org.junit.platform</groupId>
                             <artifactId>junit-platform-suite</artifactId>
                             <version>1.8.2</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.apache.commons</groupId>   
+                            <artifactId>commons-lang3</artifactId>
+                            <version>3.14.0</version>
                         </dependency>
                     </dependencies>
                 </plugin>
