@@ -122,3 +122,4 @@ def agregar_negrita_despues_flechas(html_lines):
         lines_con_negrita.append(str(soup))
 
     return lines_con_negrita
+

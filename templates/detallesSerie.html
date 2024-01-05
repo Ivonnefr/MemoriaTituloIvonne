@@ -15,12 +15,47 @@
 </div>
 
 <div class="container mt-5">
-{%if serie.activa%}
-    <h4>Estado: Activa</h4>
-{%else%}
-    <h4>Estado: Inactiva</h4>
-{%endif%}
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="row">
 
+                <div class="col-md-3 mb-3">
+                    <form method="post" action="{{ url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id) }}">
+                        {% if serie.activa %}
+                            <button type="submit" name="activar_desactivar" class="btn btn-success btn-block">Activa</button>
+                        {% else %}
+                            <button type="submit" name="activar_desactivar" class="btn btn-danger btn-block">Inactiva</button>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <button type="button" name="eliminar" id="eliminarBtn" class="btn btn-secondary btn-block" data-toggle="modal" data-target="#eliminarModal">Eliminar <svg fill="#dc3545" width="25px" height="25px" viewBox="0 0 24 24" version="1.2" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg"><path d="M12 4c-4.419 0-8 3.582-8 8s3.581 8 8 8 8-3.582 8-8-3.581-8-8-8zm3.707 10.293c.391.391.391 1.023 0 1.414-.195.195-.451.293-.707.293s-.512-.098-.707-.293l-2.293-2.293-2.293 2.293c-.195.195-.451.293-.707.293s-.512-.098-.707-.293c-.391-.391-.391-1.023 0-1.414l2.293-2.293-2.293-2.293c-.391-.391-.391-1.023 0-1.414s1.023-.391 1.414 0l2.293 2.293 2.293-2.293c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-2.293 2.293 2.293 2.293z"/></svg></button>
+                </div>
+                
+                
+                <div class="col-md-3 mb-3">
+                    <form id="formularioPrincipal" method="post" action="#" onsubmit="event.preventDefault(); enviarFormularioPrincipal();">
+                            <button type="button" name="editar" id="editarBtn" class="btn btn-secondary btn-block editarBtn">Editar <svg fill="#000000" width="18px" height="18px" viewBox="0 0 36 36" version="1.1"  preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                            <title>edit-solid</title>
+                            <path class="clr-i-solid clr-i-solid-path-1" d="M4.22,23.2l-1.9,8.2a2.06,2.06,0,0,0,2,2.5,2.14,2.14,0,0,0,.43,0L13,32,28.84,16.22,20,7.4Z"></path><path class="clr-i-solid clr-i-solid-path-2" d="M33.82,8.32l-5.9-5.9a2.07,2.07,0,0,0-2.92,0L21.72,5.7l8.83,8.83,3.28-3.28A2.07,2.07,0,0,0,33.82,8.32Z"></path>
+                            <rect x="0" y="0" width="36" height="36" fill-opacity="0"/>
+                        </svg> </button>                        
+                    </form>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                        <a href="{{url_for('agregarEjercicio', supervisor_id=supervisor_id, serie_id=serie.id)}}" class="btn btn-secondary btn-block">Agregar Ejercicio</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="container mt-5">
 {%if ejercicios %}
     <div class="list-group list-group-numbered">
         {%for ejercicio in ejercicios%}
@@ -34,5 +69,113 @@
 {%endif%}
 </div> 
 
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Grupos asociados a la serie</h5>
+            {% if grupos_asociados %}
+                <ul>
+                    {% for grupo in grupos_asociados %}
+                        <li>
+                            <a href="{{ url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=grupo.id_curso, grupo_id=grupo.id) }}">
+                                {{ grupo.nombre }}
+                            </a> --
+                            <a href="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=grupo.id_curso) }}">
+                                {{ grupo.curso.nombre }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No hay grupos asociados a esta serie.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
+<!-- Modal para Editar -->
+<div class="modal fade" id="editarModal" tabindex="-1" role="dialog" aria-labelledby="editarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarModalLabel">Editar Serie</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{{url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id)}}">
+                    <div class="form-group">
+                        <label for="nuevo_nombre">Nuevo Nombre:</label>
+                        <input type="text" name="nuevo_nombre" class="form-control" required>
+                        <div class="invalid-feedback">Ingresa un nuevo nombre</div>
+                    </div>
+
+                    <!-- Puedes agregar más campos para editar otros detalles de la serie -->
+
+                    <button type="submit" name="editar" class="btn btn-secondary">Guardar Cambios</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para Eliminar -->
+<div class="modal fade" id="eliminarModal" tabindex="-1" role="dialog" aria-labelledby="eliminarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="eliminarModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger">¿Estás seguro de eliminar la serie? También se eliminarán los ejercicios y los datos de los estudiantes.</p>
+            </div>
+            <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <!-- Asegúrate de que el nombre del botón sea "eliminar" -->
+                    <form id="eliminarForm" action="{{url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie.id)}}" method="post">
+                        <input type="hidden" name="confirmacion_eliminacion" value="true">
+                        <button type="submit" name="eliminar" class="btn btn-danger">Eliminar</button>
+                    </form>
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmarEliminacion() {
+        // Cambia el valor del campo de confirmación a "true"
+        document.querySelector('[name="confirmacion_eliminacion"]').value = "true";
+        // Envía el formulario
+        document.querySelector('form').submit();
+    }
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var editarBtn = document.querySelector('.editarBtn');
+
+        editarBtn.addEventListener('click', function () {
+            // Muestra el modal de edición
+            $('#editarModal').modal('show');
+        });
+
+        // Agrega un evento clic al botón de confirmar en el modal
+        var confirmarBtn = document.getElementById('confirmarEdicionBtn');
+        confirmarBtn.addEventListener('click', function () {
+            // Envía el formulario de edición
+            $('#editarModalForm').submit();
+        });
+    });
+
+    function enviarFormularioPrincipal() {
+        // Envía el formulario principal
+        document.getElementById('formularioPrincipal').submit();
+    }
+</script>
 {% endblock %}

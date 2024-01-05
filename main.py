@@ -393,7 +393,7 @@ def agregarSerie(supervisor_id):
             db.session.add(nueva_serie)
             db.session.flush()
             try:
-                crearCarpetaSerie(nueva_serie.id, nueva_serie.nombre)
+                crearCarpetaSerie(nueva_serie.id)
                 current_app.logger.info(f'Se creó la carpeta de la serie {nueva_serie.nombre} con éxito.')
                 db.session.commit()
             except Exception as e:
@@ -433,7 +433,7 @@ def agregarEjercicio(supervisor_id):
             db.session.add(nuevo_ejercicio)
             db.session.flush()
 
-            rutaEjercicio, rutaEnunciadoEjercicios, mensaje = crearCarpetaEjercicio(nuevo_ejercicio.id, id_serie,serie_actual.nombre)
+            rutaEjercicio, rutaEnunciadoEjercicios, mensaje = crearCarpetaEjercicio(nuevo_ejercicio.id, id_serie)
 
             if rutaEjercicio is None:
                 raise Exception(mensaje)
@@ -491,21 +491,37 @@ def detallesSeries(supervisor_id, serie_id):
     grupos_asociados = Grupo.query.join(serie_asignada).filter(serie_asignada.c.id_serie == serie.id).all()
     
     if request.method == 'POST':
+        current_app.logger.info(f'Formulario recibido: {request.form}')
         if 'activar_desactivar' in request.form:
             serie.activa = not serie.activa
             db.session.commit()
             return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
         elif 'eliminar' in request.form:
+            try:
+                # Eliminar los ejercicios que pertenecen a la serie
+                ejerciciosEnSerie = Ejercicio.query.filter_by(id_serie=serie_id).all()
+                
+                rutaEjercicios= 'ejerciciosPropuestos/'+str(serie.id)
+                rutaSerie= 'ejerciciosPropuestos/'+str(serie.id)
+
+
+
+
             # Manejar la lógica para eliminar la serie
-            db.session.commit()
+            current_app.logger.info(f'Eliminando la serie {serie.nombre}...')
             flash('Serie eliminada correctamente.', 'success')
-            return redirect(url_for('nombre_de_tu_vista', supervisor_id=supervisor_id))
+            return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
         elif 'editar' in request.form:
-            # Manejar la lógica para editar la serie
-            serie.nombre = request.form.get('nombre')  # Ejemplo, actualiza el nombre desde el formulario
-            serie.descripcion = request.form.get('descripcion')  # Actualiza otros campos según sea necesario
-            db.session.commit()
-            flash('Serie editada correctamente.', 'success')
+            try:
+                current_app.logger.info(f'Editando la serie {serie.nombre}...')
+                serie = Serie.query.get(serie_id)
+                serie.nombre = request.form.get('nuevo_nombre')
+                db.session.commit()
+                current_app.logger.info(f'Serie editada correctamente.')
+                return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
+            except Exception as e:
+                current_app.logger.danger(f'Ocurrió un error al editar la serie: {str(e)}')
+                db.session.rollback()
 
     return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id, grupos_asociados=grupos_asociados)
 
@@ -849,7 +865,10 @@ def detallesSeriesEstudiantes(estudiante_id, serie_id):
     ejercicios_aprobados = sum(1 for ea in ejercicios_asignados if ea.estado)
 
     total_ejercicios = len(ejercicios)
-    calificacion = calcular_calificacion(total_ejercicios, ejercicios_aprobados)
+    if total_ejercicios == 0:
+        calificacion = 0
+    else:
+        calificacion = calcular_calificacion(total_ejercicios, ejercicios_aprobados)
 
     return render_template('detallesSerieEstudiante.html', serie=serie, ejercicios=ejercicios, estudiante_id=estudiante_id,calificacion=calificacion)
 
@@ -921,7 +940,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     db.session.add(nuevoEjercicioAsignado)
                     db.session.flush()
                     try:
-                        rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
+                        rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id)
                         current_app.logger.info(f'Ruta serie estudiante: {rutaSerieEstudiante}')
                         if os.path.exists(rutaSerieEstudiante):
                             try:

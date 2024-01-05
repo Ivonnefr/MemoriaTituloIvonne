@@ -17,9 +17,9 @@ def agregarCarpetaEjercicioEstudiante(rutaSerie, ejercicio_id, ejercicio_path):
 
     return rutaEjercicioEstudiante
 
-def agregarCarpetaSerieEstudiante(rutaArchivador, serie_id, serie_nombre):
+def agregarCarpetaSerieEstudiante(rutaArchivador, serie_id):
     try:
-        rutaSerieEstudiante = os.path.join(rutaArchivador, f"{serie_id}_{serie_nombre}")
+        rutaSerieEstudiante = os.path.join(rutaArchivador, f"Serie_{serie_id}")
         if os.path.exists(rutaSerieEstudiante):
             return rutaSerieEstudiante
         else:
@@ -40,11 +40,11 @@ def crearArchivadorEstudiante(matricula):
     return rutaEstudiante
 
 
-def crearCarpetaEjercicio(id_ejercicio, id_serie, serie_nombre):
+def crearCarpetaEjercicio(id_ejercicio, id_serie):
     rutaBase = "ejerciciosPropuestos/"
-    rutaSerie = os.path.join(rutaBase, f"{id_serie}_{serie_nombre}")
+    rutaSerie = os.path.join(rutaBase, f"Serie_{id_serie}")
     nombreCarpetaEjercicio = os.path.join(rutaSerie, "Ejercicio_" + str(id_ejercicio))
-    rutaEnunciados = os.path.join("enunciadosEjercicios/", f"{id_serie}_{serie_nombre}")
+    rutaEnunciados = os.path.join("enunciadosEjercicios/", f"Serie_{id_serie}")
     rutaFinalEnunciado = os.path.join(rutaEnunciados, "Ejercicio_" + str(id_ejercicio))
 
     if os.path.exists(rutaFinalEnunciado) or os.path.exists(nombreCarpetaEjercicio):
@@ -58,14 +58,14 @@ def crearCarpetaEjercicio(id_ejercicio, id_serie, serie_nombre):
         return None, None, f"Error al crear las carpetas: {str(e)}"
 
 
-def crearCarpetaSerie(id_serie, serie_nombre):
+def crearCarpetaSerie(id_serie):
     # Crea una carpeta para una serie específica
     rutaBase = "ejerciciosPropuestos/"
     rutaEnunciados= "enunciadosEjercicios/"
-    nombreCarpetaEnunciados= f"{id_serie}_{serie_nombre}"
+    nombreCarpetaEnunciados= f"Serie_{id_serie}"
 
     # Crear la carpeta con el formato id_nombreSerie
-    nombre_carpeta = f"{id_serie}_{serie_nombre}"
+    nombre_carpeta = f"Serie_{id_serie}"
     rutaSerie = os.path.join(rutaBase, nombre_carpeta)
     rutaFinalEnunciado= os.path.join(rutaEnunciados, nombreCarpetaEnunciados)
 
