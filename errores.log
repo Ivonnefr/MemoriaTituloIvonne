@@ -29,3 +29,19 @@
 [SQL: INSERT INTO ejercicio (nombre, path_ejercicio, enunciado, id_serie) VALUES (?, ?, ?, ?)]
 [parameters: ('Tienda mágica p2', '', '', '4')]
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2024-02-06 12:56:56,219] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'ejerciciosPropuestos/Serie_1'
+[2024-02-27 15:18:40,020] [ERROR] [main] Ocurrió un error al eliminar la serie: 'Table' object has no attribute 'query'
+[2024-02-27 15:22:56,507] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'ejerciciosPropuestos/Serie_1'
+[2024-02-29 11:26:11,997] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_1'
+[2024-02-29 12:06:09,174] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_3'
+[2024-02-29 14:43:21,485] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_2'
+[2024-02-29 14:48:46,200] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_6'
+[2024-02-29 14:51:40,090] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_4'
+[2024-02-29 14:52:05,362] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_1'
+[2024-02-29 14:54:31,634] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_7'
+[2024-02-29 14:55:00,254] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_5'
+[2024-02-29 14:56:14,596] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'ejerciciosPropuestos/Serie_1'
+[2024-02-29 14:57:53,338] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_3'
+[2024-02-29 14:58:46,268] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_2'
+[2024-02-29 15:00:15,556] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'ejerciciosPropuestos/Serie_2'
+[2024-02-29 15:00:24,820] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciadosPropuestos/Serie_4'
