@@ -726,8 +726,19 @@ def detallesGrupo(supervisor_id, curso_id, grupo_id):
     estudiantes = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
     # Obtener todos los estudiantes que pertenecen al grupo usando tabla asociacion estudiantes_grupos
     estudiantes_grupo = Estudiante.query.join(estudiantes_grupos).filter(estudiantes_grupos.c.id_grupo == grupo_id).all()
+    curso=Curso.query.get(curso_id)
+    return render_template('detallesGrupo.html', supervisor_id=supervisor_id, grupo=grupo, estudiantes_grupo=estudiantes_grupo, curso=curso)
+
+@app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>/detalleEstudiante/<int:estudiante_id>', methods=['GET', 'POST'])
+@login_required
+def detallesEstudiante(supervisor_id, curso_id, estudiante_id):
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    estudiante=Estudiante.query.get(estudiante_id)
+    cursos=Curso.query.all()
     
-    return render_template('detallesGrupo.html', supervisor_id=supervisor_id, grupo=grupo, estudiantes_grupo=estudiantes_grupo)
+    return render_template('detallesEstudiantes.html', supervisor_id=supervisor_id, estudiante=estudiante, cursos=cursos)
 
 @app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
 @login_required
@@ -1077,6 +1088,9 @@ def cuentaEstudiante(estudiante_id):
             flash('Contraseña actualizada correctamente', 'success')
 
     return render_template('cuentaEstudiante.html', estudiante=estudiante, estudiante_id=estudiante_id)
+
+
+
 
 #Funcion para ejecutar el script 404
 def pagina_no_encontrada(error):

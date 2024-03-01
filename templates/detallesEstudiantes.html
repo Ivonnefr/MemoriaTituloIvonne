@@ -1,0 +1,68 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+{{grupo.nombre}}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <br>
+    <a href="{{url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id)}}" class="btn btn-secondary">Volver</a>
+</div>
+
+<div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+        <h3>{{estudiante.nombre}}</h3>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <table class="table custom-table">
+        <tbody>
+            <tr>
+                <th>Nombre</th>
+                <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+            </tr>
+            <tr>
+                <th>Matrícula:</th>
+                <td>{{ estudiante.matricula }}</td>
+            </tr>
+            <tr>
+                <th>Correo:</th>
+                <td>{{ estudiante.correo }}</td>
+            </tr>
+            <tr>
+                <th>Carrera:</th>
+                <td>{{ estudiante.carrera }}</td>
+            </tr>
+            <tr>
+                <th>Cursos: </th>
+                <td>
+                    <ul>
+                        {%if cursos:%}
+                        {% for curso in cursos %}
+                        <li>{{ curso.nombre }}</li>
+                        {% endfor %}
+                        {%endif%}
+                    </ul>
+
+                </td> 
+            </tr>
+            <tr>
+                <th>Grupos: </th>
+                <td>
+                    <ul>
+                        {%if grupos:%}
+                        {% for grupo in grupos %}
+                        <li>{{ grupo.nombre }}</li>
+                        {% endfor %}
+                        {%endif%}
+                    </ul>
+                </td>
+            </tr>
+            
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
