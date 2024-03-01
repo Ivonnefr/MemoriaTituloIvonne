@@ -488,8 +488,13 @@ def detallesSeries(supervisor_id, serie_id):
 
     serie = Serie.query.get(serie_id)
     ejercicios = Ejercicio.query.filter_by(id_serie=serie_id).all()
-    grupos_asociados = Grupo.query.join(serie_asignada).filter(serie_asignada.c.id_serie == serie.id).all()
-    
+    grupos_asociados = None
+    if serie is not None:
+        grupos_asociados = Grupo.query.join(serie_asignada).filter(serie_asignada.c.id_serie == serie.id).all()
+    if serie is None:
+        grupos_asociados = None
+        ejercicios= None
+
     if request.method == 'POST':
         current_app.logger.info(f'Formulario recibido: {request.form}')
         if 'activar_desactivar' in request.form:
@@ -498,19 +503,35 @@ def detallesSeries(supervisor_id, serie_id):
             return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
         elif 'eliminar' in request.form:
             try:
-                # Eliminar los ejercicios que pertenecen a la serie
-                ejerciciosEnSerie = Ejercicio.query.filter_by(id_serie=serie_id).all()
-                
-                rutaEjercicios= 'ejerciciosPropuestos/'+str(serie.id)
-                rutaSerie= 'ejerciciosPropuestos/'+str(serie.id)
+                current_app.logger.info(f'Eliminando la serie {serie.nombre}...')
 
+                # Eliminar los ejercicios asociados a la serie
+                Ejercicio.query.filter_by(id_serie=serie_id).delete()
 
+                # Eliminar las asignaciones de serie a grupos
+                db.session.execute(serie_asignada.delete().where(serie_asignada.c.id_serie == serie.id))
 
+                # Eliminar la serie
+                db.session.delete(serie)
 
-            # Manejar la lógica para eliminar la serie
-            current_app.logger.info(f'Eliminando la serie {serie.nombre}...')
-            flash('Serie eliminada correctamente.', 'success')
-            return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
+                # Confirmar los cambios en la base de datos
+                db.session.commit()
+
+                # Eliminar los archivos asociados a la serie
+                rutaSerie = 'ejerciciosPropuestos/Serie_' + str(serie.id)
+                shutil.rmtree(rutaSerie)
+                rutaEnunciadoSerie = 'enunciadosEjercicios/Serie_' + str(serie.id)
+                shutil.rmtree(rutaEnunciadoSerie)
+                # Redireccionar y mostrar un mensaje de éxito
+                flash('Serie eliminada correctamente.', 'success')
+                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+            except Exception as e:
+                # Manejar errores y realizar rollback en caso de error
+                current_app.logger.error(f'Ocurrió un error al eliminar la serie: {str(e)}')
+                db.session.rollback()
+                flash('Ocurrió un error al eliminar la serie.', 'danger')
+                return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
+
         elif 'editar' in request.form:
             try:
                 current_app.logger.info(f'Editando la serie {serie.nombre}...')
@@ -522,7 +543,8 @@ def detallesSeries(supervisor_id, serie_id):
             except Exception as e:
                 current_app.logger.danger(f'Ocurrió un error al editar la serie: {str(e)}')
                 db.session.rollback()
-
+    if serie is None:
+        return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
     return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id, grupos_asociados=grupos_asociados)
 
 @app.route('/dashDocente/<int:supervisor_id>/serie/<int:serie_id>/ejercicio/<int:ejercicio_id>', methods=['GET','POST'])
