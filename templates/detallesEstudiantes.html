@@ -1,18 +1,18 @@
 {% extends 'layout.html' %}
 
 {% block title %}
-{{grupo.nombre}}
+{{estudiante.nombres}} {{estudiante.apellidos}}
 {% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <br>
-    <a href="{{url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id)}}" class="btn btn-secondary">Volver</a>
+    <a href="{{url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_actual.id)}}" class="btn btn-secondary">Volver</a>
 </div>
 
 <div class="container mt-5">
     <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
-        <h3>{{estudiante.nombre}}</h3>
+        <h3>{{estudiante.nombres}}</h3>
     </div>
 </div>
 
@@ -20,7 +20,7 @@
     <table class="table custom-table">
         <tbody>
             <tr>
-                <th>Nombre</th>
+                <th>Nombre completo</th>
                 <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
             </tr>
             <tr>
@@ -43,6 +43,8 @@
                         {% for curso in cursos %}
                         <li>{{ curso.nombre }}</li>
                         {% endfor %}
+                        {%else%}
+                        <li>No tiene cursos</li>
                         {%endif%}
                     </ul>
 
@@ -56,6 +58,8 @@
                         {% for grupo in grupos %}
                         <li>{{ grupo.nombre }}</li>
                         {% endfor %}
+                        {%else%}
+                        <li>No tiene grupos</li>
                         {%endif%}
                     </ul>
                 </td>

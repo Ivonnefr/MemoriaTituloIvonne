@@ -37,8 +37,8 @@
           <a href="{{ url_for('progresoCurso', supervisor_id=supervisor_id, curso_id=curso.id)}}" class="btn btn-secondary btn-block">Ver progreso del curso</a>
         </div>
         <div class="col-md-3 mb-3">
-          <a href="{{ url_for('progresoCurso', supervisor_id=supervisor_id, curso_id=curso.id)}}" class="btn btn-secondary btn-block">Activar Curso</a>
-        </div>
+          <button type="button" name="eliminar" id="eliminarBtn" class="btn btn-secondary btn-block" data-toggle="modal" data-target="#eliminarModal">Eliminar <svg fill="#dc3545" width="25px" height="25px" viewBox="0 0 24 24" version="1.2" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg"><path d="M12 4c-4.419 0-8 3.582-8 8s3.581 8 8 8 8-3.582 8-8-3.581-8-8-8zm3.707 10.293c.391.391.391 1.023 0 1.414-.195.195-.451.293-.707.293s-.512-.098-.707-.293l-2.293-2.293-2.293 2.293c-.195.195-.451.293-.707.293s-.512-.098-.707-.293c-.391-.391-.391-1.023 0-1.414l2.293-2.293-2.293-2.293c-.391-.391-.391-1.023 0-1.414s1.023-.391 1.414 0l2.293 2.293 2.293-2.293c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-2.293 2.293 2.293 2.293z"/></svg></button>
+      </div>
       </div>
     </div>
   </div>
@@ -84,10 +84,8 @@
           <h5>Asignar serie a grupo</h5>
         </div>
         <div class="card-body">
-          <form method="post" action="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}" id="asignarSeries" class="form-inline">
+          <form method="post" action="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}" name="asignarSerie" >
 
-            <input type="hidden" name="accion" value="asignarSeries">
-        
             <div class="form-group mr-2">
                 <label for="series" class="mr-2">Series:</label>
                 <select name="series" id="series" class="form-control">
@@ -113,9 +111,7 @@
                     {% endif %}
                 </select>
             </div>
-        
-            <button type="submit" class="btn btn-secondary">Asignar</button>
-        
+            <button type="submit" name="submit_action" value="asignarSerie" class="btn btn-secondary">Asignar</button>        
         </form>
         
         
@@ -145,7 +141,30 @@
   </div>
 </div>
 
-
+<!-- Modal para Eliminar -->
+<div class="modal fade" id="eliminarModal" tabindex="-1" role="dialog" aria-labelledby="eliminarModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title" id="eliminarModalLabel">Confirmar Eliminación</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <p class="text-danger">¿Estás seguro de eliminar el curso? Se perderán todos los datos de los estudiantes.</p>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+              <!-- Asegúrate de que el nombre del botón sea "eliminar" -->
+              <form id="eliminarForm" action="{{ url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso.id) }}" method="post" onsubmit="event.preventDefault(); confirmarEliminacion();">
+                <input type="hidden" name="eliminar" value="true">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>            
+          </div>
+      </div>
+  </div>
+</div>
 
 
 <style>
@@ -166,5 +185,20 @@
   
 
 </style>
+<!-- Script para mostrar el modal de confirmación -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var eliminarBtn = document.getElementById('eliminarBtn');
 
+      eliminarBtn.addEventListener('click', function () {
+          // Muestra el modal de confirmación
+          $('#eliminarModal').modal('show');
+      });
+  });
+
+  function confirmarEliminacion() {
+      // Envía el formulario para eliminar la serie
+      document.getElementById('eliminarForm').submit();
+  }
+</script>
 {% endblock %}

@@ -17,21 +17,64 @@
 </div>
 
 <div class="container mt-5">
-    <table class="table custom-table">
-        <thead class="thead-dark">
+  <div class="row">
+    <div class="col-12 mb-3">
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <a href="{{ url_for('eliminar', supervisor_id=supervisor_id, curso_id=curso.id,grupo_id=grupo.id) }}" class="btn btn-secondary btn-block">Renombrar</a>
+        </div>
+        <div class="col-md-3 mb-3">
+          <button type="button" name="eliminar" id="eliminarBtn" class="btn btn-secondary btn-block" data-toggle="modal" data-target="#eliminarModal">Eliminar <svg fill="#dc3545" width="25px" height="25px" viewBox="0 0 24 24" version="1.2" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg"><path d="M12 4c-4.419 0-8 3.582-8 8s3.581 8 8 8 8-3.582 8-8-3.581-8-8-8zm3.707 10.293c.391.391.391 1.023 0 1.414-.195.195-.451.293-.707.293s-.512-.098-.707-.293l-2.293-2.293-2.293 2.293c-.195.195-.451.293-.707.293s-.512-.098-.707-.293c-.391-.391-.391-1.023 0-1.414l2.293-2.293-2.293-2.293c-.391-.391-.391-1.023 0-1.414s1.023-.391 1.414 0l2.293 2.293 2.293-2.293c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-2.293 2.293 2.293 2.293z"/></svg></button>
+        </div>
+        <div class="col-md-3 mb-3">
+          <a href="{{ url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso.id, grupo_id=grupo.id)}}" class="btn btn-secondary btn-block">No c aun</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container mt-5">
+  <table class="table custom-table">
+      <thead class="thead-dark">
           <tr>
-            <th>Integrantes</th>
+              <th>Integrantes</th>
           </tr>
-        </thead>
-        <tbody>
+      </thead>
+      <tbody>
           {% for estudiante in estudiantes_grupo %}
           <tr>
-            <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+              <td><a href="{{url_for('detallesEstudiante', supervisor_id=supervisor_id, curso_id=curso.id, estudiante_id=estudiante.id)}}">{{ estudiante.nombres }} {{ estudiante.apellidos }}</a></td>
           </tr>
           {% endfor %}
-        </tbody>
-      </table>
+      </tbody>
+  </table>
 </div>
+<!-- Modal para Eliminar -->
+<div class="modal fade" id="eliminarModal" tabindex="-1" role="dialog" aria-labelledby="eliminarModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+      <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title" id="eliminarModalLabel">Confirmar Eliminación</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                  <span aria-hidden="true">&times;</span>
+              </button>
+          </div>
+          <div class="modal-body">
+              <p class="text-danger">¿Estás seguro de eliminar el grupo? Esta acción no se puede devolver</p>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+              <!-- Asegúrate de que el nombre del botón sea "eliminar" -->
+              <form id="eliminarForm" action="{{ url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso.id, grupo_id=grupo.id) }}" method="post" onsubmit="event.preventDefault(); confirmarEliminacion();">
+                <input type="hidden" name="eliminar" value="true">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>            
+          </div>
+      </div>
+  </div>
+</div>
+
 <style>
     .custom-table {
         border-collapse: separate;

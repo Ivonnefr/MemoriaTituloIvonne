@@ -543,6 +543,7 @@ def detallesSeries(supervisor_id, serie_id):
             except Exception as e:
                 current_app.logger.danger(f'Ocurrió un error al editar la serie: {str(e)}')
                 db.session.rollback()
+                return redirect(url_for('detallesSeries', supervisor_id=supervisor_id, serie_id=serie_id))
     if serie is None:
         return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
     return render_template('detallesSerie.html', serie=serie, ejercicios=ejercicios, supervisor_id=supervisor_id, grupos_asociados=grupos_asociados)
@@ -622,6 +623,7 @@ def detallesCurso(supervisor_id, curso_id):
 
     if request.method == 'POST':
         if 'activar_inactivar' in request.form:
+            current_app.logger.info(f'Activando o desactivando el curso {curso_actual.nombre}...')
             accion = request.form['activar_inactivar']
             if accion == 'activar':
                 curso_actual.activa = True
@@ -629,23 +631,82 @@ def detallesCurso(supervisor_id, curso_id):
                 curso_actual.activa = False
             db.session.commit()
             return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))
-        else:
+        elif 'submit_action' in request.form and request.form['submit_action'] == 'asignarSerie':
+            current_app.logger.info(f'Asignando serie a grupo...')
             serie_seleccionada= request.form.get('series')
             grupo_seleccionado = request.form.get('grupos')
             try:
                 if serie_seleccionada and grupo_seleccionado: 
-                        db.session.execute(serie_asignada.insert().values(id_serie=serie_seleccionada, id_grupo=grupo_seleccionado))
-                        db.session.commit()
-                        flash('Serie asignada con éxito', 'success')
-                        grupos = Grupo.query.filter_by(id_curso=curso_actual.id).all()
-                        series = Serie.query.all()
-                        return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+                    db.session.execute(serie_asignada.insert().values(id_serie=serie_seleccionada, id_grupo=grupo_seleccionado))
+                    db.session.commit()
+                    flash('Serie asignada con éxito', 'success')
+                    grupos = Grupo.query.filter_by(id_curso=curso_actual.id).all()
+                    series = Serie.query.all()
+                    return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))
             except Exception as e:
                 current_app.logger.error(f'Ocurrió un error al agregar el ejercicio: {str(e)}')
                 db.session.rollback()
                 flash('Error al asignar la serie', 'danger')
-                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))    
-            
+                return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))    
+        elif 'eliminar' in request.form:
+            try:
+                current_app.logger.info(f'Eliminando el curso {curso_actual.nombre}...')
+
+                # Obtener grupos, y series asignadas a el id_curso
+                grupos=Grupo.query.filter_by(id_curso=curso_id).all()
+                series_asignadas = Serie.query.join(serie_asignada).filter(serie_asignada.c.id_grupo.in_([grupo.id for grupo in grupos])).all()
+                
+                # Borrar los supervisores de los grupos                
+                db.session.execute(supervisores_grupos.delete().where(supervisores_grupos.c.id_grupo.in_([grupo.id for grupo in grupos])))
+                
+                # Guardar el id de las series asignadas a los grupos.
+                id_series_asignadas = [serie.id for serie in series_asignadas]
+
+                # Borrar las series asignadas a los grupos
+                db.session.execute(serie_asignada.delete().where(serie_asignada.c.id_grupo.in_([grupo.id for grupo in grupos])))
+                
+                # Obtener los id_estudiante de los grupos
+                estudiantesEnGrupos = db.session.query(estudiantes_grupos).filter(estudiantes_grupos.c.id_grupo.in_([grupo.id for grupo in grupos])).all()
+                
+                id_estudiantes_grupos = [estudiante.id_estudiante for estudiante in estudiantesEnGrupos]
+                
+                # Borrar en Ejercicio_asignado todos los registros que tengan el id_estudiante en estudiantesEnGrupos
+                ejercicios_a_eliminar=db.session.query(Ejercicio_asignado).filter(Ejercicio_asignado.id_estudiante.in_(id_estudiantes_grupos)).all()
+                if ejercicios_a_eliminar:
+                    for ejercicio in ejercicios_a_eliminar:
+                        db.session.delete(ejercicio)
+                        
+                # Borrar en tabla estudiantes_grupos, todos los grupos.
+                db.session.execute(estudiantes_grupos.delete().where(estudiantes_grupos.c.id_grupo.in_([grupo.id for grupo in grupos])))
+
+                # Borrar los grupos del curso
+                if grupos:
+                    for grupo in grupos:
+                        db.session.delete(grupo)
+
+                # Borrar las inscripciones de los estudiantes en el curso
+                db.session.execute(inscripciones.delete().where(inscripciones.c.id_curso == curso_id))
+
+                for id_estudiante in id_estudiantes_grupos:
+                    estudiante = Estudiante.query.get(id_estudiante)
+                    if estudiante:
+                        db.session.delete(estudiante)
+
+                # Borrar el curso
+                db.session.delete(curso_actual)
+
+                db.session.commit()
+                current_app.logger.info(f'Curso eliminado correctamente.')
+                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+            except Exception as e:
+                # Manejar errores y realizar rollback en caso de error
+                current_app.logger.error(f'Ocurrió un error al eliminar el curso: {str(e)}')
+                db.session.rollback()
+                flash('Ocurrió un error al eliminar el curso.', 'danger')
+                return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))
+        else:
+            current_app.logger.error(f'Acción no reconocida: {request.form}')
+            return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))
     return render_template('detallesCurso.html', supervisor_id=supervisor_id, curso=curso_actual, grupos=grupos, series_asignadas=series_asignadas, estudiantes_curso=estudiantes_curso, series=series)
 
 
@@ -723,33 +784,109 @@ def detallesGrupo(supervisor_id, curso_id, grupo_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
     grupo=Grupo.query.get(grupo_id)
+    curso=Curso.query.get(curso_id)
     estudiantes = Estudiante.query.filter(Estudiante.cursos.any(id=curso_id)).all()
     # Obtener todos los estudiantes que pertenecen al grupo usando tabla asociacion estudiantes_grupos
     estudiantes_grupo = Estudiante.query.join(estudiantes_grupos).filter(estudiantes_grupos.c.id_grupo == grupo_id).all()
     curso=Curso.query.get(curso_id)
+
+    if request.method == 'POST':
+        if 'eliminar' in request.form:
+            try:
+                # Eliminar serie_asignada
+                db.session.execute(serie_asignada.delete().where(serie_asignada.c.id_grupo.in_(grupo_id)))
+                
+                # Eliminar estudiantes_grupos
+                db.session.execute(estudiantes_grupos.delete().where(estudiantes_grupos.c.id_grupo.in_(grupo_id)))
+
+                # Eliminar en supervisores_grupos
+                db.session.execute(supervisores_grupos.delete().where(supervisores_grupos.c.id_grupo.in_(grupo_id)))
+
+                # Eliminar el grupo
+                db.session.delete(grupo)
+                db.session.commit()
+                current_app.logger.info(f'Grupo eliminado correctamente.')
+                return redirect(url_for('detallesCurso', supervisor_id=supervisor_id, curso_id=curso_id))
+            except Exception as e:
+                current_app.logger.error(f'Ocurrió un error al eliminar el grupo: {str(e)}')
+                db.session.rollback()
+                flash('Ocurrió un error al eliminar el grupo.', 'danger')
+                return redirect(url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso_id, grupo_id=grupo_id))
+        elif 'renombrar' in request.form:
+            current_app.logger.info(f'Recibiendo formulario para renombrar el grupo...')
+            try:
+                current_app.logger.info(f'Renombrando el grupo {grupo.nombre}...')
+                grupo.nombre = request.form.get('nuevo_nombre')
+                db.session.commit()
+                return redirect(url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso_id, grupo_id=grupo_id))
+            except Exception as e:
+                current_app.logger.error(f'Ocurrió un error al renombrar el grupo: {str(e)}')
+                db.session.rollback()
+                return redirect(url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso_id, grupo_id=grupo_id))
+
+    grupo=Grupo.query.get(grupo_id)
+    curso=Curso.query.get(curso_id)
+    # Obtener todos los estudiantes que pertenecen al grupo usando tabla asociacion estudiantes_grupos
+    estudiantes_grupo = Estudiante.query.join(estudiantes_grupos).filter(estudiantes_grupos.c.id_grupo == grupo_id).all()
     return render_template('detallesGrupo.html', supervisor_id=supervisor_id, grupo=grupo, estudiantes_grupo=estudiantes_grupo, curso=curso)
 
+@app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>/detalleGrupo/<int:grupo_id>/eliminarEstudiante', methods=['GET', 'POST'])
+@login_required
+def eliminarEstudiante(supervisor_id, curso_id, grupo_id):
+    curso= Curso.query.get(curso_id)
+    grupo=Grupo.query.get(grupo_id)
+
+    estudiantesEnGrupos = db.session.query(estudiantes_grupos).filter(estudiantes_grupos.c.id_grupo.in_([grupo.id])).all()
+    
+    id_estudiantes_grupos = [estudiante.id_estudiante for estudiante in estudiantesEnGrupos]
+    estudiantes=[]
+    for estudiante_id in id_estudiantes_grupos:
+        estudiante = Estudiante.query.get(estudiante_id)
+        if estudiante:
+            estudiantes.append(estudiante)
+            
+
+    return render_template('eliminarEstudiante.html', supervisor_id=supervisor_id, curso=curso, grupo=grupo, estudiantes=estudiantes)
+    
 @app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>/detalleEstudiante/<int:estudiante_id>', methods=['GET', 'POST'])
 @login_required
 def detallesEstudiante(supervisor_id, curso_id, estudiante_id):
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
-    estudiante=Estudiante.query.get(estudiante_id)
-    cursos=Curso.query.all()
     
-    return render_template('detallesEstudiantes.html', supervisor_id=supervisor_id, estudiante=estudiante, cursos=cursos)
-
-@app.route('/dashDocente/<int:supervisor_id>/editarGrupos/<int:grupo_id>', methods = ['GET', 'POST'])
-@login_required
-# Falta por implementar **
-def editarGrupos(supervisor_id):
-    return render_template('editarGrupos.html', supervisor_id=supervisor_id)
+    estudiante = Estudiante.query.get(estudiante_id)
+    cursos = []
+    grupos = []
+    
+    # Obtener cursos
+    consulta_cursos = db.session.query(inscripciones).filter_by(id_estudiante=estudiante_id, id_curso=curso_id).all()
+    if consulta_cursos:
+        for consulta in consulta_cursos:
+            curso = Curso.query.get(consulta.id_curso)
+            cursos.append(curso)
+    if not cursos:
+        cursos = None
+        grupos = None
+    # Obtener grupos
+    consulta_grupos = db.session.query(estudiantes_grupos).filter_by(id_estudiante=estudiante_id).all()
+    if consulta_grupos:
+        for consulta in consulta_grupos:
+            grupo = Grupo.query.get(consulta.id_grupo)
+            grupos.append(grupo)
+    if not grupos:
+        grupos = None
+        
+    curso_actual = Curso.query.get(curso_id)
+    current_app.logger.info(f'cursos: {cursos}, grupos: {grupos}')
+    
+    return render_template('detallesEstudiantes.html', supervisor_id=supervisor_id, estudiante=estudiante, curso_actual=curso_actual, cursos=cursos, grupos=grupos)
 
 # Ruta para ver el progreso de los estudiantes de un curso
 @app.route('/dashDocente/<int:supervisor_id>/progresoCurso/<int:curso_id>', methods=['GET', 'POST'])
 @login_required
 def progresoCurso(supervisor_id, curso_id):
+
     if not verify_supervisor(supervisor_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
@@ -814,6 +951,11 @@ def progresoCurso(supervisor_id, curso_id):
 
         return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas, ejercicios=ejercicios, colores_info=colores_info)
     return render_template('progresoCurso.html', supervisor_id=supervisor_id, curso=curso, estudiantes_curso=estudiantes_curso, series_asignadas=series_asignadas)
+
+
+###########################################################################################################################################
+###########################################################################################################################################
+###########################################################################################################################################
 
 
 @app.route('/dashEstudiante/<int:estudiante_id>', methods=['GET', 'POST'])
