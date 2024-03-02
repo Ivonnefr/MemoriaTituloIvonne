@@ -45,3 +45,37 @@
 [2024-02-29 14:58:46,268] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciados/Serie_2'
 [2024-02-29 15:00:15,556] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'ejerciciosPropuestos/Serie_2'
 [2024-02-29 15:00:24,820] [ERROR] [main] Ocurrió un error al eliminar la serie: [Errno 2] No such file or directory: 'enunciadosPropuestos/Serie_4'
+[2024-03-01 19:59:54,320] [ERROR] [main] Ocurrió un error al eliminar el curso: local variable 'estudiantes_grupos' referenced before assignment
+[2024-03-01 19:59:56,638] [ERROR] [main] Ocurrió un error al eliminar el curso: local variable 'estudiantes_grupos' referenced before assignment
+[2024-03-01 20:02:12,401] [ERROR] [main] Ocurrió un error al eliminar el curso: type object 'Ejercicio_asignado' has no attribute 'delete'
+[2024-03-01 20:05:42,111] [ERROR] [main] Ocurrió un error al eliminar el curso: type object 'Ejercicio_asignado' has no attribute 'id_serie'
+[2024-03-01 22:23:22,378] [ERROR] [main] Ocurrió un error al eliminar el curso: type object 'Grupo' has no attribute 'delete'
+[2024-03-01 22:28:05,946] [ERROR] [main] Ocurrió un error al eliminar el curso: type object 'Estudiante' has no attribute 'delete'
+[2024-03-01 22:28:19,878] [ERROR] [main] Ocurrió un error al eliminar el curso: Class 'sqlalchemy.engine.row.Row' is not mapped
+[2024-03-01 22:29:16,972] [ERROR] [main] Ocurrió un error al eliminar el curso: Class 'flask_sqlalchemy.model.DefaultMeta' is not mapped; was a class (basedatos.modelos.Ejercicio_asignado) supplied where an instance was required?
+[2024-03-01 22:31:45,164] [ERROR] [main] Ocurrió un error al eliminar el curso: Class 'sqlalchemy.engine.row.Row' is not mapped
+[2024-03-01 22:36:35,247] [ERROR] [main] Ocurrió un error al eliminar el curso: Class 'sqlalchemy.engine.row.Row' is not mapped
+[2024-03-02 00:08:43,247] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('accion', 'asignarSeries'), ('series', '1'), ('grupos', '1')])
+[2024-03-02 00:13:14,930] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('accion', 'asignarSeries'), ('series', '1'), ('grupos', '1')])
+[2024-03-02 00:13:31,857] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('accion', 'asignarSeries'), ('series', '1'), ('grupos', '1')])
+[2024-03-02 00:13:54,344] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('series', '1'), ('grupos', '1')])
+[2024-03-02 00:15:35,434] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('series', '1'), ('grupos', '1')])
+[2024-03-02 00:15:55,383] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('series', '7'), ('grupos', '1')])
+[2024-03-02 00:44:09,283] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('series', '1'), ('grupos', '1')])
+[2024-03-02 00:49:30,162] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('series', '1'), ('grupos', '1'), ('submit_action', 'asignarSerie')])
+[2024-03-02 00:51:25,666] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: serie_asignada.id_serie, serie_asignada.id_grupo
+[SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
+[parameters: ('1', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2024-03-02 00:51:37,486] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: serie_asignada.id_serie, serie_asignada.id_grupo
+[SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
+[parameters: ('7', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2024-03-02 01:16:15,290] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: serie_asignada.id_serie, serie_asignada.id_grupo
+[SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
+[parameters: ('1', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2024-03-02 01:16:18,376] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: serie_asignada.id_serie, serie_asignada.id_grupo
+[SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
+[parameters: ('7', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
