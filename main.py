@@ -86,6 +86,11 @@ def procesar_archivo_csv(filename, curso_id):
         reader = csv.reader(f)
         next(reader)  # Saltar la primera fila
         for row in reader:
+            if len(row) != 5:
+                # Manejar el error, por ejemplo, omitiendo esta fila o mostrando un mensaje de advertencia
+                current_app.logger.warning(f"La fila no tiene el formato esperado: {row}")
+                continue  # Saltar esta fila y continuar con la próxima
+            
             # Por cada fila, extraer los datos
             matricula, apellidos, nombres, correo, carrera = row
             password = generate_password_hash(matricula)  # Contraseña por defecto: hash de la matrícula
