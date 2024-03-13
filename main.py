@@ -146,21 +146,24 @@ def procesar_archivo_csv(filename, curso_id):
                     continue
 
 def calcular_calificacion(total_puntos, puntos_obtenidos):
-    porcentaje = (puntos_obtenidos / total_puntos) * 100
-
-    if porcentaje >= 60:
-        # Calcular la calificación para el rango de 4 a 7
-        calificacion = 4 + (3 / 40) * (porcentaje - 60)
+    if total_puntos == 0:
+        return "No hay ejercicios asignados"  # O cualquier mensaje de error adecuado
     else:
-        # Calcular la calificación para el rango de 1 a 4
-        calificacion = 1 + (3 / 60) * porcentaje
+        porcentaje = (puntos_obtenidos / total_puntos) * 100
 
-    calificacion = max(1, min(calificacion, 7))
+        if porcentaje >= 60:
+            # Calcular la calificación para el rango de 4 a 7
+            calificacion = 4 + (3 / 40) * (porcentaje - 60)
+        else:
+            # Calcular la calificación para el rango de 1 a 4
+            calificacion = 1 + (3 / 60) * porcentaje
 
-    # Redondear a dos decimales
-    calificacion = round(calificacion, 2)
+        calificacion = max(1, min(calificacion, 7))
 
-    return calificacion
+        # Redondear a dos decimales
+        calificacion = round(calificacion, 2)
+
+        return calificacion
 
 
 @login_manager.user_loader
@@ -474,7 +477,7 @@ def agregarEjercicio(supervisor_id):
             if rutaEnunciadoEjercicios is not None and os.path.exists(rutaEnunciadoEjercicios):
                 shutil.rmtree(rutaEnunciadoEjercicios)
             db.session.rollback()
-            return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
+            return redirect(url_for('agregarEjercicio', supervisor_id=supervisor_id, series=series))
 
     return render_template('agregarEjercicio.html', supervisor_id=supervisor_id, series=series)
 
@@ -555,6 +558,7 @@ def detallesEjercicio(supervisor_id, serie_id, ejercicio_id):
         flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
         return redirect(url_for('login'))
     ejercicio = Ejercicio.query.get(ejercicio_id)
+    serie= Serie.query.get(serie_id)
     if ejercicio and ejercicio.enunciado:
         with open(ejercicio.enunciado, 'r') as enunciado_file:
             enunciado_markdown = enunciado_file.read()
@@ -562,7 +566,78 @@ def detallesEjercicio(supervisor_id, serie_id, ejercicio_id):
     else:
         enunciado_html = "<p>El enunciado no está disponible.</p>"
 
-    return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id, enunciado=enunciado_html)
+    if request.method == "POST":
+        if 'editar' in request.form:
+
+            current_app.logger.info(f'Editando el ejercicio...{ejercicio.nombre}')
+            nombreEjercicio = request.form.get('nuevo_nombre')
+            enunciadoFile = request.files.get('enunciadoFile')
+            imagenesFiles = request.files.getlist('imagenesFiles')
+            unitTestFiles = request.files.getlist('archivosJava')
+            current_app.logger.info(f' ENUNCIADO: {enunciadoFile}')
+            if nombreEjercicio:
+                ejercicio.nombre=nombreEjercicio
+                current_app.logger.info(f'nuevo nombre: {nombreEjercicio}')
+                db.session.commit()
+            if enunciadoFile :
+                if os.path.exists(ejercicio.enunciado):
+                    path_enunciado = os.path.join("enunciadosEjercicios/", f"Serie_{serie.id}"+"/"+f"Ejercicio_{ejercicio.id}"+"/"+ str(ejercicio.id) + "_" + ejercicio.nombre + ".md")
+                    os.remove(ejercicio.enunciado)
+                enunciadoFile.save(path_enunciado)
+                ejercicio.enunciado = path_enunciado
+                current_app.logger.info(f'nuevo enunciado: {ejercicio.enunciado}')  
+                db.session.commit()
+
+            # if imagenesFiles :
+            #     for imagenFile in imagenesFiles:
+            #         imagen_filename = secure_filename(imagenFile.filename)
+            #         imagenFile.save(os.path.join(ejercicio.enunciado, imagen_filename))
+
+
+            if unitTestFiles :
+                try:
+                    # Define la ruta de la carpeta org/example
+                    ruta_carpeta = os.path.join(ejercicio.path_ejercicio , "src", "test", "java", "org")
+
+                    # Verifica si la carpeta existe
+                    if os.path.exists(ruta_carpeta):
+                        # Elimina todos los archivos en la carpeta
+                        for archivo in os.listdir(ruta_carpeta):
+                            ruta_archivo = os.path.join(ruta_carpeta, archivo)
+                            # Verifica si es un archivo y lo elimina
+                            if os.path.isfile(ruta_archivo):
+                                os.remove(ruta_archivo)
+
+                    # Guarda los nuevos archivos .java en la carpeta org/example
+                    for unitTestFile in unitTestFiles:
+                        nombre_archivo = secure_filename(unitTestFile.filename)
+                        # Construye la ruta completa para guardar el archivo en la carpeta org/example
+                        ruta_archivo = os.path.join(ruta_carpeta, nombre_archivo)
+                        # Guarda el archivo en la ruta construida
+                        unitTestFile.save(ruta_archivo)
+                    db.session.commit()
+                except Exception as e:
+                    current_app.logger.error(f'Ocurrió un error al guardar los archivos .java: {str(e)}')
+        elif 'eliminar' in request.form:
+            try:
+                current_app.logger.info(f'Eliminando el ejercicio {ejercicio.nombre}...')
+                Ejercicio_asignado.query.filter_by(id_ejercicio=ejercicio_id).delete()
+                db.session.delete(ejercicio)
+                try:
+                    shutil.rmtree(ejercicio.path_ejercicio)
+                    shutil.rmtree(ejercicio.enunciado)
+                except Exception as e:
+                    current_app.logger.error(f'Ocurrió un error al eliminar el ejercicio: {str(e)}')
+                
+            except Exception as e:
+                current_app.logger.error(f'Ocurrió un error al eliminar el ejercicio: {str(e)}')
+                db.session.rollback()
+                flash('Error al eliminar el ejercicio', 'danger')
+                return redirect(url_for('detallesSerie', supervisor_id=supervisor_id, serie_id=serie_id))
+            db.session.commit()
+            
+            return redirect(url_for('detallesEjercicio', supervisor_id=supervisor_id,serie_id=serie_id, ejercicio_id=ejercicio_id))
+    return render_template('detallesEjercicios.html', ejercicio=ejercicio, supervisor_id=supervisor_id, enunciado=enunciado_html, serie=serie)
 
 @app.route('/dashDocente/<int:supervisor_id>/registrarEstudiante', methods=['GET', 'POST'])
 @login_required
@@ -823,7 +898,8 @@ def detallesGrupo(supervisor_id, curso_id, grupo_id):
                 current_app.logger.error(f'Ocurrió un error al renombrar el grupo: {str(e)}')
                 db.session.rollback()
                 return redirect(url_for('detallesGrupo', supervisor_id=supervisor_id, curso_id=curso_id, grupo_id=grupo_id))
-
+        else :
+            current_app.logger.error(f'Acción no reconocida: {request.form}')
     grupo=Grupo.query.get(grupo_id)
     curso=Curso.query.get(curso_id)
     # Obtener todos los estudiantes que pertenecen al grupo usando tabla asociacion estudiantes_grupos
@@ -876,11 +952,72 @@ def detallesEstudiante(supervisor_id, curso_id, estudiante_id):
             grupos.append(grupo)
     if not grupos:
         grupos = None
-        
+
+    # Obtener series asignadas
+    series_asignadas = []
+    ejercicios= []
+    consulta_id_series = db.session.query(serie_asignada).filter(serie_asignada.c.id_grupo.in_([grupo.id for grupo in grupos])).all()
+    if consulta_id_series:
+        for consulta in consulta_id_series:
+            serie = Serie.query.get(consulta.id_serie)
+            ejercicios = Ejercicio.query.filter_by(id_serie=serie.id).all()
+            series_asignadas.append(serie)
+    if not series_asignadas:
+        series_asignadas = None
+    
+    # Obtener ejercicios asignados al estudiante
+    ejercicios_asignados = Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id).all()
+    
+    # Obtener los ejercicios de las series
+    # Crear una lista para almacenar los datos de los ejercicios
+    ejercicios = []
+    if ejercicios_asignados:
+        for ejercicio_asignado in ejercicios_asignados:
+            ejercicio = Ejercicio.query.get(ejercicio_asignado.id_ejercicio)
+            ejercicios.append(ejercicio)
+    
+    curso_actual = Curso.query.get(curso_id)
+    current_app.logger.info(f'series_asignadas: {series_asignadas}')
     curso_actual = Curso.query.get(curso_id)
     current_app.logger.info(f'cursos: {cursos}, grupos: {grupos}')
-    
-    return render_template('detallesEstudiantes.html', supervisor_id=supervisor_id, estudiante=estudiante, curso_actual=curso_actual, cursos=cursos, grupos=grupos)
+    current_app.logger.info(f'ejercicio: {ejercicios}, ejercicios_asignados: {ejercicios_asignados}')
+    return render_template('detallesEstudiantes.html', supervisor_id=supervisor_id, estudiante=estudiante, curso_actual=curso_actual, cursos=cursos, grupos=grupos,series_asignadas=series_asignadas, ejercicios_asignados=ejercicios_asignados)
+
+@app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>/detalleEstudiante/<int:estudiante_id>/examinarEjercicio/<int:ejercicio_id>', methods=['GET', 'POST'])
+@login_required
+def examinarEjercicio(supervisor_id, curso_id, estudiante_id, ejercicio_id):
+    if not verify_supervisor(supervisor_id):
+        flash('No tienes permiso para acceder a este dashboard. Debes ser un Supervisor.', 'danger')
+        return redirect(url_for('login'))
+    estudiante = Estudiante.query.get(estudiante_id)
+    ejercicio = Ejercicio.query.get(ejercicio_id)
+    ejercicio_asignado= Ejercicio_asignado.query.filter_by(id_estudiante=estudiante_id, id_ejercicio=ejercicio_id).first()
+    serie = Serie.query.get(ejercicio.id_serie)
+    grupo = Grupo.query.join(serie_asignada).filter(serie_asignada.c.id_serie == serie.id).first()
+    curso= Curso.query.get(curso_id)
+    estado = ejercicio_asignado.estado
+    test_output= ejercicio_asignado.test_output
+    fecha_ultimo_envio= ejercicio_asignado.fecha_ultimo_envio
+    contador= ejercicio_asignado.contador
+    test_output_dict = json.loads(test_output)
+    if ejercicio and ejercicio.enunciado:
+        with open(ejercicio.enunciado, 'r') as enunciado_file:
+            enunciado_markdown = enunciado_file.read()
+            enunciado_html = markdown.markdown(enunciado_markdown)
+    else:
+        enunciado_html = "<p>El enunciado no está disponible.</p>"
+
+    rutaEnvio = ejercicio_asignado.ultimo_envio
+    current_app.logger.info(f'rutaEnvio: {rutaEnvio}')
+    archivos_java=[]
+    # Obtener la lista de archivos .java en la carpeta
+    for archivo in os.listdir(rutaEnvio):
+        if archivo.endswith('.java'):
+            with open(os.path.join(rutaEnvio, archivo), 'r') as f:
+                contenido = f.read()
+                archivos_java.append({'nombre': archivo, 'contenido': contenido})
+
+    return render_template('examinarEjercicio.html', supervisor_id=supervisor_id, estudiante=estudiante, ejercicio=ejercicio, serie=serie, grupo=grupo, curso=curso, ejercicio_asignado=ejercicio_asignado, enunciado=enunciado_html, archivos_java=archivos_java, estado=estado, fecha_ultimo_envio=fecha_ultimo_envio, test_output=test_output_dict, contador=contador)
 
 # Ruta para ver el progreso de los estudiantes de un curso
 @app.route('/dashDocente/<int:supervisor_id>/progresoCurso/<int:curso_id>', methods=['GET', 'POST'])
@@ -1081,8 +1218,11 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
     ejercicios_aprobados = sum(1 for ea in ejercicios_asignados if ea.estado)
 
     total_ejercicios = len(ejercicios)
-    calificacion = calcular_calificacion(total_ejercicios, ejercicios_aprobados)
-
+    if total_ejercicios == 0:
+        calificacion=0
+    else:
+        calificacion = calcular_calificacion(total_ejercicios, ejercicios_aprobados)
+    
     if ejercicio and ejercicio.enunciado:
         with open(ejercicio.enunciado, 'r') as enunciado_file:
             enunciado_markdown = enunciado_file.read()
@@ -1165,7 +1305,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                     return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
             else:
                 try:
-                    rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id, serie.nombre)
+                    rutaSerieEstudiante = agregarCarpetaSerieEstudiante(rutaArchivador, serie.id)
                     if os.path.exists(rutaSerieEstudiante):
                         try:
                             rutaEjercicioEstudiante = agregarCarpetaEjercicioEstudiante(rutaSerieEstudiante, ejercicio.id,  ejercicio.path_ejercicio)

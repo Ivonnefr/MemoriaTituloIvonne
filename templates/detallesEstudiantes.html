@@ -64,9 +64,92 @@
                     </ul>
                 </td>
             </tr>
-            
         </tbody>
     </table>
 </div>
 
+<div class="container mt-5">
+    {% if series_asignadas %}
+        {% for serie in series_asignadas %}
+            <table class="table custom-series-table">
+                <thead>
+                    <tr>
+                        <th>{{ serie.nombre }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ejercicio in serie.ejercicios %}
+                        <tr>
+                            <td>
+                                {% for ejercicio_asignado in ejercicios_asignados %}
+                                    {% if ejercicio_asignado.id_ejercicio == ejercicio.id %}
+                                        <a href="{{ url_for('examinarEjercicio', supervisor_id=supervisor_id,curso_id=curso_actual.id, estudiante_id=estudiante.id, ejercicio_id=ejercicio.id) }}">{{ ejercicio.nombre }}</a>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% endif %}
+</div>
+
+
+
+<style>
+    .custom-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 5px;
+        overflow: hidden;
+        background-color: white;
+    }
+
+    .custom-table th,
+    .custom-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px; /* Ajusta el relleno según sea necesario */
+    }
+
+    .custom-table th:first-child,
+    .custom-table td:first-child {
+        background-color: #343a40;
+        color: white; /* Cambia el color del texto según sea necesario */
+    }
+
+    
+    .custom-series-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    
+    .custom-series-table th,
+    .custom-series-table td {
+        border: 1px solid #dee2e6;
+        padding: 10px; /* Ajusta el relleno según sea necesario */
+    }
+    
+    /* Estilo para la primera fila (nombre de la serie) */
+    .custom-series-table thead th {
+        background-color: #343a40;
+        color: white; /* Cambia el color del texto según sea necesario */
+    }
+    
+    /* Estilo para todas las celdas (incluyendo ejercicios) */
+    .custom-series-table th,
+    .custom-series-table td {
+        background-color: white; /* Fondo blanco para todas las celdas */
+    }
+    
+    /* Estilo para las filas restantes (nombres de los ejercicios) */
+    .custom-series-table tbody tr:not(:first-child) td {
+        color: white; /* Cambia el color del texto según sea necesario */
+    }
+    
+    
+    
+</style>
 {% endblock %}

@@ -79,3 +79,17 @@
 [SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
 [parameters: ('7', '1')]
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2024-03-02 13:35:26,279] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('nuevo_nombre', '213123123')])
+[2024-03-02 13:35:45,247] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('nuevo_nombre', '1211111111')])
+[2024-03-02 13:38:02,144] [ERROR] [main] Acción no reconocida: ImmutableMultiDict([('nuevo_nombre', '123123')])
+[2024-03-02 16:16:15,088] [ERROR] [main] Ocurrió un error al agregar el ejercicio: (sqlite3.IntegrityError) UNIQUE constraint failed: serie_asignada.id_serie, serie_asignada.id_grupo
+[SQL: INSERT INTO serie_asignada (id_serie, id_grupo) VALUES (?, ?)]
+[parameters: ('7', '1')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+[2024-03-05 00:41:58,541] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: agregarCarpetaSerieEstudiante() takes 2 positional arguments but 3 were given
+[2024-03-05 13:59:53,256] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: agregarCarpetaSerieEstudiante() takes 2 positional arguments but 3 were given
+[2024-03-05 13:59:59,931] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: agregarCarpetaSerieEstudiante() takes 2 positional arguments but 3 were given
+[2024-03-05 14:00:05,467] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: agregarCarpetaSerieEstudiante() takes 2 positional arguments but 3 were given
+[2024-03-05 14:00:14,894] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: agregarCarpetaSerieEstudiante() takes 2 positional arguments but 3 were given
+[2024-03-05 16:32:19,769] [ERROR] [main] Ocurrió un error al agregar la carpeta de la serie: agregarCarpetaSerieEstudiante() takes 2 positional arguments but 3 were given
+[2024-03-06 22:17:24,581] [ERROR] [main] Ocurrió un error al guardar los archivos .java: [Errno 2] No such file or directory: 'ejerciciosPropuestos/Serie_1/Ejercicio_1/src/test/java/org/example/Parte3Test.java'

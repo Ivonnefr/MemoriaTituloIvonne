@@ -1,0 +1,109 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+{{ ejercicio.nombre }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <br>
+    <a href="{{url_for('detallesEstudiante', supervisor_id=supervisor_id, curso_id=curso.id, estudiante_id=estudiante.id )}}" class="btn btn-secondary">Volver</a>
+</div>
+
+<div class="container mt-5">
+    <div class="card text-light bg-dark p-4 rounded mb-4 no-hover-effect">
+        <h3>{{ estudiante.nombres }} {{ estudiante.apellidos }}</h3>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <button id="mostrar-enunciado" class="btn btn-secondary">Mostrar Enunciado</button>
+    <div id="enunciado-ejercicio" class="enunciado-ejercicio" style="display: none;">
+        <br>
+        {{ enunciado|safe }}
+    </div>
+</div>
+
+<div class="container mt-5">
+    {% if archivos_java %}
+    <h4>Códigos del estudiante:</h4>
+    {% for archivo in archivos_java %}
+    <div class="code-container">
+        <h5>{{ archivo.nombre }}</h5>
+        <pre><code class="java">{{ archivo.contenido }}</code></pre>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p>No se encontraron archivos Java.</p>
+    {% endif %}
+    <h5>Enviado el {{fecha_ultimo_envio}} en {{contador}} intentos</h5>
+</div>
+
+
+
+<div class="container mt-5">
+    <div class="alert custom-alert {% if estado %}custom-alert-success{% else %}custom-alert-danger{% endif %}">
+        <h2>Test Output</h2>
+        <ul>
+            {% if estado %}
+                <li>Felicitaciones, aprobaste todos los test, puedes seguir con el siguiente ejercicio</li>
+            {% else %}
+                {% for line in test_output[:-1] %}
+                    <li>{{ line|replace('/home/ivonne/MemoriaTituloIvonne/ejerciciosEstudiantes/', '')|safe }}</li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var mostrarEnunciadoBtn = document.getElementById("mostrar-enunciado");
+        var enunciadoDiv = document.getElementById("enunciado-ejercicio");
+
+        mostrarEnunciadoBtn.addEventListener("click", function() {
+            if (enunciadoDiv.style.display === "none") {
+                enunciadoDiv.style.display = "block";
+                mostrarEnunciadoBtn.textContent = "Ocultar Enunciado";
+            } else {
+                enunciadoDiv.style.display = "none";
+                mostrarEnunciadoBtn.textContent = "Mostrar Enunciado";
+            }
+        });
+    });
+</script>
+
+<style>
+    .code-container {
+        border: 1px solid #ceccccff;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    .code-container {
+        border: 2px solid #9d6381ff;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    .code-container code {
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+    }
+    .custom-alert-success {
+        background-color: #E8F8E5;
+        border: 1px solid #28A745;
+        color: #28A745;
+    }
+    
+    .custom-alert-danger {
+        background-color: #FFEBEB;
+        border: 1px solid #DC3545;
+        color: #DC3545;
+    }
+    
+</style>
+{% endblock %}
+
