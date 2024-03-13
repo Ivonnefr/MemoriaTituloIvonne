@@ -655,35 +655,40 @@ def registrarEstudiantes(supervisor_id):
         return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id, cursos=cursos)
     
     if request.method == 'POST':
-        accion= request.form['accion']
-        
-        if accion == 'crearCurso':
-            #Procesar el formulario y agregarlo a la base de datos
-            nombre_curso = request.form['nombreCurso']
-            activa_value = True if request.form.get('activa') == "true" else False
-            if not (nombre_curso) :
-                flash('Por favor, complete todos los campos.', 'danger')
-            nuevo_curso= Curso(
-                nombre=nombre_curso,
-                activa=activa_value
-            )
-            db.session.add(nuevo_curso)
-            db.session.commit()
-            flash('Has creado exitosamente un nuevo Curso', 'success')
-            return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
-        
-        elif accion == 'registrarEstudiantes':
-            id_curso=request.form['curso']
-            listaClases = request.files['listaClases']
-            if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
-                filename = secure_filename(listaClases.filename)
-                listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
-                # Procesa el archivo y agrega a la bd
-                procesar_archivo_csv(filename, id_curso)
-
-                return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+        try:
+            accion= request.form['accion']
             
+            if accion == 'crearCurso':
+                #Procesar el formulario y agregarlo a la base de datos
+                nombre_curso = request.form['nombreCurso']
+                activa_value = True if request.form.get('activa') == "true" else False
+                if not (nombre_curso) :
+                    flash('Por favor, complete todos los campos.', 'danger')
+                nuevo_curso= Curso(
+                    nombre=nombre_curso,
+                    activa=activa_value
+                )
+                db.session.add(nuevo_curso)
+                db.session.commit()
+                flash('Has creado exitosamente un nuevo Curso', 'success')
+                return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
+            
+            elif accion == 'registrarEstudiantes':
+                id_curso=request.form['curso']
+                listaClases = request.files['listaClases']
+                if listaClases and allowed_file(listaClases.filename, ALLOWED_EXTENSIONS):
+                    filename = secure_filename(listaClases.filename)
+                    listaClases.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+                    # Procesa el archivo y agrega a la bd
+                    procesar_archivo_csv(filename, id_curso)
+
+                    return redirect(url_for('dashDocente', supervisor_id=supervisor_id))
+        except Exception as e:
+            current_app.logger.error(f'Ocurrió un error al registrar los estudiantes: {str(e)}')
+            db.session.rollback()
+            flash('Error al registrar los estudiantes', 'danger')
+            return redirect(url_for('registrarEstudiantes', supervisor_id=supervisor_id))
     return render_template('registrarEstudiantes.html', supervisor_id=supervisor_id)
 
 @app.route('/dashDocente/<int:supervisor_id>/detalleCurso/<int:curso_id>', methods=['GET','POST'])
