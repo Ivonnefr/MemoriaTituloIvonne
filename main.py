@@ -1288,7 +1288,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                         nuevoEjercicioAsignado.estado = True
                                         db.session.commit()
                                         errores = {"tipo": "success", "titulo": "Todos los test aprobados", "mensaje": resultadoTest}
-                                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+                                        return redirect(url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id))
                                     else:
                                         current_app.logger.info(f'El test no fue exitoso')
                                         nuevoEjercicioAsignado.contador += 1
@@ -1298,7 +1298,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                         nuevoEjercicioAsignado.estado = False
                                         db.session.commit()
                                         errores= {"tipo": "danger", "titulo": "Errores en la ejecución de pruebas unitarias", "mensaje": resultadoTest}
-                                        return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+                                        return redirect(url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id))
                             except Exception as e:
                                 current_app.logger.error(f'Ocurrió un error al agregar la carpeta del ejercicio: {str(e)}')
                                 db.session.rollback()
@@ -1333,7 +1333,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     ejercicioAsignado.estado = True
                                     db.session.commit()
                                     errores = {"tipo": "success", "titulo": "Todos los test aprobados", "mensaje": resultadoTest}
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+                                    return redirect(url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id))
                                 else:
                                     ejercicioAsignado.contador += 1
                                     ejercicioAsignado.ultimo_envio = rutaFinal
@@ -1343,7 +1343,7 @@ def detallesEjerciciosEstudiantes(estudiante_id, serie_id, ejercicio_id):
                                     db.session.commit()
                                     errores= {"tipo": "danger", "titulo": "Errores en la ejecución de pruebas unitarias", "mensaje": resultadoTest}
                                     current_app.logger.info(f'resultadoTest: {resultadoTest}')
-                                    return render_template('detallesEjerciciosEstudiante.html', serie=serie, ejercicio=ejercicio, errores=errores ,estudiante_id=estudiante_id, enunciado=enunciado_html, ejercicios=ejercicios, ejercicios_asignados=ejercicios_asignados,colors_info=colors_info, calificacion=calificacion)
+                                    return redirect(url_for('detallesEjerciciosEstudiantes', estudiante_id=estudiante_id, serie_id=serie.id, ejercicio_id=ejercicio.id))
                         except Exception as e:
                             db.session.rollback()
                             current_app.logger.error(f'Ocurrió un error al agregar la carpeta del ejercicio: {str(e)}')
